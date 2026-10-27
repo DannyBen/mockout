@@ -940,6 +940,68 @@ function saveProject() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 document.querySelector('#save-button').addEventListener('click', saveProject);
+
+function previewHTML(css) {
+  const margin = 20;
+  const left = Math.min(...state.boxes.map(box => box.x));
+  const top = Math.min(...state.boxes.map(box => box.y));
+  const right = Math.max(...state.boxes.map(box => box.x + box.w));
+  const bottom = Math.max(...state.boxes.map(box => box.y + box.h));
+  const boxes = [...canvas.querySelectorAll('.box')].map(element => {
+    const box = state.boxes.find(item => item.id === Number(element.dataset.id));
+    const copy = element.cloneNode(true);
+    copy.classList.remove('selected', 'drawing');
+    copy.querySelectorAll('.handle').forEach(handle => handle.remove());
+    copy.style.left = `${box.x - left + margin}px`;
+    copy.style.top = `${box.y - top + margin}px`;
+    return copy.outerHTML;
+  }).join('\n');
+  const width = right - left + margin * 2;
+  const height = bottom - top + margin * 2;
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Onion UI mock</title>
+<style>${css}</style>
+<style>
+  :root, body { background: #fff; }
+  body { min-height: 100vh; display: flex; }
+  #mock { position: relative; flex: none; width: ${width}px; height: ${height}px; margin: auto; }
+  .box { cursor: default; }
+</style>
+</head>
+<body><main id="mock">${boxes}</main></body>
+</html>`;
+}
+
+async function openPreview() {
+  const notice = document.querySelector('#notice');
+  if (!state.boxes.length) {
+    notice.textContent = 'Draw a box before opening a preview.';
+    notice.hidden = false;
+    return;
+  }
+  const tab = window.open('', '_blank');
+  if (!tab) {
+    notice.textContent = 'Allow pop-ups to open the preview.';
+    notice.hidden = false;
+    return;
+  }
+  try {
+    const response = await fetch(new URL('style.css', location.href));
+    if (!response.ok) throw new Error(`Could not load CSS (${response.status}).`);
+    const html = previewHTML(await response.text());
+    tab.location.replace(URL.createObjectURL(new Blob([html], { type: 'text/html' })));
+    notice.hidden = true;
+  } catch (error) {
+    tab.close();
+    notice.textContent = `Could not open preview: ${error.message}`;
+    notice.hidden = false;
+  }
+}
+document.querySelector('#preview-button').addEventListener('click', openPreview);
 document.querySelector('#open-button').addEventListener('click', () => document.querySelector('#open-file').click());
 document.querySelector('#open-file').addEventListener('change', async event => {
   const file = event.target.files?.[0];
