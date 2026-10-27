@@ -37,10 +37,13 @@
       <label class="field">Width <input id="box-width" type="number" min="1" step="1"></label>
       <label class="field">Height <input id="box-height" type="number" min="1" step="1"></label>
     </div>
-    <div class="three-fields">
+    <div class="two-fields">
       <label class="field">Radius <input id="box-radius" type="number" min="0" step="1"></label>
       <label class="field">Border <input id="box-border-width" type="number" min="0" step="1"></label>
-      <label class="field">Padding <input id="box-padding" type="number" min="0" step="1"></label>
+    </div>
+    <div class="two-fields">
+      <label class="field">Padding X <input id="box-padding-x" type="number" min="0" step="1" title="Left and right padding"></label>
+      <label class="field">Padding Y <input id="box-padding-y" type="number" min="0" step="1" title="Top and bottom padding"></label>
     </div>
     <div class="two-fields">
       <label class="field">Horizontal
@@ -81,6 +84,6 @@
 
   <input id="open-file" type="file" accept=".json,application/json" hidden>
   <p id="notice" role="alert" hidden></p>
-  <p class="help">V select · B draw · Drag moves contents · Alt+drag moves one box · Tab cycles boxes · Space+drag pans · Right-click properties</p>
+  <p class="help">V select · B draw · Drag auto-moves contained elements · Alt+drag moves one box · Tab cycles boxes · Space+drag pans · Right-click properties</p>
 </body>
 </html>

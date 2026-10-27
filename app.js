@@ -26,7 +26,7 @@ function validProject(value) {
     && value.swatches.every(s => typeof s.id === 'string' && typeof s.name === 'string' && /^#[0-9a-f]{6}$/i.test(s.color))
     && value.boxes.every(b => Number.isInteger(b.id) && ['x', 'y', 'w', 'h', 'radius', 'borderWidth'].every(k => Number.isFinite(b[k]))
       && b.w > 0 && b.h > 0 && typeof b.text === 'string'
-      && (b.padding === undefined || (Number.isFinite(b.padding) && b.padding >= 0))
+      && ['padding', 'paddingX', 'paddingY'].every(k => b[k] === undefined || (Number.isFinite(b[k]) && b[k] >= 0))
       && ['fill', 'textColor', 'borderColor'].every(k => b[k] === null || value.swatches.some(s => s.id === b[k]))
       && ['left', 'center', 'right'].includes(b.alignX) && ['top', 'center', 'bottom'].includes(b.alignY));
 }
@@ -55,6 +55,8 @@ const redoStack = [];
 const snapshot = () => JSON.stringify(state);
 const selectedBox = () => state.boxes.find(b => b.id === selectedId);
 const selectedBoxes = () => state.boxes.filter(b => selectedIds.has(b.id));
+const paddingX = box => box.paddingX ?? box.padding ?? 3;
+const paddingY = box => box.paddingY ?? box.padding ?? 3;
 function selectOnly(id) {
   selectedId = id;
   selectedIds = id === null ? new Set() : new Set([id]);
@@ -116,7 +118,7 @@ function render() {
       left: `${box.x}px`, top: `${box.y}px`, width: `${box.w}px`, height: `${box.h}px`,
       backgroundColor: colorOf(box.fill), color: colorOf(box.textColor),
       borderColor: colorOf(box.borderColor), borderWidth: `${box.borderWidth}px`,
-      borderRadius: `${box.radius}px`, padding: `${box.padding ?? 3}px`,
+      borderRadius: `${box.radius}px`, padding: `${paddingY(box)}px ${paddingX(box)}px`,
       justifyContent: { left: 'flex-start', center: 'center', right: 'flex-end' }[box.alignX],
       alignItems: { top: 'flex-start', center: 'center', bottom: 'flex-end' }[box.alignY],
     });
@@ -158,7 +160,8 @@ function renderInspector() {
   if (!box) return;
   for (const [field, value] of Object.entries({
     'box-text': box.text, 'box-width': box.w, 'box-height': box.h,
-    'box-radius': box.radius, 'box-border-width': box.borderWidth, 'box-padding': box.padding ?? 3,
+    'box-radius': box.radius, 'box-border-width': box.borderWidth,
+    'box-padding-x': paddingX(box), 'box-padding-y': paddingY(box),
     'box-align-x': box.alignX, 'box-align-y': box.alignY,
   })) {
     const input = document.getElementById(field);
@@ -223,7 +226,7 @@ function point(event) {
 function newBox(x, y) {
   return {
     id: state.nextId++, x, y, w: minimum(), h: minimum(), text: '',
-    fill: 's1', textColor: 's2', borderColor: 's3', borderWidth: 1, radius: 0, padding: 3,
+    fill: 's1', textColor: 's2', borderColor: 's3', borderWidth: 1, radius: 0, paddingX: 3, paddingY: 3,
     alignX: 'center', alignY: 'center',
   };
 }
@@ -416,7 +419,8 @@ function editText(id) {
   Object.assign(editor.style, {
     left: `${box.x}px`, top: `${box.y}px`, width: `${Math.max(60, box.w)}px`,
     height: `${Math.max(30, box.h)}px`, color: colorOf(box.textColor),
-    backgroundColor: colorOf(box.fill), textAlign: box.alignX, padding: `${box.padding ?? 3}px`,
+    backgroundColor: colorOf(box.fill), textAlign: box.alignX,
+    padding: `${paddingY(box)}px ${paddingX(box)}px`,
   });
   canvas.append(editor);
   textEditor = editor;
@@ -447,12 +451,21 @@ for (const [id, key, transform] of [
   ['box-height', 'h', value => Math.max(minimum(), snap(Number(value) || minimum()))],
   ['box-radius', 'radius', value => Math.max(0, Number(value) || 0)],
   ['box-border-width', 'borderWidth', value => Math.max(0, Number(value) || 0)],
-  ['box-padding', 'padding', value => Math.max(0, Number(value) || 0)],
+  ['box-padding-x', 'paddingX', value => Math.max(0, Number(value) || 0)],
+  ['box-padding-y', 'paddingY', value => Math.max(0, Number(value) || 0)],
   ['box-align-x', 'alignX', value => value],
   ['box-align-y', 'alignY', value => value],
 ]) {
   document.getElementById(id).addEventListener('change', event => {
-    if (selectedBox()) change(() => { selectedBox()[key] = transform(event.target.value); });
+    if (selectedBox()) change(() => {
+      const box = selectedBox();
+      if (key === 'paddingX' || key === 'paddingY') {
+        box.paddingX = paddingX(box);
+        box.paddingY = paddingY(box);
+        delete box.padding;
+      }
+      box[key] = transform(event.target.value);
+    });
   });
 }
 
