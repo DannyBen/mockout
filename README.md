@@ -36,7 +36,8 @@ up swatch names meant for the mock itself.
 ## Projects and previews
 
 Minimock keeps the current mock in the browser and can save or open a JSON
-project file. A preview opens the mock as a standalone HTML page with its CSS
+project file. You can also drop a JSON project onto the app to open it.
+A preview opens the mock as a standalone HTML page with its CSS
 embedded, ready for viewing or capturing without the editing controls or grid.
 
 Minimock is an early, deliberately small project. Its goal is to make a quick

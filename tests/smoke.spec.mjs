@@ -89,3 +89,29 @@ test('Ctrl+A selects canvas boxes but keeps native text selection in the editor'
   await page.keyboard.press('Enter');
   await expect(page.locator('.box').first().locator('.box-label')).toHaveText('Updated');
 });
+
+test('dropping a valid JSON project opens it, while an invalid one leaves it untouched', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('b');
+  await page.mouse.move(100, 140);
+  await page.mouse.down();
+  await page.mouse.move(200, 200);
+  await page.mouse.up();
+  const project = await page.evaluate(() => JSON.parse(localStorage.getItem('onion-ui-canvas-v1')));
+  await page.keyboard.press('Delete');
+  await expect(page.locator('.box')).toHaveCount(0);
+
+  const drop = content => page.evaluate(json => {
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([json], 'minimock.json', { type: 'application/json' }));
+    document.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: transfer }));
+    document.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }));
+  }, content);
+  await drop(JSON.stringify(project));
+  await expect(page.locator('.box')).toHaveCount(1);
+
+  await drop(JSON.stringify({ version: 2, boxes: [] }));
+  await expect(page.getByRole('alert')).toContainText('Could not open project');
+  await expect(page.locator('.box')).toHaveCount(1);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('onion-ui-canvas-v1')))).toEqual(project);
+});

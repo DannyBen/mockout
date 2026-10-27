@@ -1117,9 +1117,7 @@ async function openPreview() {
 }
 document.querySelector('#preview-button').addEventListener('click', openPreview);
 document.querySelector('#open-button').addEventListener('click', () => document.querySelector('#open-file').click());
-document.querySelector('#open-file').addEventListener('change', async event => {
-  const file = event.target.files?.[0];
-  if (!file) return;
+async function openProjectFile(file) {
   try {
     const loaded = JSON.parse(await file.text());
     if (!validProject(loaded)) throw new Error('This is not a Minimock project.');
@@ -1130,7 +1128,30 @@ document.querySelector('#open-file').addEventListener('change', async event => {
     notice.textContent = `Could not open project: ${error.message}`;
     notice.hidden = false;
   }
+}
+
+document.querySelector('#open-file').addEventListener('change', async event => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  await openProjectFile(file);
   event.target.value = '';
+});
+
+document.addEventListener('dragover', event => {
+  if (!event.dataTransfer?.types.includes('Files')) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'copy';
+});
+
+document.addEventListener('drop', event => {
+  if (!event.dataTransfer?.types.includes('Files')) return;
+  event.preventDefault();
+  if (event.dataTransfer.files.length === 1) openProjectFile(event.dataTransfer.files[0]);
+  else {
+    const notice = document.querySelector('#notice');
+    notice.textContent = 'Drop one JSON project file at a time.';
+    notice.hidden = false;
+  }
 });
 
 render();
