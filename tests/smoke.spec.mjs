@@ -236,3 +236,26 @@ test('bare arrows pan an empty selection and move a selected box', async ({ page
   expect(after).toBe(before + 10);
   expect(await pan()).toEqual({ x: -40, y: -40 });
 });
+
+test('P toggles box or canvas properties and remains a normal input character', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('p');
+  await expect(page.locator('#canvas-properties')).toBeVisible();
+  await page.keyboard.press('p');
+  await expect(page.locator('#inspector')).toBeHidden();
+
+  await page.keyboard.press('b');
+  await page.mouse.move(100, 140);
+  await page.mouse.down();
+  await page.mouse.move(200, 200);
+  await page.mouse.up();
+  await page.keyboard.press('p');
+  await expect(page.locator('#box-properties')).toBeVisible();
+  await page.keyboard.press('p');
+  await expect(page.locator('#inspector')).toBeHidden();
+
+  await page.keyboard.press('p');
+  await page.locator('#box-text').click();
+  await page.keyboard.press('p');
+  await expect(page.locator('#box-text')).toHaveValue('p');
+});

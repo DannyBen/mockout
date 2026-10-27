@@ -418,18 +418,25 @@ function openInspector(id = selectedId, focus = false) {
   if (focus) document.querySelector('#box-text').focus();
 }
 
+function openCanvasInspector(point = null) {
+  selectOnly(null);
+  inspectorOpen = true;
+  inspectorKind = 'canvas';
+  inspectorView = 'properties';
+  inspectorPoint = point || { x: 12, y: 12 };
+  render();
+  if (!point) {
+    inspectorPoint = { x: (window.innerWidth - inspector.offsetWidth) / 2,
+      y: (window.innerHeight - inspector.offsetHeight) / 2 };
+    positionInspector();
+  }
+}
+
 workspace.addEventListener('contextmenu', event => {
   const boxElement = event.target.closest('.box');
   event.preventDefault();
   if (boxElement) openInspector(Number(boxElement.dataset.id));
-  else {
-    selectOnly(null);
-    inspectorOpen = true;
-    inspectorKind = 'canvas';
-    inspectorView = 'properties';
-    inspectorPoint = { x: event.clientX, y: event.clientY };
-    render();
-  }
+  else openCanvasInspector({ x: event.clientX, y: event.clientY });
 });
 
 workspace.addEventListener('pointerdown', event => {
@@ -808,6 +815,13 @@ document.addEventListener('keydown', event => {
   }
   if (!ctrl && !event.altKey && event.key.toLowerCase() === 'v') { event.preventDefault(); setTool('select'); return; }
   if (!ctrl && !event.altKey && event.key.toLowerCase() === 'b') { event.preventDefault(); setTool('box'); return; }
+  if (!ctrl && !event.altKey && event.key.toLowerCase() === 'p') {
+    event.preventDefault();
+    if (inspectorOpen) { inspectorOpen = false; render(); }
+    else if (selectedIds.size === 1) openInspector(selectedId);
+    else if (!selectedIds.size) openCanvasInspector();
+    return;
+  }
   if ((event.key === 'Delete' || event.key === 'Backspace') && selectedIds.size) { event.preventDefault(); deleteSelected(); return; }
   if (event.key === 'Escape') {
     event.preventDefault();
