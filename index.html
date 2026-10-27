@@ -13,25 +13,27 @@
   </main>
 
   <div class="corner" aria-label="Canvas controls">
-    <button type="button" tabindex="-1" data-tool="select" title="Select tool (V)">Select</button>
-    <button type="button" tabindex="-1" data-tool="box" title="Box tool (B)">Box</button>
+    <button type="button" tabindex="-1" data-tool="select">Select</button>
+    <button type="button" tabindex="-1" data-tool="box">Box</button>
     <span class="divider"></span>
     <span class="small-label">Grid</span>
-    <button type="button" tabindex="-1" data-grid="40" title="40 pixel grid (1)">40</button>
-    <button type="button" tabindex="-1" data-grid="20" title="20 pixel grid (2)">20</button>
-    <button type="button" tabindex="-1" data-grid="10" title="10 pixel grid (3)">10</button>
-    <button type="button" tabindex="-1" data-grid="5" title="5 pixel grid (4)">5</button>
-    <button type="button" tabindex="-1" data-grid="0" title="No grid (5)">Off</button>
+    <button type="button" tabindex="-1" data-grid="40">40</button>
+    <button type="button" tabindex="-1" data-grid="20">20</button>
+    <button type="button" tabindex="-1" data-grid="10">10</button>
+    <button type="button" tabindex="-1" data-grid="5">5</button>
+    <button type="button" tabindex="-1" data-grid="0">Off</button>
     <span class="divider"></span>
-    <button type="button" tabindex="-1" id="open-button" title="Open project (Ctrl+O)">Open</button>
-    <button type="button" tabindex="-1" id="save-button" title="Save project (Ctrl+S)">Save</button>
+    <button type="button" tabindex="-1" id="open-button">Open</button>
+    <button type="button" tabindex="-1" id="save-button">Save</button>
   </div>
 
   <aside id="inspector" hidden aria-label="Selected box properties">
-    <header>
-      <strong>Box</strong>
-      <button type="button" id="delete-button" title="Delete box (Delete)">Delete</button>
+    <header id="inspector-header" hidden>
+      <button type="button" id="color-back">← Back</button>
+      <strong id="inspector-title"></strong>
+      <button type="button" id="delete-swatch" hidden>Delete</button>
     </header>
+    <section id="box-properties">
     <label class="field">Text <input id="box-text" type="text" placeholder="Optional text"></label>
     <div class="two-fields">
       <label class="field">Width <input id="box-width" type="number" min="1" step="1"></label>
@@ -42,8 +44,8 @@
       <label class="field">Border <input id="box-border-width" type="number" min="0" step="1"></label>
     </div>
     <div class="two-fields">
-      <label class="field">Padding X <input id="box-padding-x" type="number" min="0" step="1" title="Left and right padding"></label>
-      <label class="field">Padding Y <input id="box-padding-y" type="number" min="0" step="1" title="Top and bottom padding"></label>
+      <label class="field">Padding X <input id="box-padding-x" type="number" min="0" step="1"></label>
+      <label class="field">Padding Y <input id="box-padding-y" type="number" min="0" step="1"></label>
     </div>
     <div class="two-fields">
       <label class="field">Horizontal
@@ -58,29 +60,23 @@
       <div class="color-field"><span>Text</span><button type="button" data-color-property="textColor"></button></div>
       <div class="color-field"><span>Border</span><button type="button" data-color-property="borderColor"></button></div>
     </div>
-    <section class="swatch-section" aria-label="Shared swatches">
-      <h2>Swatches</h2>
+    </section>
+    <section id="swatch-chooser" hidden aria-label="Choose swatch">
       <div id="swatch-list"></div>
-      <p class="hint">Select a color above to assign or create a swatch. Edit a swatch here to update every box using it.</p>
+      <button type="button" id="new-swatch">New swatch</button>
+    </section>
+    <section id="swatch-editor" hidden aria-label="Swatch color picker">
+      <label class="editor-field">Name <input id="swatch-name" type="text" maxlength="60" placeholder="Swatch name"></label>
+      <label class="editor-field">Hex <input id="color-hex" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="RRGGBB"></label>
+      <div id="color-preview" aria-label="Color preview"></div>
+      <div class="editor-field">Mode <select id="color-mode" aria-label="Color mode"><option value="hsb">HSB</option><option value="rgb">RGB</option><option value="gray">Grayscale</option></select></div>
+      <div class="color-channel"><label for="channel-1" id="channel-1-label">H</label><input id="channel-1" type="range" min="0" max="360"><input id="channel-1-value" type="number" min="0" max="360" aria-label="Hue value"></div>
+      <div class="color-channel"><label for="channel-2" id="channel-2-label">S</label><input id="channel-2" type="range" min="0" max="100"><input id="channel-2-value" type="number" min="0" max="100" aria-label="Saturation value"></div>
+      <div class="color-channel"><label for="channel-3" id="channel-3-label">B</label><input id="channel-3" type="range" min="0" max="100"><input id="channel-3-value" type="number" min="0" max="100" aria-label="Brightness value"></div>
+      <button type="button" id="save-swatch">Save</button>
+      <p id="color-error" role="alert" hidden></p>
     </section>
   </aside>
-
-  <dialog id="color-dialog" aria-label="Choose color">
-    <form method="dialog">
-      <header><strong id="color-dialog-title">Color</strong><button value="cancel" aria-label="Close">×</button></header>
-      <div id="color-options"></div>
-      <div class="color-editor">
-        <label>Mode <select id="color-mode"><option value="rgb">RGB</option><option value="hsb">HSB</option></select></label>
-        <div class="color-channels">
-          <label><span id="channel-1-label">R</span><input id="channel-1" type="number" min="0" max="255"></label>
-          <label><span id="channel-2-label">G</span><input id="channel-2" type="number" min="0" max="255"></label>
-          <label><span id="channel-3-label">B</span><input id="channel-3" type="number" min="0" max="255"></label>
-        </div>
-        <div class="color-preview-row"><span id="color-preview"></span><code id="color-hex">#000000</code></div>
-        <button type="button" id="add-color">Create swatch &amp; use</button>
-      </div>
-    </form>
-  </dialog>
 
   <input id="open-file" type="file" accept=".json,application/json" hidden>
   <p id="notice" role="alert" hidden></p>

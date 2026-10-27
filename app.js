@@ -2,11 +2,11 @@ const STORAGE_KEY = 'onion-ui-canvas-v1';
 const workspace = document.querySelector('#workspace');
 const canvas = document.querySelector('#canvas');
 const inspector = document.querySelector('#inspector');
-const dialog = document.querySelector('#color-dialog');
 const toolButtons = [...document.querySelectorAll('[data-tool]')];
 const gridButtons = [...document.querySelectorAll('[data-grid]')];
 const colorButtons = [...document.querySelectorAll('[data-color-property]')];
 const channels = [1, 2, 3].map(n => document.querySelector(`#channel-${n}`));
+const channelValues = [1, 2, 3].map(n => document.querySelector(`#channel-${n}-value`));
 
 const freshState = () => ({
   version: 1,
@@ -43,12 +43,13 @@ let gesture = null;
 let lastBoxClick = null;
 let textEditor = null;
 let inspectorOpen = false;
+let inspectorView = 'properties';
 let tool = 'select';
 let spaceDown = false;
 let altDown = false;
 const view = { x: 0, y: 0, zoom: 1 };
 let colorTarget = null;
-let colorMode = 'rgb';
+let colorMode = 'hsb';
 let editorColor = '#6746b7';
 const undoStack = [];
 const redoStack = [];
@@ -64,6 +65,13 @@ function selectOnly(id) {
 }
 const swatch = id => state.swatches.find(s => s.id === id);
 const colorOf = id => swatch(id)?.color || 'transparent';
+function boxColor(box, property) {
+  if (inspectorOpen && inspectorView === 'edit' && colorTarget) {
+    if (colorTarget.editId && box[property] === colorTarget.editId) return editorColor;
+    if (!colorTarget.editId && box.id === selectedId && property === colorTarget.property) return editorColor;
+  }
+  return colorOf(box[property]);
+}
 const snap = n => state.grid ? Math.round(n / state.grid) * state.grid : Math.round(n);
 const minimum = () => state.grid || 5;
 
@@ -118,8 +126,8 @@ function render() {
     element.dataset.id = box.id;
     Object.assign(element.style, {
       left: `${box.x}px`, top: `${box.y}px`, width: `${box.w}px`, height: `${box.h}px`,
-      backgroundColor: colorOf(box.fill), color: colorOf(box.textColor),
-      borderColor: colorOf(box.borderColor), borderWidth: `${box.borderWidth}px`,
+      backgroundColor: boxColor(box, 'fill'), color: boxColor(box, 'textColor'),
+      borderColor: boxColor(box, 'borderColor'), borderWidth: `${box.borderWidth}px`,
       borderRadius: `${box.radius}px`, padding: `${paddingY(box)}px ${paddingX(box)}px`,
       justifyContent: { left: 'flex-start', center: 'center', right: 'flex-end' }[box.alignX],
       alignItems: { top: 'flex-start', center: 'center', bottom: 'flex-end' }[box.alignY],
@@ -160,6 +168,17 @@ function renderInspector() {
   const box = selectedIds.size === 1 && inspectorOpen ? selectedBox() : null;
   inspector.hidden = !box;
   if (!box) return;
+  document.querySelector('#box-properties').hidden = inspectorView !== 'properties';
+  document.querySelector('#swatch-chooser').hidden = inspectorView !== 'choose';
+  document.querySelector('#swatch-editor').hidden = inspectorView !== 'edit';
+  document.querySelector('#inspector-header').hidden = inspectorView === 'properties';
+  if (inspectorView !== 'properties') {
+    document.querySelector('#inspector-title').hidden = inspectorView === 'edit';
+    document.querySelector('#delete-swatch').hidden = inspectorView !== 'edit' || !colorTarget?.editId
+      || state.swatches.length <= 1 || state.boxes.some(item =>
+        ['fill', 'textColor', 'borderColor'].some(property => item[property] === colorTarget.editId));
+    if (inspectorView === 'choose') document.querySelector('#inspector-title').textContent = colorLabel(colorTarget.property);
+  }
   for (const [field, value] of Object.entries({
     'box-text': box.text, 'box-width': box.w, 'box-height': box.h,
     'box-radius': box.radius, 'box-border-width': box.borderWidth,
@@ -172,24 +191,45 @@ function renderInspector() {
   for (const button of colorButtons) {
     const id = box[button.dataset.colorProperty];
     const item = swatch(id);
-    button.replaceChildren(colorChip(item?.color), document.createTextNode(item?.name || 'None'));
+    const name = document.createElement('span');
+    name.className = 'swatch-name';
+    name.textContent = item?.name || 'Transparent';
+    button.replaceChildren(colorChip(item?.color), name);
   }
+  if (inspectorView === 'choose') renderSwatchList();
+  positionInspector();
+}
+
+const colorLabel = property => ({ fill: 'Fill', textColor: 'Text', borderColor: 'Border' })[property];
+
+function renderSwatchList() {
   const list = document.querySelector('#swatch-list');
   list.replaceChildren();
+  if (colorTarget.property !== 'textColor') {
+    const none = document.createElement('button');
+    none.type = 'button';
+    none.className = 'swatch-choice';
+    none.append(colorChip(null), document.createTextNode('Transparent'));
+    none.addEventListener('click', () => assignColor(null));
+    list.append(none);
+  }
   for (const item of state.swatches) {
     const row = document.createElement('div');
     row.className = 'swatch-row';
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.title = `Edit ${item.name}; changes every box using it`;
-    button.append(colorChip(item.color), document.createTextNode(item.name));
-    button.addEventListener('click', () => openColor({ kind: 'edit', id: item.id }));
-    const code = document.createElement('code');
-    code.textContent = item.color;
-    row.append(button, code);
+    const choice = document.createElement('button');
+    choice.type = 'button';
+    choice.className = 'swatch-choice';
+    choice.append(colorChip(item.color), document.createTextNode(item.name));
+    choice.addEventListener('click', () => assignColor(item.id));
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.className = 'swatch-edit';
+    edit.textContent = 'Edit';
+    edit.setAttribute('aria-label', `Edit ${item.name}`);
+    edit.addEventListener('click', () => openSwatchEditor(item.id));
+    row.append(choice, edit);
     list.append(row);
   }
-  positionInspector();
 }
 
 function positionInspector() {
@@ -226,9 +266,11 @@ function point(event) {
 }
 
 function newBox(x, y) {
+  const initialSwatch = color => state.swatches.find(item => item.color === color)?.id ?? state.swatches[0]?.id ?? null;
   return {
     id: state.nextId++, x, y, w: minimum(), h: minimum(), text: '',
-    fill: 's1', textColor: 's2', borderColor: 's3', borderWidth: 1, radius: 0, paddingX: 3, paddingY: 3,
+    fill: initialSwatch('#ffffff'), textColor: initialSwatch('#253047'), borderColor: initialSwatch('#aeb6c5'),
+    borderWidth: 1, radius: 0, paddingX: 3, paddingY: 3,
     alignX: 'center', alignY: 'center',
   };
 }
@@ -261,6 +303,7 @@ function openInspector(id = selectedId, focus = false) {
   if (id === null) return;
   selectOnly(id);
   inspectorOpen = true;
+  inspectorView = 'properties';
   render();
   if (focus) document.querySelector('#box-text').focus();
 }
@@ -300,7 +343,10 @@ workspace.addEventListener('pointerdown', event => {
         event.preventDefault();
         return;
       }
-      if (!selectedIds.has(boxId)) selectOnly(boxId);
+      if (!selectedIds.has(boxId)) {
+        selectOnly(boxId);
+        inspectorView = 'properties';
+      }
       const box = state.boxes.find(b => b.id === boxId);
       const resizing = Boolean(event.target.dataset.handle);
       gesture = {
@@ -420,8 +466,8 @@ function editText(id) {
   editor.value = box.text;
   Object.assign(editor.style, {
     left: `${box.x}px`, top: `${box.y}px`, width: `${Math.max(60, box.w)}px`,
-    height: `${Math.max(30, box.h)}px`, color: colorOf(box.textColor),
-    backgroundColor: colorOf(box.fill), textAlign: box.alignX,
+    height: `${Math.max(30, box.h)}px`, color: boxColor(box, 'textColor'),
+    backgroundColor: boxColor(box, 'fill'), textAlign: box.alignX,
     padding: `${paddingY(box)}px ${paddingX(box)}px`,
   });
   canvas.append(editor);
@@ -471,7 +517,6 @@ function deleteSelected() {
     inspectorOpen = false;
   });
 }
-document.querySelector('#delete-button').addEventListener('click', deleteSelected);
 
 for (const button of gridButtons) {
   button.addEventListener('click', () => change(() => { state.grid = Number(button.dataset.grid); }));
@@ -579,14 +624,15 @@ document.addEventListener('keydown', event => {
       workspace.clientWidth / 2, workspace.clientHeight / 2);
     return;
   }
-  if (!dialog.open && inspectorOpen && event.key === 'Escape' && inspector.contains(document.activeElement)) {
+  if (inspectorOpen && event.key === 'Escape' && inspector.contains(document.activeElement)) {
     event.preventDefault();
-    inspectorOpen = false;
-    workspace.focus();
+    if (inspectorView === 'edit') inspectorView = 'choose';
+    else if (inspectorView === 'choose') inspectorView = 'properties';
+    else { inspectorOpen = false; workspace.focus(); }
     render();
     return;
   }
-  if (dialog.open || textEditor || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (textEditor || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if (event.code === 'Space' && !ctrl && !event.altKey) {
     event.preventDefault();
     if (!spaceDown) { spaceDown = true; render(); }
@@ -670,88 +716,150 @@ function hsbToRgb(h, s, v) {
   return parts.map(n => Math.round((n + m) * 255));
 }
 
-function showChannels() {
-  const hsb = colorMode === 'hsb';
-  const values = hsb ? rgbToHsb(...hexToRgb(editorColor)) : hexToRgb(editorColor);
-  ['channel-1-label', 'channel-2-label', 'channel-3-label'].forEach((id, i) => {
-    document.getElementById(id).textContent = (hsb ? ['H', 'S', 'B'] : ['R', 'G', 'B'])[i];
-    channels[i].max = hsb ? [360, 100, 100][i] : 255;
-    channels[i].value = values[i];
+function showColor() {
+  const rgb = colorMode === 'rgb';
+  const gray = colorMode === 'gray';
+  document.querySelector('#swatch-editor').classList.toggle('gray-mode', gray);
+  const values = gray ? [hexToRgb(editorColor)[0]]
+    : rgb ? hexToRgb(editorColor) : rgbToHsb(...hexToRgb(editorColor));
+  channels.forEach((input, i) => {
+    input.closest('.color-channel').hidden = gray && i > 0;
+    const label = (gray ? ['Gray', '', ''] : rgb ? ['R', 'G', 'B'] : ['H', 'S', 'B'])[i];
+    const max = rgb || gray ? 255 : [360, 100, 100][i];
+    input.max = max;
+    channelValues[i].max = max;
+    document.getElementById(`channel-${i + 1}-label`).textContent = label;
+    channelValues[i].setAttribute('aria-label', `${gray ? 'Gray' : rgb ? ['Red', 'Green', 'Blue'][i] : ['Hue', 'Saturation', 'Brightness'][i]} value`);
+    input.value = values[i] ?? 0;
+    channelValues[i].value = values[i] ?? 0;
   });
   document.querySelector('#color-preview').style.setProperty('--preview-color', editorColor);
-  document.querySelector('#color-hex').textContent = editorColor;
+  document.querySelector('#color-hex').value = editorColor.slice(1).toUpperCase();
+  document.querySelector('#color-error').hidden = true;
+  render();
 }
 
-function openColor(target) {
-  colorTarget = target;
-  colorMode = 'rgb';
-  document.querySelector('#color-mode').value = colorMode;
-  const editing = target.kind === 'edit';
-  document.querySelector('#color-dialog-title').textContent = editing ? `Edit ${swatch(target.id).name}` : 'Choose swatch';
-  document.querySelector('#add-color').textContent = editing ? 'Update shared swatch' : 'Create swatch & use';
-  const options = document.querySelector('#color-options');
-  options.replaceChildren();
-  options.hidden = editing;
-  if (editing) editorColor = swatch(target.id).color;
-  else {
-    const box = selectedBox();
-    editorColor = swatch(box?.[target.property])?.color || '#6746b7';
-    if (target.property !== 'textColor') {
-      const none = document.createElement('button');
-      none.type = 'button';
-      none.append(colorChip(null), document.createTextNode('Transparent'));
-      none.addEventListener('click', () => assignColor(null));
-      options.append(none);
-    }
-    for (const item of state.swatches) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.append(colorChip(item.color), document.createTextNode(`${item.name} · ${item.color}`));
-      button.addEventListener('click', () => assignColor(item.id));
-      options.append(button);
-    }
-  }
-  showChannels();
-  dialog.showModal();
+function openColor(property) {
+  colorTarget = { property, editId: null };
+  inspectorView = 'choose';
+  renderInspector();
+  document.querySelector('#swatch-list .swatch-choice')?.focus();
 }
 
 function assignColor(id) {
-  if (selectedBox() && colorTarget?.kind === 'assign') {
-    change(() => { selectedBox()[colorTarget.property] = id; });
-  }
-  dialog.close();
+  if (!selectedBox() || !colorTarget) return;
+  change(() => { selectedBox()[colorTarget.property] = id; });
+  inspectorView = 'properties';
+  renderInspector();
+  document.querySelector(`[data-color-property="${colorTarget.property}"]`).focus();
 }
 
-for (const button of colorButtons) {
-  button.addEventListener('click', () => openColor({ kind: 'assign', property: button.dataset.colorProperty }));
+function openSwatchEditor(id = null) {
+  colorTarget.editId = id;
+  const item = swatch(id);
+  editorColor = item?.color || swatch(selectedBox()?.[colorTarget.property])?.color || '#6746b7';
+  colorMode = 'hsb';
+  document.querySelector('#color-mode').value = colorMode;
+  document.querySelector('#swatch-name').value = item?.name || '';
+  inspectorView = 'edit';
+  renderInspector();
+  showColor();
+  document.querySelector('#swatch-name').focus();
 }
+
+for (const button of colorButtons) button.addEventListener('click', () => openColor(button.dataset.colorProperty));
+document.querySelector('#new-swatch').addEventListener('click', () => openSwatchEditor());
+document.querySelector('#color-back').addEventListener('click', () => {
+  inspectorView = inspectorView === 'edit' ? 'choose' : 'properties';
+  render();
+  if (inspectorView === 'choose') document.querySelector('#new-swatch').focus();
+  else document.querySelector(`[data-color-property="${colorTarget.property}"]`).focus();
+});
+document.querySelector('#delete-swatch').addEventListener('click', () => {
+  const id = colorTarget?.editId;
+  if (!id || state.swatches.length <= 1 || state.boxes.some(box =>
+    ['fill', 'textColor', 'borderColor'].some(property => box[property] === id))) return;
+  change(() => { state.swatches = state.swatches.filter(item => item.id !== id); });
+  inspectorView = 'choose';
+  colorTarget.editId = null;
+  renderInspector();
+  document.querySelector('#new-swatch').focus();
+});
 document.querySelector('#color-mode').addEventListener('change', event => {
   colorMode = event.target.value;
-  showChannels();
+  if (colorMode === 'gray') {
+    const [r, g, b] = hexToRgb(editorColor);
+    const value = Math.round(.299 * r + .587 * g + .114 * b);
+    editorColor = rgbToHex(value, value, value);
+  }
+  showColor();
 });
-for (const input of channels) {
-  input.addEventListener('input', () => {
-    const numbers = channels.map((field, i) => Math.max(0, Math.min(Number(field.max), Number(field.value) || 0)));
-    editorColor = rgbToHex(...(colorMode === 'hsb' ? hsbToRgb(...numbers) : numbers));
-    document.querySelector('#color-preview').style.setProperty('--preview-color', editorColor);
-    document.querySelector('#color-hex').textContent = editorColor;
-  });
+
+function updateFromChannels(source, index) {
+  const value = Math.max(0, Math.min(Number(source.max), Number(source.value) || 0));
+  channels[index].value = value;
+  channelValues[index].value = value;
+  const values = channels.map(input => Number(input.value));
+  editorColor = rgbToHex(...(colorMode === 'gray' ? [value, value, value]
+    : colorMode === 'hsb' ? hsbToRgb(...values) : values));
+  document.querySelector('#color-preview').style.setProperty('--preview-color', editorColor);
+  document.querySelector('#color-hex').value = editorColor.slice(1).toUpperCase();
+  document.querySelector('#color-error').hidden = true;
+  render();
 }
-document.querySelector('#add-color').addEventListener('click', () => {
-  if (!colorTarget) return;
-  if (colorTarget.kind === 'edit') {
-    change(() => { swatch(colorTarget.id).color = editorColor; });
+channels.forEach((input, i) => input.addEventListener('input', () => updateFromChannels(input, i)));
+channelValues.forEach((input, i) => input.addEventListener('input', () => updateFromChannels(input, i)));
+
+function readHex() {
+  const input = document.querySelector('#color-hex');
+  const value = input.value.trim().replace(/^#/, '');
+  if (!/^[0-9a-f]{6}$/i.test(value)) {
+    const error = document.querySelector('#color-error');
+    error.textContent = 'Enter six hex digits (RRGGBB).';
+    error.hidden = false;
+    return false;
+  }
+  useHex(value);
+  return true;
+}
+function useHex(value) {
+  editorColor = `#${value.toLowerCase()}`;
+  if (colorMode === 'gray' && new Set(hexToRgb(editorColor)).size > 1) {
+    colorMode = 'rgb';
+    document.querySelector('#color-mode').value = colorMode;
+  }
+  showColor();
+}
+document.querySelector('#color-hex').addEventListener('change', readHex);
+document.querySelector('#color-hex').addEventListener('input', event => {
+  const value = event.target.value.trim().replace(/^#/, '');
+  if (/^[0-9a-f]{6}$/i.test(value)) useHex(value);
+});
+
+document.querySelector('#save-swatch').addEventListener('click', () => {
+  if (!colorTarget || !readHex()) return;
+  const name = document.querySelector('#swatch-name').value.trim();
+  if (!name) {
+    const error = document.querySelector('#color-error');
+    error.textContent = 'Give the swatch a name.';
+    error.hidden = false;
+    document.querySelector('#swatch-name').focus();
+    return;
+  }
+  if (colorTarget.editId) {
+    change(() => { Object.assign(swatch(colorTarget.editId), { name, color: editorColor }); });
+    inspectorView = 'choose';
   } else {
     change(() => {
-      let item = state.swatches.find(s => s.color === editorColor);
-      if (!item) {
-        item = { id: `s${state.nextId++}`, name: `Color ${state.swatches.length + 1}`, color: editorColor };
-        state.swatches.push(item);
-      }
-      if (selectedBox()) selectedBox()[colorTarget.property] = item.id;
+      const id = `s${state.nextId++}`;
+      state.swatches.push({ id, name, color: editorColor });
+      selectedBox()[colorTarget.property] = id;
     });
+    inspectorView = 'properties';
   }
-  dialog.close();
+  renderInspector();
+  if (inspectorView === 'choose') document.querySelector('#new-swatch').focus();
+  else document.querySelector(`[data-color-property="${colorTarget.property}"]`).focus();
 });
 
 function saveProject() {
