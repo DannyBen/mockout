@@ -64,3 +64,28 @@ test('unsupported saved data stays untouched', async ({ page }) => {
   await expect(page.locator('.box')).toHaveCount(1);
   expect(await page.evaluate(() => localStorage.getItem('onion-ui-canvas-v1'))).toBe(saved);
 });
+
+test('Ctrl+A selects canvas boxes but keeps native text selection in the editor', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('b');
+  for (const [left, right] of [[100, 200], [250, 350]]) {
+    await page.mouse.move(left, 140);
+    await page.mouse.down();
+    await page.mouse.move(right, 200);
+    await page.mouse.up();
+  }
+  await page.getByRole('button', { name: 'Help' }).click();
+  await page.keyboard.press('Control+a');
+  await expect(page.locator('.box.selected')).toHaveCount(2);
+  expect(await page.evaluate(() => getSelection().toString())).toBe('');
+
+  await page.keyboard.press('Escape');
+  await page.locator('.box').first().click();
+  await page.keyboard.press('Enter');
+  await page.locator('.text-editor').fill('Original');
+  await page.keyboard.press('Control+a');
+  await page.keyboard.type('Updated');
+  await expect(page.locator('.text-editor')).toHaveValue('Updated');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.box').first().locator('.box-label')).toHaveText('Updated');
+});

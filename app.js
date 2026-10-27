@@ -762,6 +762,16 @@ document.addEventListener('keydown', event => {
     return;
   }
   if (textEditor || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (ctrl && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'a') {
+    event.preventDefault();
+    selectedIds = new Set(state.boxes.map(box => box.id));
+    selectedId = state.boxes[0]?.id ?? null;
+    inspectorOpen = false;
+    tool = 'select';
+    workspace.focus();
+    render();
+    return;
+  }
   if (event.key === '?' && !ctrl && !event.altKey) {
     event.preventDefault();
     if (!event.repeat) toggleHelp();
