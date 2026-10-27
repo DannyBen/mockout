@@ -85,7 +85,7 @@ test('Ctrl+A selects canvas boxes but keeps native text selection in the editor'
   await page.locator('.text-editor').fill('Original');
   await page.keyboard.press('Control+a');
   await page.keyboard.type('Updated');
-  await expect(page.locator('.text-editor')).toHaveValue('Updated');
+  await expect(page.locator('.text-editor')).toHaveText('Updated');
   await page.keyboard.press('Enter');
   await expect(page.locator('.box').first().locator('.box-label')).toHaveText('Updated');
 });
@@ -114,4 +114,29 @@ test('dropping a valid JSON project opens it, while an invalid one leaves it unt
   await expect(page.getByRole('alert')).toContainText('Could not open project');
   await expect(page.locator('.box')).toHaveCount(1);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('onion-ui-canvas-v1')))).toEqual(project);
+});
+
+test('text editing stays in the label position and preserves line breaks', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('b');
+  await page.mouse.move(100, 140);
+  await page.mouse.down();
+  await page.mouse.move(300, 240);
+  await page.mouse.up();
+  await page.keyboard.press('Enter');
+  await page.locator('.text-editor').fill('Control');
+  await page.keyboard.press('Enter');
+
+  const before = await page.locator('.box-label').boundingBox();
+  await page.keyboard.press('Enter');
+  const during = await page.locator('.text-editor').boundingBox();
+  expect(during.x).toBeCloseTo(before.x, 1);
+  expect(during.y).toBeCloseTo(before.y, 1);
+  await page.keyboard.press('End');
+  await page.keyboard.press('Shift+Enter');
+  await page.keyboard.type('Readout');
+  await page.keyboard.press('Enter');
+
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('onion-ui-canvas-v1')));
+  expect(saved.boxes[0].text).toBe('Control\nReadout');
 });

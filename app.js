@@ -576,28 +576,25 @@ function editText(id) {
   const box = state.boxes.find(b => b.id === id);
   if (!box) return;
   selectOnly(id);
-  render();
   const before = snapshot();
-  const editor = document.createElement('textarea');
-  editor.className = 'text-editor';
-  editor.value = box.text;
-  Object.assign(editor.style, {
-    left: `${box.x}px`, top: `${box.y}px`, width: `${Math.max(60, box.w)}px`,
-    height: `${Math.max(30, box.h)}px`, color: boxColor(box, 'textColor'),
-    backgroundColor: boxColor(box, 'fill'), textAlign: box.alignX,
-    padding: `${paddingY(box)}px ${paddingX(box)}px`,
-  });
-  canvas.append(editor);
+  textEditor = true;
+  render();
+  const editor = canvas.querySelector(`.box[data-id="${id}"] .box-label`);
+  editor.classList.add('text-editor');
+  editor.contentEditable = 'plaintext-only';
   textEditor = editor;
   editor.focus();
-  editor.select();
+  const range = document.createRange();
+  range.selectNodeContents(editor);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
   let finished = false;
   const finish = save => {
     if (finished) return;
     finished = true;
-    if (save) box.text = editor.value;
+    if (save) box.text = editor.innerText;
     selectedId = id;
-    editor.remove();
     textEditor = null;
     if (save) commit(before);
     render();
