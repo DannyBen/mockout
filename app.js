@@ -168,6 +168,9 @@ function render() {
 
   canvas.replaceChildren();
   for (const box of state.boxes) {
+    const borderWidth = Math.min(box.borderWidth, box.w / 2, box.h / 2);
+    const insetX = Math.min(paddingX(box), Math.max(0, (box.w - borderWidth * 2) / 2));
+    const insetY = Math.min(paddingY(box), Math.max(0, (box.h - borderWidth * 2) / 2));
     const element = document.createElement('div');
     element.className = 'box';
     if (selectedIds.has(box.id)) element.classList.add('selected');
@@ -176,12 +179,12 @@ function render() {
     Object.assign(element.style, {
       left: `${box.x}px`, top: `${box.y}px`, width: `${box.w}px`, height: `${box.h}px`,
       backgroundColor: boxColor(box, 'fill'), color: boxColor(box, 'textColor'),
-      borderColor: boxColor(box, 'borderColor'), borderWidth: `${box.borderWidth}px`,
-      borderRadius: `${box.radius}px`, padding: `${paddingY(box)}px ${paddingX(box)}px`,
+      borderColor: boxColor(box, 'borderColor'), borderWidth: `${borderWidth}px`,
+      borderRadius: `${box.radius}px`, padding: `${insetY}px ${insetX}px`,
       justifyContent: { left: 'flex-start', center: 'center', right: 'flex-end' }[box.alignX],
       alignItems: { top: 'flex-start', center: 'center', bottom: 'flex-end' }[box.alignY],
     });
-    element.style.setProperty('--box-border-width', `${box.borderWidth}px`);
+    element.style.setProperty('--box-border-width', `${borderWidth}px`);
     const label = document.createElement('span');
     label.className = 'box-label';
     label.textContent = box.text;

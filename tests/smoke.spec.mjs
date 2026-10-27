@@ -140,3 +140,40 @@ test('text editing stays in the label position and preserves line breaks', async
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('onion-ui-canvas-v1')));
   expect(saved.boxes[0].text).toBe('Control\nReadout');
 });
+
+test('keyboard and handle resizing can reach a rendered 5×5 box on the 5 px grid', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('4');
+  await page.keyboard.press('b');
+  await page.mouse.move(100, 140);
+  await page.mouse.down();
+  await page.mouse.move(120, 160);
+  await page.mouse.up();
+  await page.locator('.box').click({ button: 'right' });
+  await page.locator('#box-padding-y').fill('3');
+  await page.locator('#box-padding-y').press('Tab');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('v');
+
+  const sizes = () => page.evaluate(() => {
+    const saved = JSON.parse(localStorage.getItem('onion-ui-canvas-v1')).boxes[0];
+    const rect = document.querySelector('.box').getBoundingClientRect();
+    return { saved: [saved.w, saved.h], rendered: [rect.width, rect.height] };
+  });
+  for (let i = 0; i < 3; i++) {
+    await page.keyboard.press('Shift+ArrowLeft');
+    await page.keyboard.press('Shift+ArrowUp');
+  }
+  expect(await sizes()).toEqual({ saved: [5, 5], rendered: [5, 5] });
+
+  for (let i = 0; i < 3; i++) {
+    await page.keyboard.press('Shift+ArrowRight');
+    await page.keyboard.press('Shift+ArrowDown');
+  }
+  const handle = await page.locator('.handle[data-handle="se"]').boundingBox();
+  await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handle.x + handle.width / 2 - 15, handle.y + handle.height / 2 - 15);
+  await page.mouse.up();
+  expect(await sizes()).toEqual({ saved: [5, 5], rendered: [5, 5] });
+});
