@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Onion UI — canvas</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main id="workspace" tabindex="0" aria-label="Mock canvas">
+    <div id="canvas" aria-label="Boxes"></div>
+  </main>
+
+  <div class="corner" aria-label="Canvas controls">
+    <button type="button" data-tool="select" title="Select tool (V)">Select</button>
+    <button type="button" data-tool="box" title="Box tool (B)">Box</button>
+    <span class="divider"></span>
+    <span class="small-label">Grid</span>
+    <button type="button" data-grid="40" title="40 pixel grid (1)">40</button>
+    <button type="button" data-grid="20" title="20 pixel grid (2)">20</button>
+    <button type="button" data-grid="10" title="10 pixel grid (3)">10</button>
+    <button type="button" data-grid="5" title="5 pixel grid (4)">5</button>
+    <button type="button" data-grid="0" title="No grid (5)">Off</button>
+    <span class="divider"></span>
+    <button type="button" id="open-button" title="Open project (Ctrl+O)">Open</button>
+    <button type="button" id="save-button" title="Save project (Ctrl+S)">Save</button>
+  </div>
+
+  <aside id="inspector" hidden aria-label="Selected box properties">
+    <header>
+      <strong>Box</strong>
+      <button type="button" id="delete-button" title="Delete box (Delete)">Delete</button>
+    </header>
+    <label class="field">Text <input id="box-text" type="text" placeholder="Optional text"></label>
+    <div class="two-fields">
+      <label class="field">Width <input id="box-width" type="number" min="1" step="1"></label>
+      <label class="field">Height <input id="box-height" type="number" min="1" step="1"></label>
+    </div>
+    <div class="three-fields">
+      <label class="field">Radius <input id="box-radius" type="number" min="0" step="1"></label>
+      <label class="field">Border <input id="box-border-width" type="number" min="0" step="1"></label>
+      <label class="field">Padding <input id="box-padding" type="number" min="0" step="1"></label>
+    </div>
+    <div class="two-fields">
+      <label class="field">Horizontal
+        <select id="box-align-x"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select>
+      </label>
+      <label class="field">Vertical
+        <select id="box-align-y"><option value="top">Top</option><option value="center">Center</option><option value="bottom">Bottom</option></select>
+      </label>
+    </div>
+    <div class="color-fields">
+      <div class="color-field"><span>Fill</span><button type="button" data-color-property="fill"></button></div>
+      <div class="color-field"><span>Text</span><button type="button" data-color-property="textColor"></button></div>
+      <div class="color-field"><span>Border</span><button type="button" data-color-property="borderColor"></button></div>
+    </div>
+    <section class="swatch-section" aria-label="Shared swatches">
+      <h2>Swatches</h2>
+      <div id="swatch-list"></div>
+      <p class="hint">Select a color above to assign or create a swatch. Edit a swatch here to update every box using it.</p>
+    </section>
+  </aside>
+
+  <dialog id="color-dialog" aria-label="Choose color">
+    <form method="dialog">
+      <header><strong id="color-dialog-title">Color</strong><button value="cancel" aria-label="Close">×</button></header>
+      <div id="color-options"></div>
+      <div class="color-editor">
+        <label>Mode <select id="color-mode"><option value="rgb">RGB</option><option value="hsb">HSB</option></select></label>
+        <div class="color-channels">
+          <label><span id="channel-1-label">R</span><input id="channel-1" type="number" min="0" max="255"></label>
+          <label><span id="channel-2-label">G</span><input id="channel-2" type="number" min="0" max="255"></label>
+          <label><span id="channel-3-label">B</span><input id="channel-3" type="number" min="0" max="255"></label>
+        </div>
+        <div class="color-preview-row"><span id="color-preview"></span><code id="color-hex">#000000</code></div>
+        <button type="button" id="add-color">Create swatch &amp; use</button>
+      </div>
+    </form>
+  </dialog>
+
+  <input id="open-file" type="file" accept=".json,application/json" hidden>
+  <p id="notice" role="alert" hidden></p>
+  <p class="help">V select · B draw · Space+drag pan · Ctrl+wheel zoom · Right-click properties · Enter/double-click text · Shift-click adds</p>
+</body>
+</html>
