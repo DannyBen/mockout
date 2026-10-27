@@ -213,3 +213,26 @@ test('Shift+wheel pans sideways while ordinary wheel pans vertically', async ({ 
   await page.mouse.wheel(0, 120);
   expect(await pan()).toEqual({ x: -120, y: -120 });
 });
+
+test('bare arrows pan an empty selection and move a selected box', async ({ page }) => {
+  await page.goto('/');
+  const pan = () => page.evaluate(() => {
+    const matrix = new DOMMatrix(getComputedStyle(document.querySelector('#canvas')).transform);
+    return { x: matrix.e, y: matrix.f };
+  });
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowDown');
+  expect(await pan()).toEqual({ x: -40, y: -40 });
+
+  await page.keyboard.press('b');
+  await page.mouse.move(100, 140);
+  await page.mouse.down();
+  await page.mouse.move(200, 200);
+  await page.mouse.up();
+  await page.keyboard.press('v');
+  const before = await page.evaluate(() => JSON.parse(localStorage.getItem('onion-ui-canvas-v1')).boxes[0].x);
+  await page.keyboard.press('ArrowRight');
+  const after = await page.evaluate(() => JSON.parse(localStorage.getItem('onion-ui-canvas-v1')).boxes[0].x);
+  expect(after).toBe(before + 10);
+  expect(await pan()).toEqual({ x: -40, y: -40 });
+});

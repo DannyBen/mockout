@@ -835,6 +835,12 @@ document.addEventListener('keydown', event => {
       }
     });
   }
+  if (direction && !selectedIds.size && !ctrl && !event.altKey && !event.shiftKey) {
+    event.preventDefault();
+    view.x -= direction[0] * 40;
+    view.y -= direction[1] * 40;
+    render();
+  }
 });
 
 function rgbToHex(r, g, b) {
