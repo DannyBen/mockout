@@ -308,6 +308,37 @@ function dragTargets(box, solo, resizing) {
   return state.boxes.filter(item => ids.has(item.id)).map(item => ({ ...item }));
 }
 
+function containsBox(outer, inner) {
+  return outer.id !== inner.id && outer.x <= inner.x && outer.y <= inner.y
+    && outer.x + outer.w >= inner.x + inner.w && outer.y + outer.h >= inner.y + inner.h
+    && (outer.x < inner.x || outer.y < inner.y
+      || outer.x + outer.w > inner.x + inner.w || outer.y + outer.h > inner.y + inner.h);
+}
+
+function overlapsBox(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x
+    && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+function arrangeStack(movingIds = []) {
+  const moving = new Set(movingIds);
+  if (moving.size && state.boxes.some(a => moving.has(a.id)
+    && state.boxes.some(b => !moving.has(b.id) && overlapsBox(a, b)))) {
+    state.boxes = [
+      ...state.boxes.filter(box => !moving.has(box.id)),
+      ...state.boxes.filter(box => moving.has(box.id)),
+    ];
+  }
+  for (;;) {
+    const parentIndex = state.boxes.findIndex((parent, i) =>
+      state.boxes.some((child, j) => j < i && containsBox(parent, child)));
+    if (parentIndex < 0) break;
+    const [parent] = state.boxes.splice(parentIndex, 1);
+    const childIndex = state.boxes.findIndex(child => containsBox(parent, child));
+    state.boxes.splice(childIndex, 0, parent);
+  }
+}
+
 function setTool(next) {
   tool = next;
   lastBoxClick = null;
@@ -458,6 +489,9 @@ function endGesture(event) {
   } else {
     lastBoxClick = null;
   }
+  if (before && before !== snapshot() && ['draw', 'move', 'resize'].includes(kind)) {
+    arrangeStack(kind === 'move' ? gesture.originals.map(box => box.id) : []);
+  }
   gesture = null;
   if (workspace.hasPointerCapture(event.pointerId)) workspace.releasePointerCapture(event.pointerId);
   if (before) commit(before);
@@ -577,11 +611,12 @@ function zoomAt(factor, clientX, clientY) {
 
 function cycleSelection(step) {
   if (!state.boxes.length) return;
-  const currentIndex = state.boxes.findIndex(box => box.id === selectedId);
+  const boxes = [...state.boxes].sort((a, b) => a.id - b.id);
+  const currentIndex = boxes.findIndex(box => box.id === selectedId);
   const nextIndex = currentIndex < 0
-    ? (step > 0 ? 0 : state.boxes.length - 1)
-    : (currentIndex + step + state.boxes.length) % state.boxes.length;
-  const best = state.boxes[nextIndex];
+    ? (step > 0 ? 0 : boxes.length - 1)
+    : (currentIndex + step + boxes.length) % boxes.length;
+  const best = boxes[nextIndex];
   selectOnly(best.id);
   inspectorOpen = false;
   const margin = 32;
