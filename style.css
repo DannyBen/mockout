@@ -81,6 +81,11 @@ button { cursor: pointer; }
 
 .box-label { width: 100%; max-height: 100%; overflow: hidden; pointer-events: none; }
 
+#workspace.tool-box .box { cursor: crosshair; }
+#workspace.tool-box.alt-move .box { cursor: move; }
+#workspace.panning .box { cursor: grab; }
+#workspace.panning:active .box { cursor: grabbing; }
+
 .handle {
   position: absolute;
   z-index: 2;

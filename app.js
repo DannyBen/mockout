@@ -26,7 +26,7 @@ function validProject(value) {
     && value.swatches.every(s => typeof s.id === 'string' && typeof s.name === 'string' && /^#[0-9a-f]{6}$/i.test(s.color))
     && value.boxes.every(b => Number.isInteger(b.id) && ['x', 'y', 'w', 'h', 'radius', 'borderWidth'].every(k => Number.isFinite(b[k]))
       && b.w > 0 && b.h > 0 && typeof b.text === 'string'
-      && ['padding', 'paddingX', 'paddingY'].every(k => b[k] === undefined || (Number.isFinite(b[k]) && b[k] >= 0))
+      && ['paddingX', 'paddingY'].every(k => b[k] === undefined || (Number.isFinite(b[k]) && b[k] >= 0))
       && ['fill', 'textColor', 'borderColor'].every(k => b[k] === null || value.swatches.some(s => s.id === b[k]))
       && ['left', 'center', 'right'].includes(b.alignX) && ['top', 'center', 'bottom'].includes(b.alignY));
 }
@@ -45,6 +45,7 @@ let textEditor = null;
 let inspectorOpen = false;
 let tool = 'select';
 let spaceDown = false;
+let altDown = false;
 const view = { x: 0, y: 0, zoom: 1 };
 let colorTarget = null;
 let colorMode = 'rgb';
@@ -55,8 +56,8 @@ const redoStack = [];
 const snapshot = () => JSON.stringify(state);
 const selectedBox = () => state.boxes.find(b => b.id === selectedId);
 const selectedBoxes = () => state.boxes.filter(b => selectedIds.has(b.id));
-const paddingX = box => box.paddingX ?? box.padding ?? 3;
-const paddingY = box => box.paddingY ?? box.padding ?? 3;
+const paddingX = box => box.paddingX ?? 3;
+const paddingY = box => box.paddingY ?? 3;
 function selectOnly(id) {
   selectedId = id;
   selectedIds = id === null ? new Set() : new Set([id]);
@@ -93,6 +94,7 @@ function render() {
   workspace.classList.toggle('grid-off', state.grid === 0);
   workspace.classList.toggle('tool-box', tool === 'box');
   workspace.classList.toggle('panning', spaceDown || gesture?.kind === 'pan');
+  workspace.classList.toggle('alt-move', altDown);
   canvas.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`;
   canvas.style.setProperty('--screen-pixel', `${1 / view.zoom}px`);
   canvas.style.setProperty('--handle-size', `${9 / view.zoom}px`);
@@ -457,15 +459,7 @@ for (const [id, key, transform] of [
   ['box-align-y', 'alignY', value => value],
 ]) {
   document.getElementById(id).addEventListener('change', event => {
-    if (selectedBox()) change(() => {
-      const box = selectedBox();
-      if (key === 'paddingX' || key === 'paddingY') {
-        box.paddingX = paddingX(box);
-        box.paddingY = paddingY(box);
-        delete box.padding;
-      }
-      box[key] = transform(event.target.value);
-    });
+    if (selectedBox()) change(() => { selectedBox()[key] = transform(event.target.value); });
   });
 }
 
@@ -556,16 +550,26 @@ document.addEventListener('wheel', event => {
 }, { passive: false });
 
 document.addEventListener('keyup', event => {
+  if (event.key === 'Alt') {
+    altDown = false;
+    workspace.classList.remove('alt-move');
+  }
   if (event.code === 'Space' && spaceDown) {
     spaceDown = false;
     render();
   }
 });
 window.addEventListener('blur', () => {
+  altDown = false;
+  workspace.classList.remove('alt-move');
   if (spaceDown) { spaceDown = false; render(); }
 });
 
 document.addEventListener('keydown', event => {
+  if (event.key === 'Alt') {
+    altDown = true;
+    workspace.classList.add('alt-move');
+  }
   const ctrl = event.ctrlKey || event.metaKey;
   if (ctrl && event.key.toLowerCase() === 's') { event.preventDefault(); saveProject(); return; }
   if (ctrl && event.key.toLowerCase() === 'o') { event.preventDefault(); document.querySelector('#open-file').click(); return; }
