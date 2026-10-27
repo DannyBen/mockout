@@ -4,10 +4,11 @@ const canvas = document.querySelector('#canvas');
 const inspector = document.querySelector('#inspector');
 const toolButtons = [...document.querySelectorAll('[data-tool]')];
 const gridButtons = [...document.querySelectorAll('[data-grid]')];
-const colorButtons = [...document.querySelectorAll('[data-color-property]')];
+const colorButtons = [...document.querySelectorAll('[data-color-property], [data-canvas-color-property]')];
 const alignButtons = [...document.querySelectorAll('[data-align-axis]')];
 const channels = [1, 2, 3].map(n => document.querySelector(`#channel-${n}`));
 const channelValues = [1, 2, 3].map(n => document.querySelector(`#channel-${n}-value`));
+const defaultCanvasColors = { background: '#ffffff', gridMajor: '#f1f1f1', gridMinor: '#f1f1f1' };
 
 const initialStyle = swatches => ({
   fill: swatches[0]?.id ?? null,
@@ -23,7 +24,10 @@ const freshState = () => {
     { id: 's2', name: 'Ink', color: '#253047' },
     { id: 's3', name: 'Line', color: '#aeb6c5' },
   ];
-  return { version: 1, grid: 10, nextId: 4, swatches, boxes: [], lastStyle: initialStyle(swatches) };
+  return {
+    version: 1, grid: 10, nextId: 4, swatches, boxes: [], lastStyle: initialStyle(swatches),
+    canvasColors: { ...defaultCanvasColors },
+  };
 };
 
 function validStyle(style, swatches) {
@@ -39,6 +43,8 @@ function validProject(value) {
     && Number.isInteger(value.nextId) && Array.isArray(value.swatches) && Array.isArray(value.boxes)
     && value.swatches.every(s => typeof s.id === 'string' && typeof s.name === 'string' && /^#[0-9a-f]{6}$/i.test(s.color))
     && (value.lastStyle === undefined || validStyle(value.lastStyle, value.swatches))
+    && value.canvasColors && ['background', 'gridMajor', 'gridMinor'].every(key =>
+      /^#[0-9a-f]{6}$/i.test(value.canvasColors[key]))
     && value.boxes.every(b => Number.isInteger(b.id) && ['x', 'y', 'w', 'h', 'radius', 'borderWidth'].every(k => Number.isFinite(b[k]))
       && b.w > 0 && b.h > 0 && typeof b.text === 'string'
       && ['paddingX', 'paddingY'].every(k => b[k] === undefined || (Number.isFinite(b[k]) && b[k] >= 0))
@@ -47,10 +53,17 @@ function validProject(value) {
 }
 
 let state = freshState();
+let savedProjectIssue = '';
 try {
-  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-  if (validProject(saved)) state = saved;
-} catch { /* Storage can be unavailable for local files. Save still works. */ }
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    const saved = JSON.parse(raw);
+    if (validProject(saved)) state = saved;
+    else savedProjectIssue = 'Saved project is unsupported. Local data was left untouched; autosave is paused.';
+  }
+} catch {
+  savedProjectIssue = 'Could not read the saved project. Local data was left untouched; autosave is paused.';
+}
 
 let selectedId = null;
 let selectedIds = new Set();
@@ -58,6 +71,8 @@ let gesture = null;
 let lastBoxClick = null;
 let textEditor = null;
 let inspectorOpen = false;
+let inspectorKind = 'box';
+let inspectorPoint = { x: 12, y: 12 };
 let inspectorView = 'properties';
 let tool = 'select';
 let spaceDown = false;
@@ -85,11 +100,18 @@ function selectOnly(id) {
   selectedIds = id === null ? new Set() : new Set([id]);
 }
 const swatch = id => state.swatches.find(s => s.id === id);
-const colorOf = id => swatch(id)?.color || 'transparent';
+const colorOf = id => inspectorOpen && inspectorView === 'edit' && colorTarget?.editId && colorTarget.editId === id
+  ? editorColor : swatch(id)?.color || 'transparent';
+function canvasColor(property) {
+  if (inspectorOpen && inspectorView === 'edit' && colorTarget?.direct
+    && colorTarget.property === property) return editorColor;
+  return state.canvasColors[property];
+}
 function boxColor(box, property) {
   if (inspectorOpen && inspectorView === 'edit' && colorTarget) {
     if (colorTarget.editId && box[property] === colorTarget.editId) return editorColor;
-    if (!colorTarget.editId && box.id === selectedId && property === colorTarget.property) return editorColor;
+    if (inspectorKind === 'box' && !colorTarget.editId && box.id === selectedId
+      && property === colorTarget.property) return editorColor;
   }
   return colorOf(box[property]);
 }
@@ -97,6 +119,7 @@ const snap = n => state.grid ? Math.round(n / state.grid) * state.grid : Math.ro
 const minimum = () => state.grid || 5;
 
 function persist() {
+  if (savedProjectIssue) return;
   try { localStorage.setItem(STORAGE_KEY, snapshot()); } catch { /* File save remains available. */ }
 }
 
@@ -116,6 +139,9 @@ function change(fn) {
 }
 
 function render() {
+  workspace.style.backgroundColor = canvasColor('background');
+  workspace.style.setProperty('--grid-major-color', canvasColor('gridMajor'));
+  workspace.style.setProperty('--grid-minor-color', canvasColor('gridMinor'));
   workspace.style.setProperty('--grid-size', `${(state.grid || 10) * view.zoom}px`);
   workspace.style.setProperty('--major-grid-size', `${(state.grid || 10) * view.zoom * 10}px`);
   workspace.style.setProperty('--pan-x', `${view.x}px`);
@@ -186,12 +212,15 @@ function render() {
 }
 
 function renderInspector() {
-  const box = selectedIds.size === 1 && inspectorOpen ? selectedBox() : null;
-  inspector.hidden = !box;
-  if (!box) return;
-  document.querySelector('#box-properties').hidden = inspectorView !== 'properties';
+  const box = inspectorKind === 'box' && selectedIds.size === 1 && inspectorOpen ? selectedBox() : null;
+  const visible = inspectorOpen && (inspectorKind === 'canvas' || box);
+  inspector.hidden = !visible;
+  if (!visible) return;
+  document.querySelector('#box-properties').hidden = inspectorView !== 'properties' || inspectorKind !== 'box';
+  document.querySelector('#canvas-properties').hidden = inspectorView !== 'properties' || inspectorKind !== 'canvas';
   document.querySelector('#swatch-chooser').hidden = inspectorView !== 'choose';
   document.querySelector('#swatch-editor').hidden = inspectorView !== 'edit';
+  document.querySelector('#swatch-name').parentElement.hidden = inspectorView === 'edit' && Boolean(colorTarget?.direct);
   document.querySelector('#inspector-header').hidden = inspectorView === 'properties';
   if (inspectorView !== 'properties') {
     document.querySelector('#inspector-title').hidden = inspectorView === 'edit';
@@ -200,37 +229,44 @@ function renderInspector() {
         ['fill', 'textColor', 'borderColor'].some(property => item[property] === colorTarget.editId));
     if (inspectorView === 'choose') document.querySelector('#inspector-title').textContent = colorLabel(colorTarget.property);
   }
-  for (const [field, value] of Object.entries({
-    'box-text': box.text, 'box-width': box.w, 'box-height': box.h,
-    'box-radius': box.radius, 'box-border-width': box.borderWidth,
-    'box-padding-x': paddingX(box), 'box-padding-y': paddingY(box),
-  })) {
-    const input = document.getElementById(field);
-    if (document.activeElement !== input) input.value = value;
-  }
-  for (const button of alignButtons) {
-    const active = box[button.dataset.alignAxis] === button.dataset.alignValue;
-    button.classList.toggle('active', active);
-    button.setAttribute('aria-pressed', String(active));
+  if (box) {
+    for (const [field, value] of Object.entries({
+      'box-text': box.text, 'box-width': box.w, 'box-height': box.h,
+      'box-radius': box.radius, 'box-border-width': box.borderWidth,
+      'box-padding-x': paddingX(box), 'box-padding-y': paddingY(box),
+    })) {
+      const input = document.getElementById(field);
+      if (document.activeElement !== input) input.value = value;
+    }
+    for (const button of alignButtons) {
+      const active = box[button.dataset.alignAxis] === button.dataset.alignValue;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', String(active));
+    }
   }
   for (const button of colorButtons) {
-    const id = box[button.dataset.colorProperty];
-    const item = swatch(id);
+    const canvasProperty = button.dataset.canvasColorProperty;
+    if (Boolean(canvasProperty) !== (inspectorKind === 'canvas')) continue;
+    const value = canvasProperty ? state.canvasColors[canvasProperty] : box[button.dataset.colorProperty];
+    const item = canvasProperty ? null : swatch(value);
     const name = document.createElement('span');
     name.className = 'swatch-name';
-    name.textContent = item?.name || 'Transparent';
-    button.replaceChildren(colorChip(item?.color), name);
+    name.textContent = canvasProperty ? value.toUpperCase() : item?.name || 'Transparent';
+    button.replaceChildren(colorChip(canvasProperty ? value : item?.color), name);
   }
   if (inspectorView === 'choose') renderSwatchList();
   positionInspector();
 }
 
-const colorLabel = property => ({ fill: 'Fill', textColor: 'Text', borderColor: 'Border' })[property];
+const colorLabel = property => ({
+  fill: 'Fill', textColor: 'Text', borderColor: 'Border',
+  background: 'Background', gridMajor: 'Grid major', gridMinor: 'Grid minor',
+})[property];
 
 function renderSwatchList() {
   const list = document.querySelector('#swatch-list');
   list.replaceChildren();
-  if (colorTarget.property !== 'textColor') {
+  if (inspectorKind === 'box' && colorTarget.property !== 'textColor') {
     const none = document.createElement('button');
     none.type = 'button';
     none.className = 'swatch-choice';
@@ -258,8 +294,14 @@ function renderSwatchList() {
 }
 
 function positionInspector() {
+  if (inspector.hidden) return;
+  if (inspectorKind === 'canvas') {
+    inspector.style.left = `${Math.max(12, Math.min(inspectorPoint.x, window.innerWidth - inspector.offsetWidth - 12))}px`;
+    inspector.style.top = `${Math.max(12, Math.min(inspectorPoint.y, window.innerHeight - inspector.offsetHeight - 12))}px`;
+    return;
+  }
   const box = selectedBox();
-  if (!box || inspector.hidden) return;
+  if (!box) return;
   const boxRect = [...canvas.querySelectorAll('.box')].find(element => Number(element.dataset.id) === box.id)?.getBoundingClientRect();
   if (!boxRect) return;
   const boxLeft = boxRect.left;
@@ -357,6 +399,7 @@ function openInspector(id = selectedId, focus = false) {
   if (id === null) return;
   selectOnly(id);
   inspectorOpen = true;
+  inspectorKind = 'box';
   inspectorView = 'properties';
   render();
   if (focus) document.querySelector('#box-text').focus();
@@ -364,9 +407,16 @@ function openInspector(id = selectedId, focus = false) {
 
 workspace.addEventListener('contextmenu', event => {
   const boxElement = event.target.closest('.box');
-  if (!boxElement) return;
   event.preventDefault();
-  openInspector(Number(boxElement.dataset.id));
+  if (boxElement) openInspector(Number(boxElement.dataset.id));
+  else {
+    selectOnly(null);
+    inspectorOpen = true;
+    inspectorKind = 'canvas';
+    inspectorView = 'properties';
+    inspectorPoint = { x: event.clientX, y: event.clientY };
+    render();
+  }
 });
 
 workspace.addEventListener('pointerdown', event => {
@@ -693,10 +743,11 @@ document.addEventListener('keydown', event => {
   }
   if (inspectorOpen && event.key === 'Escape' && inspector.contains(document.activeElement)) {
     event.preventDefault();
-    if (inspectorView === 'edit') inspectorView = 'choose';
+    if (inspectorView === 'edit') inspectorView = colorTarget?.direct ? 'properties' : 'choose';
     else if (inspectorView === 'choose') inspectorView = 'properties';
     else { inspectorOpen = false; workspace.focus(); }
     render();
+    if (inspectorOpen && colorTarget?.direct && inspectorView === 'properties') focusColorField();
     return;
   }
   if (textEditor || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
@@ -814,6 +865,22 @@ function openColor(property) {
   document.querySelector('#swatch-list .swatch-choice')?.focus();
 }
 
+function openDirectColor(property) {
+  colorTarget = { property, direct: true };
+  editorColor = state.canvasColors[property];
+  colorMode = 'hsb';
+  document.querySelector('#color-mode').value = colorMode;
+  inspectorView = 'edit';
+  renderInspector();
+  showColor();
+  document.querySelector('#color-hex').focus();
+}
+
+function focusColorField() {
+  const attribute = inspectorKind === 'canvas' ? 'data-canvas-color-property' : 'data-color-property';
+  document.querySelector(`[${attribute}="${colorTarget.property}"]`).focus();
+}
+
 function assignColor(id) {
   if (!selectedBox() || !colorTarget) return;
   change(() => {
@@ -822,7 +889,7 @@ function assignColor(id) {
   });
   inspectorView = 'properties';
   renderInspector();
-  document.querySelector(`[data-color-property="${colorTarget.property}"]`).focus();
+  focusColorField();
 }
 
 function openSwatchEditor(id = null) {
@@ -838,13 +905,16 @@ function openSwatchEditor(id = null) {
   document.querySelector('#swatch-name').focus();
 }
 
-for (const button of colorButtons) button.addEventListener('click', () => openColor(button.dataset.colorProperty));
+for (const button of colorButtons) button.addEventListener('click', () => {
+  if (button.dataset.canvasColorProperty) openDirectColor(button.dataset.canvasColorProperty);
+  else openColor(button.dataset.colorProperty);
+});
 document.querySelector('#new-swatch').addEventListener('click', () => openSwatchEditor());
 document.querySelector('#color-back').addEventListener('click', () => {
-  inspectorView = inspectorView === 'edit' ? 'choose' : 'properties';
+  inspectorView = inspectorView === 'edit' && !colorTarget?.direct ? 'choose' : 'properties';
   render();
   if (inspectorView === 'choose') document.querySelector('#new-swatch').focus();
-  else document.querySelector(`[data-color-property="${colorTarget.property}"]`).focus();
+  else focusColorField();
 });
 document.querySelector('#delete-swatch').addEventListener('click', () => {
   const id = colorTarget?.editId;
@@ -916,6 +986,13 @@ document.querySelector('#color-hex').addEventListener('input', event => {
 
 document.querySelector('#save-swatch').addEventListener('click', () => {
   if (!colorTarget || !readHex()) return;
+  if (colorTarget.direct) {
+    change(() => { state.canvasColors[colorTarget.property] = editorColor; });
+    inspectorView = 'properties';
+    renderInspector();
+    focusColorField();
+    return;
+  }
   const name = document.querySelector('#swatch-name').value.trim();
   if (!name) {
     const error = document.querySelector('#color-error');
@@ -938,7 +1015,7 @@ document.querySelector('#save-swatch').addEventListener('click', () => {
   }
   renderInspector();
   if (inspectorView === 'choose') document.querySelector('#new-swatch').focus();
-  else document.querySelector(`[data-color-property="${colorTarget.property}"]`).focus();
+  else focusColorField();
 });
 
 function saveProject() {
@@ -983,7 +1060,7 @@ function previewHTML(css) {
   .box { cursor: default; }
 </style>
 </head>
-<body><main id="mock">${boxes}</main></body>
+<body><main id="mock" style="background-color: ${canvasColor('background')}">${boxes}</main></body>
 </html>`;
 }
 
@@ -1005,7 +1082,7 @@ async function openPreview() {
     if (!response.ok) throw new Error(`Could not load CSS (${response.status}).`);
     const html = previewHTML(await response.text());
     tab.location.replace(URL.createObjectURL(new Blob([html], { type: 'text/html' })));
-    notice.hidden = true;
+    notice.hidden = !savedProjectIssue;
   } catch (error) {
     tab.close();
     notice.textContent = `Could not open preview: ${error.message}`;
@@ -1020,7 +1097,7 @@ document.querySelector('#open-file').addEventListener('change', async event => {
   try {
     const loaded = JSON.parse(await file.text());
     if (!validProject(loaded)) throw new Error('This is not an Onion UI project.');
-    change(() => { state = loaded; selectOnly(null); inspectorOpen = false; });
+    change(() => { state = loaded; savedProjectIssue = ''; selectOnly(null); inspectorOpen = false; });
     document.querySelector('#notice').hidden = true;
   } catch (error) {
     const notice = document.querySelector('#notice');
@@ -1031,3 +1108,8 @@ document.querySelector('#open-file').addEventListener('change', async event => {
 });
 
 render();
+if (savedProjectIssue) {
+  const notice = document.querySelector('#notice');
+  notice.textContent = savedProjectIssue;
+  notice.hidden = false;
+}
