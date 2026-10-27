@@ -228,6 +228,21 @@ function newBox(x, y) {
   };
 }
 
+function dragTargets(box, solo, resizing) {
+  if (solo) return [{ ...box }];
+  const selected = selectedBoxes();
+  if (resizing) return selected.map(item => ({ ...item }));
+  const ids = new Set(selected.map(item => item.id));
+  for (const parent of selected) {
+    for (const child of state.boxes) {
+      if (child.id !== parent.id && child.x >= parent.x && child.y >= parent.y
+        && child.x + child.w <= parent.x + parent.w
+        && child.y + child.h <= parent.y + parent.h) ids.add(child.id);
+    }
+  }
+  return state.boxes.filter(item => ids.has(item.id)).map(item => ({ ...item }));
+}
+
 function setTool(next) {
   tool = next;
   lastBoxClick = null;
@@ -259,7 +274,7 @@ workspace.addEventListener('pointerdown', event => {
   const boxId = boxElement ? Number(boxElement.dataset.id) : null;
   if (event.button === 1 || spaceDown) {
     gesture = { kind: 'pan', startX: event.clientX, startY: event.clientY, x: view.x, y: view.y };
-  } else if (boxId && !event.shiftKey && lastBoxClick?.id === boxId
+  } else if (boxId && !event.shiftKey && !event.altKey && lastBoxClick?.id === boxId
     && event.timeStamp - lastBoxClick.time < 450
     && Math.hypot(p.x - lastBoxClick.x, p.y - lastBoxClick.y) < 7 / view.zoom) {
     lastBoxClick = null;
@@ -268,11 +283,11 @@ workspace.addEventListener('pointerdown', event => {
     return;
   } else {
     lastBoxClick = null;
-    if (tool === 'box') {
+    if (tool === 'box' && !(event.altKey && boxId)) {
       gesture = { kind: 'draw', start: { x: snap(p.x), y: snap(p.y) }, clickPoint: p,
         before: snapshot(), id: null, hitId: boxId };
     } else if (boxId) {
-      if (event.shiftKey) {
+      if (event.shiftKey && !event.altKey) {
         if (selectedIds.has(boxId)) selectedIds.delete(boxId);
         else selectedIds.add(boxId);
         selectedId = selectedIds.values().next().value ?? null;
@@ -282,11 +297,12 @@ workspace.addEventListener('pointerdown', event => {
       }
       if (!selectedIds.has(boxId)) selectOnly(boxId);
       const box = state.boxes.find(b => b.id === boxId);
+      const resizing = Boolean(event.target.dataset.handle);
       gesture = {
-        kind: event.target.dataset.handle ? 'resize' : 'move',
+        kind: resizing ? 'resize' : 'move',
         handle: event.target.dataset.handle || '',
         start: p, original: { ...box },
-        originals: selectedBoxes().map(item => ({ ...item })),
+        originals: dragTargets(box, event.altKey, resizing),
         before: snapshot(), id: box.id,
       };
     } else {
