@@ -45,7 +45,13 @@ UI sketch feel precise without turning the process into a full design system.
 
 ## Run locally
 
-Serve this directory with a static HTTP server, then open it in a browser.
-For example, run `python3 -m http.server 8000` and visit
+Serve the `public` directory with a static HTTP server, then open it in a browser.
+For example, run `python3 -m http.server 8000 --directory public` and visit
 `http://localhost:8000`. Preview needs HTTP to load the project's CSS.
+
+## Deploy to Cloudflare Workers
+
+Connect this repository to a Cloudflare Worker named `minimock`. Leave the build
+command blank and use `npx wrangler deploy` as the deploy command. Wrangler reads
+`wrangler.jsonc` and publishes only the files in `public`.
 
