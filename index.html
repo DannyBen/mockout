@@ -8,23 +8,23 @@
   <script src="app.js" defer></script>
 </head>
 <body>
-  <main id="workspace" tabindex="0" aria-label="Mock canvas">
+  <main id="workspace" tabindex="-1" aria-label="Mock canvas">
     <div id="canvas" aria-label="Boxes"></div>
   </main>
 
   <div class="corner" aria-label="Canvas controls">
-    <button type="button" data-tool="select" title="Select tool (V)">Select</button>
-    <button type="button" data-tool="box" title="Box tool (B)">Box</button>
+    <button type="button" tabindex="-1" data-tool="select" title="Select tool (V)">Select</button>
+    <button type="button" tabindex="-1" data-tool="box" title="Box tool (B)">Box</button>
     <span class="divider"></span>
     <span class="small-label">Grid</span>
-    <button type="button" data-grid="40" title="40 pixel grid (1)">40</button>
-    <button type="button" data-grid="20" title="20 pixel grid (2)">20</button>
-    <button type="button" data-grid="10" title="10 pixel grid (3)">10</button>
-    <button type="button" data-grid="5" title="5 pixel grid (4)">5</button>
-    <button type="button" data-grid="0" title="No grid (5)">Off</button>
+    <button type="button" tabindex="-1" data-grid="40" title="40 pixel grid (1)">40</button>
+    <button type="button" tabindex="-1" data-grid="20" title="20 pixel grid (2)">20</button>
+    <button type="button" tabindex="-1" data-grid="10" title="10 pixel grid (3)">10</button>
+    <button type="button" tabindex="-1" data-grid="5" title="5 pixel grid (4)">5</button>
+    <button type="button" tabindex="-1" data-grid="0" title="No grid (5)">Off</button>
     <span class="divider"></span>
-    <button type="button" id="open-button" title="Open project (Ctrl+O)">Open</button>
-    <button type="button" id="save-button" title="Save project (Ctrl+S)">Save</button>
+    <button type="button" tabindex="-1" id="open-button" title="Open project (Ctrl+O)">Open</button>
+    <button type="button" tabindex="-1" id="save-button" title="Save project (Ctrl+S)">Save</button>
   </div>
 
   <aside id="inspector" hidden aria-label="Selected box properties">
@@ -81,6 +81,6 @@
 
   <input id="open-file" type="file" accept=".json,application/json" hidden>
   <p id="notice" role="alert" hidden></p>
-  <p class="help">V select · B draw · Space+drag pan · Ctrl+wheel zoom · Right-click properties · Enter/double-click text · Shift-click adds</p>
+  <p class="help">V select · B draw · Tab/Shift+Tab cycle boxes · Space+drag pan · Ctrl+wheel zoom · Right-click properties · Enter/double-click text</p>
 </body>
 </html>

@@ -421,6 +421,7 @@ function editText(id) {
   editor.addEventListener('keydown', event => {
     if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); finish(false); }
     if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.stopPropagation(); finish(true); }
+    if (event.key === 'Tab') { event.preventDefault(); event.stopPropagation(); finish(true); cycleSelection(event.shiftKey ? -1 : 1); }
   });
 }
 
@@ -482,6 +483,28 @@ function zoomAt(factor, clientX, clientY) {
   view.x = x - worldX * next;
   view.y = y - worldY * next;
   view.zoom = next;
+  render();
+}
+
+function cycleSelection(step) {
+  if (!state.boxes.length) return;
+  const currentIndex = state.boxes.findIndex(box => box.id === selectedId);
+  const nextIndex = currentIndex < 0
+    ? (step > 0 ? 0 : state.boxes.length - 1)
+    : (currentIndex + step + state.boxes.length) % state.boxes.length;
+  const best = state.boxes[nextIndex];
+  selectOnly(best.id);
+  inspectorOpen = false;
+  const margin = 32;
+  const left = view.x + best.x * view.zoom;
+  const top = view.y + best.y * view.zoom;
+  const right = left + best.w * view.zoom;
+  const bottom = top + best.h * view.zoom;
+  if (left < margin) view.x += margin - left;
+  else if (right > workspace.clientWidth - margin) view.x -= right - workspace.clientWidth + margin;
+  if (top < margin) view.y += margin - top;
+  else if (bottom > workspace.clientHeight - margin) view.y -= bottom - workspace.clientHeight + margin;
+  workspace.focus();
   render();
 }
 
@@ -571,8 +594,9 @@ document.addEventListener('keydown', event => {
   }
   if (event.key === 'Enter' && !event.altKey && selectedIds.size === 1) { event.preventDefault(); editText(selectedId); return; }
   if (event.key === 'F2' && selectedIds.size === 1) { event.preventDefault(); editText(selectedId); return; }
+  if (event.key === 'Tab') { event.preventDefault(); cycleSelection(event.shiftKey ? -1 : 1); return; }
   const direction = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
-  if (direction && selectedIds.size) {
+  if (direction && !event.altKey && selectedIds.size) {
     event.preventDefault();
     const amount = (state.grid || 1) * (ctrl ? 5 : 1);
     change(() => {

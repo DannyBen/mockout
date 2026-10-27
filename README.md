@@ -34,7 +34,7 @@
 
 ## Canvas prototype
 
-Open `index.html` in a browser. Press `V` to select boxes: click one, Shift-click to add or remove one, or drag from empty space to select boxes fully inside the marquee. Drag a selected box to move the selection. Press `B` and drag to draw a box. Hold Space and drag, use the middle mouse button, or scroll to pan around the canvas. Ctrl+wheel zooms at the pointer; `+`/`-` zoom at the center, and Ctrl+0 resets to 100%. The toolbar and properties stay the same size while the canvas zooms.
+Open `index.html` in a browser. Press `V` to select boxes: click one, Shift-click to add or remove one, drag from empty space to select boxes fully inside the marquee, or use Tab/Shift+Tab to cycle through boxes in creation order. The cycle wraps at either end and pans to reveal an offscreen box. Drag a selected box to move the selection. Press `B` and drag to draw a box. Hold Space and drag, use the middle mouse button, or scroll to pan around the canvas. Ctrl+wheel zooms at the pointer; `+`/`-` zoom at the center, and Ctrl+0 resets to 100%. The toolbar and properties stay the same size while the canvas zooms.
 
 Right-click a box to open properties; Escape closes them. Press Enter or F2, or double-click a box, to edit its text. New RGB or HSB colors become shared swatches; clicking a swatch in the inspector edits it everywhere.
 
