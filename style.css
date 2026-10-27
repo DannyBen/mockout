@@ -154,6 +154,7 @@ input, select { width: 100%; padding: 5px 6px; }
     padding: 11px;
     background: #fff;
     border-bottom: 1px solid #e4e6ed;
+    border-radius: 6px 6px 0 0;
   }
   & h2 { font-size: 13px; margin: 0 0 7px; }
   & .field { display: block; margin-bottom: 9px; color: #626d82; font-size: 11px; }
