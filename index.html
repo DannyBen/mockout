@@ -30,6 +30,8 @@
     <button type="button" tabindex="-1" id="help-button" aria-label="Help" aria-controls="help-panel" aria-expanded="false">?</button>
   </div>
 
+  <p id="placement-hint" role="status" hidden>Move copy · Click or Enter to place · Esc to cancel</p>
+
   <aside id="help-panel" hidden aria-label="Keyboard help">
     <header><strong>Help</strong><button type="button" tabindex="-1" id="close-help" aria-label="Close help">×</button></header>
     <section>
@@ -55,7 +57,10 @@
         <div><dt><kbd>Arrows</kbd></dt><dd>Move selection</dd></div>
         <div><dt><kbd>Shift</kbd> + <kbd>Arrows</kbd></dt><dd>Resize selection</dd></div>
         <div><dt><kbd>Ctrl</kbd> + <kbd>Arrows</kbd></dt><dd>Move five grid steps</dd></div>
-        <div><dt><kbd>Ctrl</kbd> + <kbd>D</kbd></dt><dd>Duplicate</dd></div>
+        <div><dt><kbd>Ctrl</kbd> + <kbd>D</kbd></dt><dd>Duplicate and place</dd></div>
+        <div><dt><kbd>Arrows</kbd></dt><dd>Nudge copy while placing</dd></div>
+        <div><dt>Click / <kbd>Enter</kbd></dt><dd>Place copy</dd></div>
+        <div><dt><kbd>Esc</kbd></dt><dd>Cancel placement</dd></div>
         <div><dt><kbd>Delete</kbd></dt><dd>Remove</dd></div>
         <div><dt><kbd>Ctrl</kbd> + <kbd>Z</kbd></dt><dd>Undo</dd></div>
         <div><dt><kbd>Ctrl</kbd> + <kbd>Y</kbd></dt><dd>Redo</dd></div>

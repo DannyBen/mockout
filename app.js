@@ -71,6 +71,9 @@ let selectedId = null;
 let selectedIds = new Set();
 let gesture = null;
 let lastBoxClick = null;
+let pointerPosition = null;
+let placement = null;
+let isolatedCopyIds = null;
 let textEditor = null;
 let inspectorOpen = false;
 let inspectorKind = 'box';
@@ -98,6 +101,7 @@ const styleOf = box => ({
 });
 function rememberStyle(box) { state.lastStyle = styleOf(box); }
 function selectOnly(id) {
+  if (isolatedCopyIds && (isolatedCopyIds.size !== 1 || !isolatedCopyIds.has(id))) isolatedCopyIds = null;
   selectedId = id;
   selectedIds = id === null ? new Set() : new Set([id]);
 }
@@ -165,6 +169,8 @@ function render() {
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   }
+  for (const button of document.querySelectorAll('.corner button:not(#help-button)')) button.disabled = Boolean(placement);
+  document.querySelector('#placement-hint').hidden = !placement;
 
   canvas.replaceChildren();
   for (const box of state.boxes) {
@@ -175,6 +181,7 @@ function render() {
     element.className = 'box';
     if (selectedIds.has(box.id)) element.classList.add('selected');
     if (gesture?.kind === 'draw' && gesture.id === box.id) element.classList.add('drawing');
+    if (placement?.ids.has(box.id)) element.classList.add('placing');
     element.dataset.id = box.id;
     Object.assign(element.style, {
       left: `${box.x}px`, top: `${box.y}px`, width: `${box.w}px`, height: `${box.h}px`,
@@ -191,7 +198,7 @@ function render() {
     label.style.textAlign = box.alignX;
     element.append(label);
 
-    if (selectedIds.has(box.id) && tool === 'select' && !textEditor) {
+    if (selectedIds.has(box.id) && tool === 'select' && !textEditor && !placement) {
       for (const direction of ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']) {
         const handle = document.createElement('span');
         handle.className = 'handle';
@@ -348,7 +355,8 @@ function newBox(x, y) {
 function dragTargets(box, solo, resizing) {
   if (solo) return [{ ...box }];
   const selected = selectedBoxes();
-  if (resizing) return selected.map(item => ({ ...item }));
+  if (resizing || (isolatedCopyIds && selected.length === isolatedCopyIds.size
+    && selected.every(item => isolatedCopyIds.has(item.id)))) return selected.map(item => ({ ...item }));
   const ids = new Set(selected.map(item => item.id));
   for (const parent of selected) {
     for (const child of state.boxes) {
@@ -358,6 +366,69 @@ function dragTargets(box, solo, resizing) {
     }
   }
   return state.boxes.filter(item => ids.has(item.id)).map(item => ({ ...item }));
+}
+
+function startDuplicatePlacement() {
+  const source = selectedBoxes();
+  if (!source.length || gesture) return;
+  const originals = dragTargets(source[0], false, false);
+  const step = state.grid || 10;
+  const previous = {
+    before: snapshot(), selectedIds: new Set(selectedIds), selectedId,
+    inspectorOpen, tool, isolatedCopyIds,
+  };
+  const copies = originals.map(box => ({ ...box, id: state.nextId++, x: box.x + step, y: box.y + step }));
+  state.boxes.push(...copies);
+  selectedIds = new Set(copies.map(box => box.id));
+  selectedId = copies[0].id;
+  inspectorOpen = false;
+  tool = 'select';
+  isolatedCopyIds = null;
+  rememberStyle(copies[0]);
+  placement = {
+    ...previous, ids: new Set(selectedIds), starts: copies.map(box => ({ id: box.id, x: box.x, y: box.y })),
+    pointerOrigin: pointerPosition && { ...pointerPosition }, pointer: pointerPosition && { ...pointerPosition },
+    nudgeX: 0, nudgeY: 0,
+  };
+  lastBoxClick = null;
+  workspace.focus();
+  render();
+}
+
+function movePlacement(clientX, clientY) {
+  if (clientX !== undefined && clientY !== undefined) {
+    placement.pointerOrigin ||= { x: clientX, y: clientY };
+    placement.pointer = { x: clientX, y: clientY };
+  }
+  const first = placement.starts[0];
+  const pointerX = placement.pointer ? (placement.pointer.x - placement.pointerOrigin.x) / view.zoom : 0;
+  const pointerY = placement.pointer ? (placement.pointer.y - placement.pointerOrigin.y) / view.zoom : 0;
+  const dx = snap(first.x + pointerX + placement.nudgeX) - first.x;
+  const dy = snap(first.y + pointerY + placement.nudgeY) - first.y;
+  for (const start of placement.starts) {
+    const box = state.boxes.find(item => item.id === start.id);
+    box.x = start.x + dx;
+    box.y = start.y + dy;
+  }
+  render();
+}
+
+function finishPlacement(save) {
+  const current = placement;
+  placement = null;
+  if (save) {
+    isolatedCopyIds = current.ids;
+    commit(current.before);
+  } else {
+    state = JSON.parse(current.before);
+    selectedIds = current.selectedIds;
+    selectedId = current.selectedId;
+    inspectorOpen = current.inspectorOpen;
+    tool = current.tool;
+    isolatedCopyIds = current.isolatedCopyIds;
+    render();
+  }
+  workspace.focus();
 }
 
 function containsBox(outer, inner) {
@@ -381,12 +452,14 @@ function arrangeStack(movingIds = []) {
       ...state.boxes.filter(box => moving.has(box.id)),
     ];
   }
+  const shouldStackBehind = (parent, child) => containsBox(parent, child)
+    && (!moving.has(parent.id) || moving.has(child.id));
   for (;;) {
     const parentIndex = state.boxes.findIndex((parent, i) =>
-      state.boxes.some((child, j) => j < i && containsBox(parent, child)));
+      state.boxes.some((child, j) => j < i && shouldStackBehind(parent, child)));
     if (parentIndex < 0) break;
     const [parent] = state.boxes.splice(parentIndex, 1);
-    const childIndex = state.boxes.findIndex(child => containsBox(parent, child));
+    const childIndex = state.boxes.findIndex(child => shouldStackBehind(parent, child));
     state.boxes.splice(childIndex, 0, parent);
   }
 }
@@ -433,6 +506,7 @@ function openCanvasInspector(point = null) {
 }
 
 workspace.addEventListener('contextmenu', event => {
+  if (placement) { event.preventDefault(); return; }
   const boxElement = event.target.closest('.box');
   event.preventDefault();
   if (boxElement) openInspector(Number(boxElement.dataset.id));
@@ -440,6 +514,15 @@ workspace.addEventListener('contextmenu', event => {
 });
 
 workspace.addEventListener('pointerdown', event => {
+  pointerPosition = { x: event.clientX, y: event.clientY };
+  if (placement) {
+    event.preventDefault();
+    if (event.button === 0) {
+      movePlacement(event.clientX, event.clientY);
+      finishPlacement(true);
+    }
+    return;
+  }
   if (textEditor || (event.button !== 0 && event.button !== 1)) return;
   const boxElement = event.target.closest('.box');
   const p = point(event);
@@ -460,6 +543,7 @@ workspace.addEventListener('pointerdown', event => {
         before: snapshot(), id: null, hitId: boxId };
     } else if (boxId) {
       if (event.shiftKey && !event.altKey) {
+        isolatedCopyIds = null;
         if (selectedIds.has(boxId)) selectedIds.delete(boxId);
         else selectedIds.add(boxId);
         selectedId = selectedIds.values().next().value ?? null;
@@ -481,6 +565,7 @@ workspace.addEventListener('pointerdown', event => {
         before: snapshot(), id: box.id,
       };
     } else {
+      isolatedCopyIds = null;
       const base = event.shiftKey ? new Set(selectedIds) : new Set();
       selectedIds = new Set(base);
       selectedId = selectedIds.values().next().value ?? null;
@@ -494,6 +579,8 @@ workspace.addEventListener('pointerdown', event => {
 });
 
 workspace.addEventListener('pointermove', event => {
+  pointerPosition = { x: event.clientX, y: event.clientY };
+  if (placement) { movePlacement(event.clientX, event.clientY); return; }
   if (!gesture) return;
   if (gesture.kind === 'pan') {
     view.x = gesture.x + event.clientX - gesture.startX;
@@ -657,6 +744,7 @@ for (const button of gridButtons) {
 
 function undo() {
   if (!undoStack.length) return;
+  isolatedCopyIds = null;
   redoStack.push(snapshot());
   state = JSON.parse(undoStack.pop());
   selectedIds = new Set([...selectedIds].filter(id => state.boxes.some(b => b.id === id)));
@@ -666,6 +754,7 @@ function undo() {
 }
 function redo() {
   if (!redoStack.length) return;
+  isolatedCopyIds = null;
   undoStack.push(snapshot());
   state = JSON.parse(redoStack.pop());
   selectedIds = new Set([...selectedIds].filter(id => state.boxes.some(b => b.id === id)));
@@ -713,7 +802,7 @@ function cycleSelection(step) {
 workspace.addEventListener('wheel', event => {
   if (event.ctrlKey || event.metaKey) return;
   event.preventDefault();
-  if (textEditor) return;
+  if (textEditor || placement) return;
   const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? workspace.clientHeight : 1;
   view.x -= (event.deltaX + (event.shiftKey ? event.deltaY : 0)) * unit;
   if (!event.shiftKey) view.y -= event.deltaY * unit;
@@ -723,7 +812,7 @@ workspace.addEventListener('wheel', event => {
 document.addEventListener('wheel', event => {
   if (!event.ctrlKey && !event.metaKey) return;
   event.preventDefault();
-  if (textEditor) return;
+  if (textEditor || placement) return;
   const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? workspace.clientHeight : 1;
   zoomAt(Math.exp(-event.deltaY * unit * 0.002), event.clientX, event.clientY);
 }, { passive: false });
@@ -750,6 +839,21 @@ document.addEventListener('keydown', event => {
     workspace.classList.add('alt-move');
   }
   const ctrl = event.ctrlKey || event.metaKey;
+  if (placement) {
+    if (event.key === 'Escape') { event.preventDefault(); finishPlacement(false); return; }
+    if (event.key === 'Enter') { event.preventDefault(); finishPlacement(true); return; }
+    const direction = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
+    if (direction && !event.altKey) {
+      event.preventDefault();
+      const amount = (state.grid || 1) * (ctrl ? 5 : 1);
+      placement.nudgeX += direction[0] * amount;
+      placement.nudgeY += direction[1] * amount;
+      movePlacement();
+      return;
+    }
+    if (ctrl || event.code === 'Space' || event.key === 'Tab' || event.key.length === 1) event.preventDefault();
+    return;
+  }
   if (ctrl && event.key.toLowerCase() === 's') { event.preventDefault(); saveProject(); return; }
   if (ctrl && event.key.toLowerCase() === 'o') { event.preventDefault(); document.querySelector('#open-file').click(); return; }
   if (ctrl && event.key.toLowerCase() === 'p') { event.preventDefault(); openPreview(); return; }
@@ -771,6 +875,7 @@ document.addEventListener('keydown', event => {
   if (textEditor || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if (ctrl && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'a') {
     event.preventDefault();
+    isolatedCopyIds = null;
     selectedIds = new Set(state.boxes.map(box => box.id));
     selectedId = state.boxes[0]?.id ?? null;
     inspectorOpen = false;
@@ -796,17 +901,9 @@ document.addEventListener('keydown', event => {
     zoomAt(event.key === '-' ? 1 / 1.2 : 1.2, workspace.clientWidth / 2, workspace.clientHeight / 2);
     return;
   }
-  if (ctrl && event.key.toLowerCase() === 'd' && selectedIds.size) {
+  if (ctrl && event.key.toLowerCase() === 'd') {
     event.preventDefault();
-    change(() => {
-      const copies = selectedBoxes().map(box => ({
-        ...box, id: state.nextId++, x: box.x + (state.grid || 10), y: box.y + (state.grid || 10),
-      }));
-      state.boxes.push(...copies);
-      selectedIds = new Set(copies.map(box => box.id));
-      selectedId = copies[0].id;
-      rememberStyle(copies[0]);
-    });
+    if (selectedIds.size) startDuplicatePlacement();
     return;
   }
   if (!ctrl && !event.altKey && /^[1-5]$/.test(event.key)) {
@@ -1084,7 +1181,7 @@ function previewHTML(css) {
   const boxes = [...canvas.querySelectorAll('.box')].map(element => {
     const box = state.boxes.find(item => item.id === Number(element.dataset.id));
     const copy = element.cloneNode(true);
-    copy.classList.remove('selected', 'drawing');
+    copy.classList.remove('selected', 'drawing', 'placing');
     copy.querySelectorAll('.handle').forEach(handle => handle.remove());
     copy.style.left = `${box.x - left + margin}px`;
     copy.style.top = `${box.y - top + margin}px`;
@@ -1138,6 +1235,7 @@ async function openPreview() {
 document.querySelector('#preview-button').addEventListener('click', openPreview);
 document.querySelector('#open-button').addEventListener('click', () => document.querySelector('#open-file').click());
 async function openProjectFile(file) {
+  if (placement) return;
   try {
     const loaded = JSON.parse(await file.text());
     if (!validProject(loaded)) throw new Error('This is not a Minimock project.');
@@ -1160,12 +1258,13 @@ document.querySelector('#open-file').addEventListener('change', async event => {
 document.addEventListener('dragover', event => {
   if (!event.dataTransfer?.types.includes('Files')) return;
   event.preventDefault();
-  event.dataTransfer.dropEffect = 'copy';
+  event.dataTransfer.dropEffect = placement ? 'none' : 'copy';
 });
 
 document.addEventListener('drop', event => {
   if (!event.dataTransfer?.types.includes('Files')) return;
   event.preventDefault();
+  if (placement) return;
   if (event.dataTransfer.files.length === 1) openProjectFile(event.dataTransfer.files[0]);
   else {
     const notice = document.querySelector('#notice');

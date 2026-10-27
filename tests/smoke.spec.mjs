@@ -259,3 +259,93 @@ test('P toggles box or canvas properties and remains a normal input character', 
   await page.keyboard.press('p');
   await expect(page.locator('#box-text')).toHaveValue('p');
 });
+
+test('Ctrl+D copies contained boxes as one cancellable placement and one undo step', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('b');
+  for (const [x1, y1, x2, y2] of [[100, 140, 250, 260], [130, 170, 160, 200]]) {
+    await page.mouse.move(x1, y1);
+    await page.mouse.down();
+    await page.mouse.move(x2, y2);
+    await page.mouse.up();
+  }
+  const project = () => page.evaluate(() => JSON.parse(localStorage.getItem('onion-ui-canvas-v1')));
+  const original = await project();
+  await page.keyboard.press('v');
+  await page.mouse.click(110, 150);
+  await page.keyboard.press('Control+d');
+  await expect(page.locator('.box.placing')).toHaveCount(2);
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+  await page.evaluate(saved => {
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([JSON.stringify(saved)], 'minimock.json', { type: 'application/json' }));
+    document.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }));
+  }, original);
+  await expect(page.locator('.box.placing')).toHaveCount(2);
+  expect(await project()).toEqual(original);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.box')).toHaveCount(2);
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
+  expect(await project()).toEqual(original);
+
+  await page.keyboard.press('Control+d');
+  await page.keyboard.press('ArrowRight');
+  await page.mouse.move(210, 150);
+  await page.mouse.click(210, 150);
+  const placed = await project();
+  expect(placed.boxes).toHaveLength(4);
+  expect(placed.boxes.slice(0, 2)).toEqual(original.boxes);
+  expect(placed.boxes.slice(2).map(box => box.x)).toEqual(original.boxes.map(box => box.x + 120));
+  await page.keyboard.press('Control+z');
+  expect((await project()).boxes).toEqual(original.boxes);
+});
+
+test('moving overlapping copies of multiple containers leaves originals in place', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('b');
+  for (const [x1, y1, x2, y2] of [
+    [100, 140, 250, 260], [130, 170, 160, 200],
+    [350, 140, 500, 260], [380, 170, 410, 200],
+  ]) {
+    await page.mouse.move(x1, y1);
+    await page.mouse.down();
+    await page.mouse.move(x2, y2);
+    await page.mouse.up();
+  }
+  const project = () => page.evaluate(() => JSON.parse(localStorage.getItem('onion-ui-canvas-v1')));
+  const original = await project();
+  await page.keyboard.press('v');
+  await page.mouse.click(110, 150);
+  await page.keyboard.down('Shift');
+  await page.mouse.click(360, 150);
+  await page.keyboard.up('Shift');
+  await expect(page.locator('.box.selected')).toHaveCount(2);
+  await page.keyboard.press('Control+d');
+  await expect(page.locator('.box.placing')).toHaveCount(4);
+  await page.keyboard.press('Enter');
+  const placed = await project();
+  expect(placed.boxes).toHaveLength(8);
+  expect(await page.evaluate(() => document.elementFromPoint(140, 175).closest('.box').dataset.id))
+    .toBe(String(placed.boxes[4].id));
+
+  await page.mouse.move(125, 165);
+  await page.mouse.down();
+  await page.mouse.move(135, 165);
+  await page.mouse.up();
+  const moved = await project();
+  for (const before of placed.boxes) {
+    const after = moved.boxes.find(box => box.id === before.id);
+    expect([after.x, after.y]).toEqual(before.id < placed.boxes[4].id
+      ? [before.x, before.y] : [before.x + 10, before.y]);
+  }
+  expect(moved.boxes.filter(box => original.boxes.some(source => source.id === box.id)))
+    .toEqual(original.boxes);
+  const copyIds = new Set(placed.boxes.slice(4).map(box => box.id));
+  expect(moved.boxes.slice(-4).every(box => copyIds.has(box.id))).toBe(true);
+  expect(await page.evaluate(() => document.elementFromPoint(140, 175).closest('.box').dataset.id))
+    .toBe(String(placed.boxes[4].id));
+  await page.mouse.click(800, 500);
+  await expect(page.locator('.box.selected')).toHaveCount(0);
+  expect(await page.evaluate(() => document.elementFromPoint(140, 175).closest('.box').dataset.id))
+    .toBe(String(placed.boxes[4].id));
+});
