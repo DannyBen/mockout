@@ -673,7 +673,7 @@ function zoomAt(factor, clientX, clientY) {
   const y = clientY - rect.top;
   const worldX = (x - view.x) / view.zoom;
   const worldY = (y - view.y) / view.zoom;
-  const next = Math.max(0.2, Math.min(5, view.zoom * factor));
+  const next = Math.max(0.2, Math.min(20, view.zoom * factor));
   view.x = x - worldX * next;
   view.y = y - worldY * next;
   view.zoom = next;

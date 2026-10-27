@@ -177,3 +177,23 @@ test('keyboard and handle resizing can reach a rendered 5×5 box on the 5 px gri
   await page.mouse.up();
   expect(await sizes()).toEqual({ saved: [5, 5], rendered: [5, 5] });
 });
+
+test('zoom reaches 2000% without moving the point under the cursor', async ({ page }) => {
+  await page.goto('/');
+  const anchor = { x: 320, y: 240 };
+  const atAnchor = () => page.evaluate(({ x, y }) => {
+    const matrix = new DOMMatrix(getComputedStyle(document.querySelector('#canvas')).transform);
+    return { zoom: matrix.a, worldX: (x - matrix.e) / matrix.a, worldY: (y - matrix.f) / matrix.a };
+  }, anchor);
+  const before = await atAnchor();
+  await page.evaluate(({ x, y }) => document.dispatchEvent(new WheelEvent('wheel', {
+    bubbles: true, cancelable: true, ctrlKey: true, clientX: x, clientY: y, deltaY: -2000,
+  })), anchor);
+  const after = await atAnchor();
+  expect(after.zoom).toBe(20);
+  expect(after.worldX).toBeCloseTo(before.worldX, 5);
+  expect(after.worldY).toBeCloseTo(before.worldY, 5);
+
+  await page.keyboard.press('Control+0');
+  expect((await atAnchor()).zoom).toBe(1);
+});
