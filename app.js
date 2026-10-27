@@ -5,6 +5,7 @@ const inspector = document.querySelector('#inspector');
 const toolButtons = [...document.querySelectorAll('[data-tool]')];
 const gridButtons = [...document.querySelectorAll('[data-grid]')];
 const colorButtons = [...document.querySelectorAll('[data-color-property]')];
+const alignButtons = [...document.querySelectorAll('[data-align-axis]')];
 const channels = [1, 2, 3].map(n => document.querySelector(`#channel-${n}`));
 const channelValues = [1, 2, 3].map(n => document.querySelector(`#channel-${n}-value`));
 
@@ -203,10 +204,14 @@ function renderInspector() {
     'box-text': box.text, 'box-width': box.w, 'box-height': box.h,
     'box-radius': box.radius, 'box-border-width': box.borderWidth,
     'box-padding-x': paddingX(box), 'box-padding-y': paddingY(box),
-    'box-align-x': box.alignX, 'box-align-y': box.alignY,
   })) {
     const input = document.getElementById(field);
     if (document.activeElement !== input) input.value = value;
+  }
+  for (const button of alignButtons) {
+    const active = box[button.dataset.alignAxis] === button.dataset.alignValue;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
   }
   for (const button of colorButtons) {
     const id = box[button.dataset.colorProperty];
@@ -553,12 +558,18 @@ for (const [id, key, transform] of [
   ['box-border-width', 'borderWidth', value => Math.max(0, Number(value) || 0)],
   ['box-padding-x', 'paddingX', value => Math.max(0, Number(value) || 0)],
   ['box-padding-y', 'paddingY', value => Math.max(0, Number(value) || 0)],
-  ['box-align-x', 'alignX', value => value],
-  ['box-align-y', 'alignY', value => value],
 ]) {
   document.getElementById(id).addEventListener('change', event => {
     if (selectedBox()) change(() => {
       selectedBox()[key] = transform(event.target.value);
+      rememberStyle(selectedBox());
+    });
+  });
+}
+for (const button of alignButtons) {
+  button.addEventListener('click', () => {
+    if (selectedBox()) change(() => {
+      selectedBox()[button.dataset.alignAxis] = button.dataset.alignValue;
       rememberStyle(selectedBox());
     });
   });

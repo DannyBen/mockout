@@ -48,13 +48,23 @@
       <label class="field">Padding X <input id="box-padding-x" type="number" min="0" step="1"></label>
       <label class="field">Padding Y <input id="box-padding-y" type="number" min="0" step="1"></label>
     </div>
-    <div class="two-fields">
-      <label class="field">Horizontal
-        <select id="box-align-x"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select>
-      </label>
-      <label class="field">Vertical
-        <select id="box-align-y"><option value="top">Top</option><option value="center">Center</option><option value="bottom">Bottom</option></select>
-      </label>
+    <div class="two-fields align-fields">
+      <div class="align-group" role="group" aria-label="Horizontal alignment">
+        <span>Horizontal</span>
+        <div class="align-buttons">
+          <button type="button" data-align-axis="alignX" data-align-value="left" aria-label="Align left"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4h14M3 8h9M3 12h14M3 16h7"/></svg></button>
+          <button type="button" data-align-axis="alignX" data-align-value="center" aria-label="Align center"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4h14M5 8h10M3 12h14M6 16h8"/></svg></button>
+          <button type="button" data-align-axis="alignX" data-align-value="right" aria-label="Align right"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4h14M8 8h9M3 12h14M10 16h7"/></svg></button>
+        </div>
+      </div>
+      <div class="align-group" role="group" aria-label="Vertical alignment">
+        <span>Vertical</span>
+        <div class="align-buttons">
+          <button type="button" data-align-axis="alignY" data-align-value="top" aria-label="Align top"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 3h16M5 5v9M10 5v12M15 5v7"/></svg></button>
+          <button type="button" data-align-axis="alignY" data-align-value="center" aria-label="Align middle"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 10h16M5 5v10M10 3v14M15 6v8"/></svg></button>
+          <button type="button" data-align-axis="alignY" data-align-value="bottom" aria-label="Align bottom"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 17h16M5 7v8M10 5v10M15 9v6"/></svg></button>
+        </div>
+      </div>
     </div>
     <div class="color-fields">
       <div class="color-field"><span>Fill</span><button type="button" data-color-property="fill"></button></div>
