@@ -2,6 +2,8 @@ const STORAGE_KEY = 'onion-ui-canvas-v1';
 const workspace = document.querySelector('#workspace');
 const canvas = document.querySelector('#canvas');
 const inspector = document.querySelector('#inspector');
+const helpPanel = document.querySelector('#help-panel');
+const helpButton = document.querySelector('#help-button');
 const toolButtons = [...document.querySelectorAll('[data-tool]')];
 const gridButtons = [...document.querySelectorAll('[data-grid]')];
 const colorButtons = [...document.querySelectorAll('[data-color-property], [data-canvas-color-property]')];
@@ -395,6 +397,14 @@ function setTool(next) {
 
 for (const button of toolButtons) button.addEventListener('click', () => setTool(button.dataset.tool));
 
+function toggleHelp() {
+  helpPanel.hidden = !helpPanel.hidden;
+  helpButton.setAttribute('aria-expanded', String(!helpPanel.hidden));
+}
+
+helpButton.addEventListener('click', toggleHelp);
+document.querySelector('#close-help').addEventListener('click', toggleHelp);
+
 function openInspector(id = selectedId, focus = false) {
   if (id === null) return;
   selectOnly(id);
@@ -735,6 +745,7 @@ document.addEventListener('keydown', event => {
   const ctrl = event.ctrlKey || event.metaKey;
   if (ctrl && event.key.toLowerCase() === 's') { event.preventDefault(); saveProject(); return; }
   if (ctrl && event.key.toLowerCase() === 'o') { event.preventDefault(); document.querySelector('#open-file').click(); return; }
+  if (ctrl && event.key.toLowerCase() === 'p') { event.preventDefault(); openPreview(); return; }
   if (ctrl && ['0', '+', '=', '-'].includes(event.key)) {
     event.preventDefault();
     if (!textEditor) zoomAt(event.key === '0' ? 1 / view.zoom : event.key === '-' ? 1 / 1.2 : 1.2,
@@ -751,6 +762,11 @@ document.addEventListener('keydown', event => {
     return;
   }
   if (textEditor || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (event.key === '?' && !ctrl && !event.altKey) {
+    event.preventDefault();
+    if (!event.repeat) toggleHelp();
+    return;
+  }
   if (event.code === 'Space' && !ctrl && !event.altKey) {
     event.preventDefault();
     if (!spaceDown) { spaceDown = true; render(); }

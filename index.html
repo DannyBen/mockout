@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Onion UI — canvas</title>
+  <title>Minimock</title>
   <link rel="stylesheet" href="style.css">
   <script src="app.js" defer></script>
 </head>
@@ -26,7 +26,56 @@
     <button type="button" tabindex="-1" id="open-button">Open</button>
     <button type="button" tabindex="-1" id="save-button">Save</button>
     <button type="button" tabindex="-1" id="preview-button">Preview</button>
+    <span class="divider"></span>
+    <button type="button" tabindex="-1" id="help-button" aria-label="Help" aria-controls="help-panel" aria-expanded="false">?</button>
   </div>
+
+  <aside id="help-panel" hidden aria-label="Keyboard help">
+    <header><strong>Help</strong><button type="button" tabindex="-1" id="close-help" aria-label="Close help">×</button></header>
+    <section>
+      <h2>Draw and select</h2>
+      <dl>
+        <div><dt><kbd>V</kbd></dt><dd>Select tool</dd></div>
+        <div><dt><kbd>B</kbd></dt><dd>Draw box</dd></div>
+        <div><dt><kbd>Shift</kbd> + click</dt><dd>Add or remove a box</dd></div>
+        <div><dt>Drag empty space</dt><dd>Select an area</dd></div>
+        <div><dt><kbd>Tab</kbd></dt><dd>Next box</dd></div>
+        <div><dt><kbd>Shift</kbd> + <kbd>Tab</kbd></dt><dd>Previous box</dd></div>
+        <div><dt><kbd>Enter</kbd> / <kbd>F2</kbd></dt><dd>Edit text</dd></div>
+        <div><dt>Right click</dt><dd>Properties</dd></div>
+      </dl>
+    </section>
+    <section>
+      <h2>Move and edit</h2>
+      <dl>
+        <div><dt>Drag</dt><dd>Move with contained boxes</dd></div>
+        <div><dt><kbd>Alt</kbd> + drag</dt><dd>Move one box</dd></div>
+        <div><dt><kbd>Arrows</kbd></dt><dd>Move selection</dd></div>
+        <div><dt><kbd>Shift</kbd> + <kbd>Arrows</kbd></dt><dd>Resize selection</dd></div>
+        <div><dt><kbd>Ctrl</kbd> + <kbd>Arrows</kbd></dt><dd>Move five grid steps</dd></div>
+        <div><dt><kbd>Ctrl</kbd> + <kbd>D</kbd></dt><dd>Duplicate</dd></div>
+        <div><dt><kbd>Delete</kbd></dt><dd>Remove</dd></div>
+        <div><dt><kbd>Ctrl</kbd> + <kbd>Z</kbd></dt><dd>Undo</dd></div>
+        <div><dt><kbd>Ctrl</kbd> + <kbd>Y</kbd></dt><dd>Redo</dd></div>
+      </dl>
+    </section>
+    <section>
+      <h2>Canvas and project</h2>
+      <dl>
+        <div><dt><kbd>1</kbd>–<kbd>5</kbd></dt><dd>Grid size / off</dd></div>
+        <div><dt>Right click canvas</dt><dd>Canvas colors</dd></div>
+        <div><dt><kbd>Space</kbd> + drag</dt><dd>Pan canvas</dd></div>
+        <div><dt><kbd>Ctrl</kbd> + wheel</dt><dd>Zoom at pointer</dd></div>
+        <div><dt><kbd>+</kbd></dt><dd>Zoom in</dd></div>
+        <div><dt><kbd>−</kbd></dt><dd>Zoom out</dd></div>
+        <div><dt><kbd>Ctrl</kbd> + <kbd>0</kbd></dt><dd>Reset zoom</dd></div>
+        <div><dt><kbd>Ctrl</kbd> + <kbd>S</kbd></dt><dd>Save project</dd></div>
+        <div><dt><kbd>Ctrl</kbd> + <kbd>O</kbd></dt><dd>Open project</dd></div>
+        <div><dt><kbd>Ctrl</kbd> + <kbd>P</kbd></dt><dd>Preview</dd></div>
+        <div><dt><kbd>?</kbd></dt><dd>Toggle help</dd></div>
+      </dl>
+    </section>
+  </aside>
 
   <aside id="inspector" hidden aria-label="Selected box properties">
     <header id="inspector-header" hidden>
@@ -96,6 +145,5 @@
 
   <input id="open-file" type="file" accept=".json,application/json" hidden>
   <p id="notice" role="alert" hidden></p>
-  <p class="help">V select · B draw · Drag auto-moves contained elements · Alt+drag moves one box · Tab cycles boxes · Space+drag pans · Right-click properties</p>
 </body>
 </html>
