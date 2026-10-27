@@ -38,7 +38,7 @@ Open `index.html` in a browser. Press `V` to select boxes: click one, Shift-clic
 
 Right-click a box to open properties; Escape goes back or closes them. Press Enter or F2, or double-click a box, to edit its text. Click Fill, Text, or Border to choose a named swatch or create one with HSB, RGB, or Grayscale sliders or a hex value. Use Edit beside a swatch to change its color everywhere it is used; changes preview on linked boxes until saved. An unused swatch can be deleted from its editor.
 
-Use `1`, `2`, `3`, `4`, `5` for 40, 20, 10, 5 px grids and Off. A stronger grid line appears every ten cells. Padding X controls left/right space; Padding Y controls top/bottom space. Drag any selected resize handle to resize all selected boxes, each snapped to the grid. Arrow keys move the selection; Shift+arrows resize it. Ctrl+arrows move five grid steps, and Ctrl+Shift+arrows resize five grid steps. Ctrl+D duplicates, Delete removes, and Ctrl+Z/Ctrl+Y undo and redo. The canvas restores locally on reopening; Open and Save exchange JSON project files.
+Use `1`, `2`, `3`, `4`, `5` for 40, 20, 10, 5 px grids and Off. A stronger grid line appears every ten cells. Padding X controls left/right space; Padding Y controls top/bottom space. New boxes inherit the last edited box style, with empty text and the size you draw. Drag any selected resize handle to resize all selected boxes, each snapped to the grid. Arrow keys move the selection; Shift+arrows resize it. Ctrl+arrows move five grid steps, and Ctrl+Shift+arrows resize five grid steps. Ctrl+D duplicates, Delete removes, and Ctrl+Z/Ctrl+Y undo and redo. The canvas restores locally on reopening; Open and Save exchange JSON project files.
 
 
 

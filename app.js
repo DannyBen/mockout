@@ -8,22 +8,36 @@ const colorButtons = [...document.querySelectorAll('[data-color-property]')];
 const channels = [1, 2, 3].map(n => document.querySelector(`#channel-${n}`));
 const channelValues = [1, 2, 3].map(n => document.querySelector(`#channel-${n}-value`));
 
-const freshState = () => ({
-  version: 1,
-  grid: 10,
-  nextId: 4,
-  swatches: [
+const initialStyle = swatches => ({
+  fill: swatches[0]?.id ?? null,
+  textColor: swatches[1]?.id ?? swatches[0]?.id ?? null,
+  borderColor: swatches[2]?.id ?? swatches[0]?.id ?? null,
+  borderWidth: 1, radius: 0, paddingX: 3, paddingY: 3,
+  alignX: 'center', alignY: 'center',
+});
+
+const freshState = () => {
+  const swatches = [
     { id: 's1', name: 'White', color: '#ffffff' },
     { id: 's2', name: 'Ink', color: '#253047' },
     { id: 's3', name: 'Line', color: '#aeb6c5' },
-  ],
-  boxes: [],
-});
+  ];
+  return { version: 1, grid: 10, nextId: 4, swatches, boxes: [], lastStyle: initialStyle(swatches) };
+};
+
+function validStyle(style, swatches) {
+  return style && ['fill', 'textColor', 'borderColor'].every(key =>
+    style[key] === null || swatches.some(item => item.id === style[key]))
+    && ['borderWidth', 'radius', 'paddingX', 'paddingY'].every(key => Number.isFinite(style[key]) && style[key] >= 0)
+    && ['left', 'center', 'right'].includes(style.alignX)
+    && ['top', 'center', 'bottom'].includes(style.alignY);
+}
 
 function validProject(value) {
   return value && value.version === 1 && [0, 5, 10, 20, 40].includes(value.grid)
     && Number.isInteger(value.nextId) && Array.isArray(value.swatches) && Array.isArray(value.boxes)
     && value.swatches.every(s => typeof s.id === 'string' && typeof s.name === 'string' && /^#[0-9a-f]{6}$/i.test(s.color))
+    && (value.lastStyle === undefined || validStyle(value.lastStyle, value.swatches))
     && value.boxes.every(b => Number.isInteger(b.id) && ['x', 'y', 'w', 'h', 'radius', 'borderWidth'].every(k => Number.isFinite(b[k]))
       && b.w > 0 && b.h > 0 && typeof b.text === 'string'
       && ['paddingX', 'paddingY'].every(k => b[k] === undefined || (Number.isFinite(b[k]) && b[k] >= 0))
@@ -59,6 +73,12 @@ const selectedBox = () => state.boxes.find(b => b.id === selectedId);
 const selectedBoxes = () => state.boxes.filter(b => selectedIds.has(b.id));
 const paddingX = box => box.paddingX ?? 3;
 const paddingY = box => box.paddingY ?? 3;
+const styleOf = box => ({
+  fill: box.fill, textColor: box.textColor, borderColor: box.borderColor,
+  borderWidth: box.borderWidth, radius: box.radius,
+  paddingX: paddingX(box), paddingY: paddingY(box), alignX: box.alignX, alignY: box.alignY,
+});
+function rememberStyle(box) { state.lastStyle = styleOf(box); }
 function selectOnly(id) {
   selectedId = id;
   selectedIds = id === null ? new Set() : new Set([id]);
@@ -266,12 +286,10 @@ function point(event) {
 }
 
 function newBox(x, y) {
-  const initialSwatch = color => state.swatches.find(item => item.color === color)?.id ?? state.swatches[0]?.id ?? null;
+  const style = state.lastStyle ?? (state.boxes.length ? styleOf(state.boxes.at(-1)) : initialStyle(state.swatches));
   return {
     id: state.nextId++, x, y, w: minimum(), h: minimum(), text: '',
-    fill: initialSwatch('#ffffff'), textColor: initialSwatch('#253047'), borderColor: initialSwatch('#aeb6c5'),
-    borderWidth: 1, radius: 0, paddingX: 3, paddingY: 3,
-    alignX: 'center', alignY: 'center',
+    ...style,
   };
 }
 
@@ -505,7 +523,10 @@ for (const [id, key, transform] of [
   ['box-align-y', 'alignY', value => value],
 ]) {
   document.getElementById(id).addEventListener('change', event => {
-    if (selectedBox()) change(() => { selectedBox()[key] = transform(event.target.value); });
+    if (selectedBox()) change(() => {
+      selectedBox()[key] = transform(event.target.value);
+      rememberStyle(selectedBox());
+    });
   });
 }
 
@@ -654,6 +675,7 @@ document.addEventListener('keydown', event => {
       state.boxes.push(...copies);
       selectedIds = new Set(copies.map(box => box.id));
       selectedId = copies[0].id;
+      rememberStyle(copies[0]);
     });
     return;
   }
@@ -748,7 +770,10 @@ function openColor(property) {
 
 function assignColor(id) {
   if (!selectedBox() || !colorTarget) return;
-  change(() => { selectedBox()[colorTarget.property] = id; });
+  change(() => {
+    selectedBox()[colorTarget.property] = id;
+    rememberStyle(selectedBox());
+  });
   inspectorView = 'properties';
   renderInspector();
   document.querySelector(`[data-color-property="${colorTarget.property}"]`).focus();
@@ -779,7 +804,14 @@ document.querySelector('#delete-swatch').addEventListener('click', () => {
   const id = colorTarget?.editId;
   if (!id || state.swatches.length <= 1 || state.boxes.some(box =>
     ['fill', 'textColor', 'borderColor'].some(property => box[property] === id))) return;
-  change(() => { state.swatches = state.swatches.filter(item => item.id !== id); });
+  change(() => {
+    state.swatches = state.swatches.filter(item => item.id !== id);
+    if (state.lastStyle) {
+      for (const property of ['fill', 'textColor', 'borderColor']) {
+        if (state.lastStyle[property] === id) state.lastStyle[property] = state.swatches[0].id;
+      }
+    }
+  });
   inspectorView = 'choose';
   colorTarget.editId = null;
   renderInspector();
@@ -854,6 +886,7 @@ document.querySelector('#save-swatch').addEventListener('click', () => {
       const id = `s${state.nextId++}`;
       state.swatches.push({ id, name, color: editorColor });
       selectedBox()[colorTarget.property] = id;
+      rememberStyle(selectedBox());
     });
     inspectorView = 'properties';
   }
