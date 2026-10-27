@@ -16,7 +16,7 @@ const initialStyle = swatches => ({
   fill: swatches[0]?.id ?? null,
   textColor: swatches[1]?.id ?? swatches[0]?.id ?? null,
   borderColor: swatches[2]?.id ?? swatches[0]?.id ?? null,
-  borderWidth: 1, radius: 0, paddingX: 3, paddingY: 3,
+  borderWidth: 1, radius: 0, paddingX: 3, paddingY: 0,
   alignX: 'center', alignY: 'center',
 });
 
