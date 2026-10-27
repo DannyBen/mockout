@@ -1039,7 +1039,7 @@ function saveProject() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = 'onion-mock.json';
+  link.download = 'minimock.json';
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -1067,7 +1067,7 @@ function previewHTML(css) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Onion UI mock</title>
+<title>Minimock preview</title>
 <style>${css}</style>
 <style>
   :root, body { background: #fff; }
@@ -1112,7 +1112,7 @@ document.querySelector('#open-file').addEventListener('change', async event => {
   if (!file) return;
   try {
     const loaded = JSON.parse(await file.text());
-    if (!validProject(loaded)) throw new Error('This is not an Onion UI project.');
+    if (!validProject(loaded)) throw new Error('This is not a Minimock project.');
     change(() => { state = loaded; savedProjectIssue = ''; selectOnly(null); inspectorOpen = false; });
     document.querySelector('#notice').hidden = true;
   } catch (error) {

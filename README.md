@@ -42,3 +42,9 @@ embedded, ready for viewing or capturing without the editing controls or grid.
 Minimock is an early, deliberately small project. Its goal is to make a quick
 UI sketch feel precise without turning the process into a full design system.
 
+## Run locally
+
+Serve this directory with a static HTTP server, then open it in a browser.
+For example, run `python3 -m http.server 8000` and visit
+`http://localhost:8000`. Preview needs HTTP to load the project's CSS.
+
