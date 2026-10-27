@@ -708,8 +708,8 @@ workspace.addEventListener('wheel', event => {
   event.preventDefault();
   if (textEditor) return;
   const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? workspace.clientHeight : 1;
-  view.x -= event.deltaX * unit;
-  view.y -= event.deltaY * unit;
+  view.x -= (event.deltaX + (event.shiftKey ? event.deltaY : 0)) * unit;
+  if (!event.shiftKey) view.y -= event.deltaY * unit;
   render();
 }, { passive: false });
 

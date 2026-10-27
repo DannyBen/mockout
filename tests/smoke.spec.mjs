@@ -197,3 +197,19 @@ test('zoom reaches 2000% without moving the point under the cursor', async ({ pa
   await page.keyboard.press('Control+0');
   expect((await atAnchor()).zoom).toBe(1);
 });
+
+test('Shift+wheel pans sideways while ordinary wheel pans vertically', async ({ page }) => {
+  await page.goto('/');
+  const pan = () => page.evaluate(() => {
+    const matrix = new DOMMatrix(getComputedStyle(document.querySelector('#canvas')).transform);
+    return { x: matrix.e, y: matrix.f };
+  });
+  await page.mouse.move(500, 400);
+  await page.keyboard.down('Shift');
+  await page.mouse.wheel(0, 120);
+  await page.keyboard.up('Shift');
+  expect(await pan()).toEqual({ x: -120, y: 0 });
+
+  await page.mouse.wheel(0, 120);
+  expect(await pan()).toEqual({ x: -120, y: -120 });
+});
