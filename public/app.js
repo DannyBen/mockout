@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'minimock-project';
+const STORAGE_KEY = MinimockProject.storageKey;
 const workspace = document.querySelector('#workspace');
 const canvas = document.querySelector('#canvas');
 const inspector = document.querySelector('#inspector');
@@ -16,49 +16,9 @@ const colorButtons = [...document.querySelectorAll('[data-color-property], [data
 const alignButtons = [...document.querySelectorAll('[data-align-axis]')];
 const channels = [1, 2, 3].map(n => document.querySelector(`#channel-${n}`));
 const channelValues = [1, 2, 3].map(n => document.querySelector(`#channel-${n}-value`));
-const defaultCanvasColors = { background: '#ffffff', gridMajor: '#f1f1f1', gridMinor: '#f1f1f1' };
-
-const initialStyle = swatches => ({
-  fill: swatches[0]?.id ?? null,
-  textColor: swatches[1]?.id ?? swatches[0]?.id ?? null,
-  borderColor: swatches[2]?.id ?? swatches[0]?.id ?? null,
-  borderWidth: 1, radius: 0, paddingX: 3, paddingY: 0,
-  alignX: 'center', alignY: 'center',
-});
-
-const freshState = () => {
-  const swatches = [
-    { id: 's1', name: 'White', color: '#ffffff' },
-    { id: 's2', name: 'Ink', color: '#253047' },
-    { id: 's3', name: 'Line', color: '#aeb6c5' },
-  ];
-  return {
-    version: 1, grid: 10, nextId: 4, swatches, boxes: [], lastStyle: initialStyle(swatches),
-    canvasColors: { ...defaultCanvasColors },
-  };
-};
-
-function validStyle(style, swatches) {
-  return style && ['fill', 'textColor', 'borderColor'].every(key =>
-    style[key] === null || swatches.some(item => item.id === style[key]))
-    && ['borderWidth', 'radius', 'paddingX', 'paddingY'].every(key => Number.isFinite(style[key]) && style[key] >= 0)
-    && ['left', 'center', 'right'].includes(style.alignX)
-    && ['top', 'center', 'bottom'].includes(style.alignY);
-}
-
-function validProject(value) {
-  return value && value.version === 1 && [0, 5, 10, 20, 40].includes(value.grid)
-    && Number.isInteger(value.nextId) && Array.isArray(value.swatches) && Array.isArray(value.boxes)
-    && value.swatches.every(s => typeof s.id === 'string' && typeof s.name === 'string' && /^#[0-9a-f]{6}$/i.test(s.color))
-    && (value.lastStyle === undefined || validStyle(value.lastStyle, value.swatches))
-    && value.canvasColors && ['background', 'gridMajor', 'gridMinor'].every(key =>
-      /^#[0-9a-f]{6}$/i.test(value.canvasColors[key]))
-    && value.boxes.every(b => Number.isInteger(b.id) && ['x', 'y', 'w', 'h', 'radius', 'borderWidth'].every(k => Number.isFinite(b[k]))
-      && b.w > 0 && b.h > 0 && typeof b.text === 'string'
-      && ['paddingX', 'paddingY'].every(k => b[k] === undefined || (Number.isFinite(b[k]) && b[k] >= 0))
-      && ['fill', 'textColor', 'borderColor'].every(k => b[k] === null || value.swatches.some(s => s.id === b[k]))
-      && ['left', 'center', 'right'].includes(b.alignX) && ['top', 'center', 'bottom'].includes(b.alignY));
-}
+const { initialStyle } = MinimockProject;
+const freshState = () => MinimockProject.freshState();
+const validProject = value => MinimockProject.validProject(value);
 
 let state = freshState();
 let savedProjectIssue = '';
@@ -129,10 +89,14 @@ const styleOf = box => ({
 });
 function rememberStyle(box) { state.lastStyle = styleOf(box); }
 function selectOnly(id) {
-  if (isolatedCopyIds && (isolatedCopyIds.size !== 1 || !isolatedCopyIds.has(id))) isolatedCopyIds = null;
-  selectedId = id;
-  selectedIds = id === null ? new Set() : new Set([id]);
+  const next = MinimockSelection.selectOnly({ selectedId, selectedIds, isolatedCopyIds, inspectorOpen }, id);
+  selectedId = next.selectedId;
+  selectedIds = next.selectedIds;
+  isolatedCopyIds = next.isolatedCopyIds;
+  inspectorOpen = next.inspectorOpen;
 }
+const inspectedBox = () => MinimockSelection.inspectedBox(state.boxes,
+  { selectedId, selectedIds, inspectorOpen, inspectorKind });
 const swatch = id => state.swatches.find(s => s.id === id);
 const colorOf = id => inspectorOpen && inspectorView === 'edit' && colorTarget?.editId && colorTarget.editId === id
   ? editorColor : swatch(id)?.color || 'transparent';
@@ -149,12 +113,12 @@ function boxColor(box, property) {
   }
   return colorOf(box[property]);
 }
-const snap = n => state.grid ? Math.round(n / state.grid) * state.grid : Math.round(n);
+const snap = n => MinimockPlacement.snap(n, state.grid);
 const minimum = () => state.grid || 5;
 
 function persist() {
-  if (savedProjectIssue) return;
-  try { localStorage.setItem(STORAGE_KEY, snapshot()); } catch { /* File save remains available. */ }
+  try { MinimockProject.persist(localStorage, STORAGE_KEY, state, savedProjectIssue); }
+  catch { /* File save remains available. */ }
 }
 
 function commit(before) {
@@ -252,7 +216,7 @@ function render() {
 }
 
 function renderInspector() {
-  const box = inspectorKind === 'box' && selectedIds.size === 1 && inspectorOpen ? selectedBox() : null;
+  const box = inspectedBox();
   const visible = inspectorOpen && (inspectorKind === 'canvas' || box);
   inspector.hidden = !visible;
   if (!visible) return;
@@ -340,18 +304,15 @@ function positionInspector() {
     inspector.style.top = `${Math.max(12, Math.min(inspectorPoint.y, window.innerHeight - inspector.offsetHeight - 12))}px`;
     return;
   }
-  const box = selectedBox();
+  const box = inspectedBox();
   if (!box) return;
   const boxRect = [...canvas.querySelectorAll('.box')].find(element => Number(element.dataset.id) === box.id)?.getBoundingClientRect();
   if (!boxRect) return;
-  const boxLeft = boxRect.left;
-  const boxTop = boxRect.top;
-  const width = inspector.offsetWidth;
-  const height = inspector.offsetHeight;
-  let left = boxRect.right + 12;
-  if (left + width > window.innerWidth - 12) left = boxLeft - width - 12;
-  inspector.style.left = `${Math.max(12, Math.min(left, window.innerWidth - width - 12))}px`;
-  inspector.style.top = `${Math.max(12, Math.min(boxTop, window.innerHeight - height - 12))}px`;
+  const position = MinimockSelection.inspectorPosition(boxRect,
+    { width: inspector.offsetWidth, height: inspector.offsetHeight },
+    { width: window.innerWidth, height: window.innerHeight });
+  inspector.style.left = `${position.left}px`;
+  inspector.style.top = `${position.top}px`;
 }
 
 window.addEventListener('resize', positionInspector);
@@ -365,11 +326,7 @@ function colorChip(color) {
 }
 
 function point(event) {
-  const rect = workspace.getBoundingClientRect();
-  return {
-    x: (event.clientX - rect.left - view.x) / view.zoom,
-    y: (event.clientY - rect.top - view.y) / view.zoom,
-  };
+  return MinimockPlacement.worldPoint(event, workspace.getBoundingClientRect(), view);
 }
 
 function newBox(x, y) {
@@ -401,17 +358,12 @@ function startDuplicatePlacement() {
   if (!source.length || gesture) return;
   closeProjectMenu();
   const originals = dragTargets(source[0], false, false);
-  const step = state.grid || 10;
   const previous = {
     before: snapshot(), selectedIds: new Set(selectedIds), selectedId,
     inspectorOpen, tool, isolatedCopyIds,
   };
-  let dx = step, dy = step;
-  if (pointerPosition) {
-    const cursor = point({ clientX: pointerPosition.x, clientY: pointerPosition.y });
-    dx = snap(cursor.x - source[0].w / 2) - source[0].x;
-    dy = snap(cursor.y - source[0].h / 2) - source[0].y;
-  }
+  const cursor = pointerPosition && point({ clientX: pointerPosition.x, clientY: pointerPosition.y });
+  const { x: dx, y: dy } = MinimockPlacement.duplicateOffset(source[0], cursor, state.grid);
   const copies = originals.map(box => ({
     ...box, id: state.nextId++, x: box.x + dx, y: box.y + dy,
   }));
@@ -438,10 +390,8 @@ function movePlacement(clientX, clientY) {
     placement.pointer = { x: clientX, y: clientY };
   }
   const first = placement.starts[0];
-  const pointerX = placement.pointer ? (placement.pointer.x - placement.pointerOrigin.x) / view.zoom : 0;
-  const pointerY = placement.pointer ? (placement.pointer.y - placement.pointerOrigin.y) / view.zoom : 0;
-  const dx = snap(first.x + pointerX + placement.nudgeX) - first.x;
-  const dy = snap(first.y + pointerY + placement.nudgeY) - first.y;
+  const { x: dx, y: dy } = MinimockPlacement.moveDelta(first, placement.pointerOrigin,
+    placement.pointer, { x: placement.nudgeX, y: placement.nudgeY }, view.zoom, state.grid);
   for (const start of placement.starts) {
     const box = state.boxes.find(item => item.id === start.id);
     box.x = start.x + dx;
@@ -1226,16 +1176,15 @@ document.querySelector('#save-button').addEventListener('click', saveProject);
 function clearCanvas() {
   closeProjectMenu();
   if (!state.boxes.length) return;
-  change(() => { state.boxes = []; selectOnly(null); inspectorOpen = false; isolatedCopyIds = null; });
+  change(() => { state = MinimockProject.clearBoard(state); selectOnly(null); inspectorOpen = false; isolatedCopyIds = null; });
   workspace.focus();
 }
 document.querySelector('#clear-button').addEventListener('click', clearCanvas);
 function resetEverything() {
   if (placement) return;
   closeProjectMenu();
-  try { localStorage.removeItem(STORAGE_KEY); }
+  try { state = MinimockProject.reset(localStorage, STORAGE_KEY); }
   catch { showNotice('Could not clear saved data. Nothing was reset.'); return; }
-  state = freshState();
   savedProjectIssue = '';
   undoStack.length = 0;
   redoStack.length = 0;

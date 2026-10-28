@@ -49,6 +49,9 @@ Serve the `public` directory with a static HTTP server, then open it in a browse
 For example, run `python3 -m http.server 8000 --directory public` and visit
 `http://localhost:8000`. Preview needs HTTP to load the project's CSS.
 
+Run `op test` for dependency-free regression tests covering selection, placement,
+and project data.
+
 ## Deploy to Cloudflare Workers
 
 Connect this repository to a Cloudflare Worker named `minimock`. Leave the build
