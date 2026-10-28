@@ -377,7 +377,15 @@ function startDuplicatePlacement() {
     before: snapshot(), selectedIds: new Set(selectedIds), selectedId,
     inspectorOpen, tool, isolatedCopyIds,
   };
-  const copies = originals.map(box => ({ ...box, id: state.nextId++, x: box.x + step, y: box.y + step }));
+  let dx = step, dy = step;
+  if (pointerPosition) {
+    const cursor = point({ clientX: pointerPosition.x, clientY: pointerPosition.y });
+    dx = snap(cursor.x - source[0].w / 2) - source[0].x;
+    dy = snap(cursor.y - source[0].h / 2) - source[0].y;
+  }
+  const copies = originals.map(box => ({
+    ...box, id: state.nextId++, x: box.x + dx, y: box.y + dy,
+  }));
   state.boxes.push(...copies);
   selectedIds = new Set(copies.map(box => box.id));
   selectedId = copies[0].id;
@@ -513,8 +521,14 @@ workspace.addEventListener('contextmenu', event => {
   else openCanvasInspector({ x: event.clientX, y: event.clientY });
 });
 
-workspace.addEventListener('pointerdown', event => {
+document.addEventListener('pointerdown', event => {
   pointerPosition = { x: event.clientX, y: event.clientY };
+});
+document.addEventListener('pointermove', event => {
+  pointerPosition = { x: event.clientX, y: event.clientY };
+});
+
+workspace.addEventListener('pointerdown', event => {
   if (placement) {
     event.preventDefault();
     if (event.button === 0) {
@@ -579,7 +593,6 @@ workspace.addEventListener('pointerdown', event => {
 });
 
 workspace.addEventListener('pointermove', event => {
-  pointerPosition = { x: event.clientX, y: event.clientY };
   if (placement) { movePlacement(event.clientX, event.clientY); return; }
   if (!gesture) return;
   if (gesture.kind === 'pan') {
