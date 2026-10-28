@@ -196,6 +196,8 @@ input, select { width: 100%; padding: 5px 6px; }
   position: fixed;
   z-index: 10;
   width: 230px;
+  max-height: calc(100vh - 24px);
+  overflow: auto;
   padding: 11px;
   border-radius: 7px;
 
@@ -212,11 +214,40 @@ input, select { width: 100%; padding: 5px 6px; }
   & .field input, .field select { margin-top: 3px; color: #253047; font-size: 13px; }
   & :is(.field, .align-group > span, .color-field > span).mixed { color: #7658bc; font-style: italic; }
   & .field.mixed input { font-style: normal; }
+  & #property-cycler {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) 18px;
+    align-items: center;
+    width: 100%;
+    height: 32px;
+    margin-bottom: 8px;
+    padding: 0 5px;
+    border: 1px solid #cbd1de;
+    background: #fff;
+    color: #253047;
+  }
+  & .cycle-arrow { color: #626d82; font-size: 18px; line-height: 1; text-align: center; }
+  & .cycle-arrow.disabled { opacity: .3; }
+  & .cycle-window { position: relative; height: 100%; min-width: 0; overflow: hidden; }
+  & .cycle-track {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    display: flex;
+    width: max-content;
+    height: 100%;
+    transform: translateX(-30px);
+    transition: transform .16s ease-out;
+  }
+  & .cycle-option { display: grid; flex: none; min-width: 56px; padding: 0 6px; place-items: center; color: #8992a3; white-space: nowrap; }
+  & .cycle-option.active { color: #253047; font-weight: 700; }
+  & .section-content { padding-top: 2px; }
   & :is(button, input, select):focus-visible, & .swatch-choice:focus {
     outline: none;
     border-color: #7658bc;
     box-shadow: 0 0 0 1px #7658bc;
   }
+  & #property-cycler:focus-visible { box-shadow: 0 0 0 2px #7658bc; }
 }
 
 #help-panel {
@@ -251,13 +282,12 @@ input, select { width: 100%; padding: 5px 6px; }
 
 [hidden] { display: none !important; }
 .two-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.align-fields { margin-bottom: 9px; }
+.align-fields { margin-bottom: 0; }
 .align-group { min-width: 0; color: #626d82; font-size: 11px; }
 .align-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; margin-top: 3px; }
 .align-buttons button { display: grid; place-items: center; min-width: 0; height: 29px; padding: 3px; }
 .align-buttons button.active { color: #6746b7; background: #f0ebfa; border-color: #6746b7; }
 .align-buttons svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
-.color-fields { border-top: 1px solid #e4e6ed; padding-top: 7px; }
 .color-field { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 6px; margin: 5px 0; }
 .canvas-color-field { grid-template-columns: 74px minmax(0, 1fr); }
 .color-field button { display: flex; align-items: center; gap: 6px; min-width: 0; text-align: left; }

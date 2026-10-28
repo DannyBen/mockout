@@ -57,6 +57,7 @@
         <div><dt><kbd>Ctrl</kbd> + <kbd>A</kbd></dt><dd>Select all boxes</dd></div>
         <div><dt><kbd>Enter</kbd> / <kbd>F2</kbd></dt><dd>Edit text</dd></div>
         <div><dt><kbd>P</kbd></dt><dd>Box or canvas properties</dd></div>
+        <div><dt><kbd>←</kbd> / <kbd>→</kbd> / wheel</dt><dd>Change Properties section</dd></div>
         <div><dt><kbd>Backspace</kbd> / <kbd>Delete</kbd></dt><dd>Clear mixed text in Properties</dd></div>
         <div><dt>Right click</dt><dd>Properties</dd></div>
       </dl>
@@ -111,42 +112,54 @@
       <button type="button" id="delete-swatch" hidden>Delete</button>
     </header>
     <section id="box-properties">
-    <label class="field">Text <input id="box-text" type="text" placeholder="Optional text"></label>
-    <div class="two-fields">
-      <label class="field">Width <input id="box-width" type="number" min="1" step="1"></label>
-      <label class="field">Height <input id="box-height" type="number" min="1" step="1"></label>
-    </div>
-    <div class="two-fields">
-      <label class="field">Radius <input id="box-radius" type="number" min="0" step="1"></label>
-      <label class="field">Border <input id="box-border-width" type="number" min="0" step="1"></label>
-    </div>
-    <div class="two-fields">
-      <label class="field">Padding X <input id="box-padding-x" type="number" min="0" step="1"></label>
-      <label class="field">Padding Y <input id="box-padding-y" type="number" min="0" step="1"></label>
-    </div>
-    <div class="two-fields align-fields">
-      <div class="align-group" role="group" aria-label="Horizontal alignment">
-        <span>Horizontal</span>
-        <div class="align-buttons">
-          <button type="button" data-align-axis="alignX" data-align-value="left" aria-label="Align left"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4h14M3 8h9M3 12h14M3 16h7"/></svg></button>
-          <button type="button" data-align-axis="alignX" data-align-value="center" aria-label="Align center"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4h14M5 8h10M3 12h14M6 16h8"/></svg></button>
-          <button type="button" data-align-axis="alignX" data-align-value="right" aria-label="Align right"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4h14M8 8h9M3 12h14M10 16h7"/></svg></button>
+      <label class="field">Text <input id="box-text" type="text" placeholder="Optional text"></label>
+      <button type="button" id="property-cycler" aria-controls="general-properties color-properties" aria-label="Properties: General. Use left and right arrows to change section">
+        <span class="cycle-arrow" data-cycle-step="-1" aria-hidden="true">‹</span>
+        <span class="cycle-window" aria-hidden="true">
+          <span class="cycle-track">
+            <span class="cycle-option active" data-property-section="general">General</span>
+            <span class="cycle-option" data-property-section="colors">Colors</span>
+          </span>
+        </span>
+        <span class="cycle-arrow" data-cycle-step="1" aria-hidden="true">›</span>
+      </button>
+      <div id="general-properties" class="section-content">
+        <div class="two-fields">
+          <label class="field">Width <input id="box-width" type="number" min="1" step="1"></label>
+          <label class="field">Height <input id="box-height" type="number" min="1" step="1"></label>
+        </div>
+        <div class="two-fields">
+          <label class="field">Radius <input id="box-radius" type="number" min="0" step="1"></label>
+          <label class="field">Border <input id="box-border-width" type="number" min="0" step="1"></label>
+        </div>
+        <div class="two-fields">
+          <label class="field">Padding X <input id="box-padding-x" type="number" min="0" step="1"></label>
+          <label class="field">Padding Y <input id="box-padding-y" type="number" min="0" step="1"></label>
+        </div>
+        <div class="two-fields align-fields">
+          <div class="align-group" role="group" aria-label="Horizontal alignment">
+            <span>Horizontal</span>
+            <div class="align-buttons">
+              <button type="button" data-align-axis="alignX" data-align-value="left" aria-label="Align left"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4h14M3 8h9M3 12h14M3 16h7"/></svg></button>
+              <button type="button" data-align-axis="alignX" data-align-value="center" aria-label="Align center"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4h14M5 8h10M3 12h14M6 16h8"/></svg></button>
+              <button type="button" data-align-axis="alignX" data-align-value="right" aria-label="Align right"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 4h14M8 8h9M3 12h14M10 16h7"/></svg></button>
+            </div>
+          </div>
+          <div class="align-group" role="group" aria-label="Vertical alignment">
+            <span>Vertical</span>
+            <div class="align-buttons">
+              <button type="button" data-align-axis="alignY" data-align-value="top" aria-label="Align top"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 3h16M5 5v9M10 5v12M15 5v7"/></svg></button>
+              <button type="button" data-align-axis="alignY" data-align-value="center" aria-label="Align middle"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 10h16M5 5v10M10 3v14M15 6v8"/></svg></button>
+              <button type="button" data-align-axis="alignY" data-align-value="bottom" aria-label="Align bottom"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 17h16M5 7v8M10 5v10M15 9v6"/></svg></button>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="align-group" role="group" aria-label="Vertical alignment">
-        <span>Vertical</span>
-        <div class="align-buttons">
-          <button type="button" data-align-axis="alignY" data-align-value="top" aria-label="Align top"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 3h16M5 5v9M10 5v12M15 5v7"/></svg></button>
-          <button type="button" data-align-axis="alignY" data-align-value="center" aria-label="Align middle"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 10h16M5 5v10M10 3v14M15 6v8"/></svg></button>
-          <button type="button" data-align-axis="alignY" data-align-value="bottom" aria-label="Align bottom"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 17h16M5 7v8M10 5v10M15 9v6"/></svg></button>
-        </div>
+      <div id="color-properties" class="section-content" hidden>
+        <div class="color-field"><span>Fill</span><button type="button" data-color-property="fill"></button></div>
+        <div class="color-field"><span>Text</span><button type="button" data-color-property="textColor"></button></div>
+        <div class="color-field"><span>Border</span><button type="button" data-color-property="borderColor"></button></div>
       </div>
-    </div>
-    <div class="color-fields">
-      <div class="color-field"><span>Fill</span><button type="button" data-color-property="fill"></button></div>
-      <div class="color-field"><span>Text</span><button type="button" data-color-property="textColor"></button></div>
-      <div class="color-field"><span>Border</span><button type="button" data-color-property="borderColor"></button></div>
-    </div>
     </section>
     <section id="canvas-properties" hidden aria-label="Canvas properties">
       <div class="color-field canvas-color-field"><span>Background</span><button type="button" data-canvas-color-property="background"></button></div>

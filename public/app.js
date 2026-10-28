@@ -14,6 +14,9 @@ const toolButtons = [...document.querySelectorAll('[data-tool]')];
 const gridButtons = [...document.querySelectorAll('[data-grid]')];
 const colorButtons = [...document.querySelectorAll('[data-color-property], [data-canvas-color-property]')];
 const alignButtons = [...document.querySelectorAll('[data-align-axis]')];
+const propertyCycler = document.querySelector('#property-cycler');
+const cycleTrack = propertyCycler.querySelector('.cycle-track');
+const cycleOptions = [...propertyCycler.querySelectorAll('[data-property-section]')];
 const channels = [1, 2, 3].map(n => document.querySelector(`#channel-${n}`));
 const channelValues = [1, 2, 3].map(n => document.querySelector(`#channel-${n}-value`));
 const { initialStyle } = MinimockProject;
@@ -67,6 +70,9 @@ let inspectorOpen = false;
 let inspectorKind = 'box';
 let inspectorPoint = { x: 12, y: 12 };
 let inspectorView = 'properties';
+let activePropertySection = 'general';
+let lastPropertyFocus = null;
+let boxPropertiesPlacementHeight = 0;
 let tool = 'select';
 let spaceDown = false;
 let altDown = false;
@@ -80,6 +86,7 @@ const redoStack = [];
 const snapshot = () => JSON.stringify(state);
 const selectedBox = () => state.boxes.find(b => b.id === selectedId);
 const selectedBoxes = () => state.boxes.filter(b => selectedIds.has(b.id));
+const propertySectionIndex = () => cycleOptions.findIndex(option => option.dataset.propertySection === activePropertySection);
 const paddingX = box => box.paddingX ?? 3;
 const paddingY = box => box.paddingY ?? 3;
 const styleOf = box => ({
@@ -229,6 +236,19 @@ function renderInspector() {
   document.querySelector('#swatch-editor').hidden = inspectorView !== 'edit';
   document.querySelector('#swatch-name').parentElement.hidden = inspectorView === 'edit' && Boolean(colorTarget?.direct);
   document.querySelector('#inspector-header').hidden = inspectorView === 'properties';
+  const sectionIndex = propertySectionIndex();
+  for (const option of cycleOptions) option.classList.toggle('active', option.dataset.propertySection === activePropertySection);
+  document.querySelector('#general-properties').hidden = activePropertySection !== 'general';
+  document.querySelector('#color-properties').hidden = activePropertySection !== 'colors';
+  propertyCycler.setAttribute('aria-label', `Properties: ${cycleOptions[sectionIndex].textContent}. Use left and right arrows to change section`);
+  for (const arrow of propertyCycler.querySelectorAll('[data-cycle-step]')) {
+    arrow.classList.toggle('disabled', sectionIndex + Number(arrow.dataset.cycleStep) < 0
+      || sectionIndex + Number(arrow.dataset.cycleStep) >= cycleOptions.length);
+  }
+  if (inspectorKind === 'box' && inspectorView === 'properties') {
+    const active = cycleOptions[sectionIndex];
+    cycleTrack.style.transform = `translateX(-${active.offsetLeft + active.offsetWidth / 2}px)`;
+  }
   if (inspectorView !== 'properties') {
     document.querySelector('#inspector-title').hidden = inspectorView === 'edit';
     document.querySelector('#delete-swatch').hidden = inspectorView !== 'edit' || !colorTarget?.editId
@@ -278,6 +298,10 @@ function renderInspector() {
     button.replaceChildren(chip, name);
   }
   if (inspectorView === 'choose') renderSwatchList();
+  if (inspectorKind === 'box' && inspectorView === 'properties') {
+    // Reserve the tallest pane's height so cycling cannot move the inspector at screen edges.
+    boxPropertiesPlacementHeight = Math.max(boxPropertiesPlacementHeight, inspector.scrollHeight, inspector.offsetHeight);
+  }
   positionInspector();
 }
 
@@ -328,7 +352,7 @@ function positionInspector() {
   const boxRect = [...canvas.querySelectorAll('.box')].find(element => Number(element.dataset.id) === box.id)?.getBoundingClientRect();
   if (!boxRect) return;
   const position = MinimockSelection.inspectorPosition(boxRect,
-    { width: inspector.offsetWidth, height: inspector.offsetHeight },
+    { width: inspector.offsetWidth, height: Math.max(inspector.offsetHeight, boxPropertiesPlacementHeight) },
     { width: window.innerWidth, height: window.innerHeight });
   inspector.style.left = `${position.left}px`;
   inspector.style.top = `${position.top}px`;
@@ -481,16 +505,57 @@ function toggleHelp() {
 
 helpButton.addEventListener('click', toggleHelp);
 document.querySelector('#close-help').addEventListener('click', toggleHelp);
+document.querySelector('#box-properties').addEventListener('focusin', event => {
+  if (inspectorKind === 'box' && inspectorView === 'properties') lastPropertyFocus = event.target;
+});
+function showPropertySection(index) {
+  const option = cycleOptions[index];
+  if (!option || option.dataset.propertySection === activePropertySection) return;
+  activePropertySection = option.dataset.propertySection;
+  renderInspector();
+}
+propertyCycler.addEventListener('click', event => {
+  const option = event.target.closest('[data-property-section]');
+  const step = event.target.closest('[data-cycle-step]');
+  if (option) showPropertySection(cycleOptions.indexOf(option));
+  else if (step) showPropertySection(propertySectionIndex() + Number(step.dataset.cycleStep));
+});
+propertyCycler.addEventListener('keydown', event => {
+  if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+  event.preventDefault();
+  showPropertySection(propertySectionIndex() + (event.key === 'ArrowRight' ? 1 : -1));
+});
+let wheelTravel = 0;
+let wheelLocked = false;
+let wheelReset = null;
+propertyCycler.addEventListener('wheel', event => {
+  event.preventDefault();
+  propertyCycler.focus();
+  const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+  if (!wheelLocked) {
+    wheelTravel += delta * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 100 : 1);
+    if (Math.abs(wheelTravel) >= 18) {
+      showPropertySection(propertySectionIndex() + Math.sign(wheelTravel));
+      wheelTravel = 0;
+      wheelLocked = true;
+    }
+  }
+  clearTimeout(wheelReset);
+  wheelReset = setTimeout(() => { wheelTravel = 0; wheelLocked = false; }, 180);
+}, { passive: false });
 
 function openInspector(id = selectedId) {
   if (id === null) return;
+  if (inspector.contains(document.activeElement)) document.activeElement.blur();
   if (selectedIds.has(id)) selectedId = id;
   else selectOnly(id);
   inspectorOpen = true;
   inspectorKind = 'box';
   inspectorView = 'properties';
   render();
-  document.querySelector('#box-text').focus();
+  const focus = lastPropertyFocus?.isConnected && !lastPropertyFocus.closest('[hidden]')
+    ? lastPropertyFocus : propertyCycler;
+  focus.focus();
 }
 
 function openCanvasInspector(point = null) {
@@ -524,6 +589,7 @@ document.addEventListener('pointermove', event => {
 });
 
 workspace.addEventListener('pointerdown', event => {
+  if (inspector.contains(document.activeElement)) document.activeElement.blur();
   if (placement) {
     event.preventDefault();
     if (event.button === 0) {
@@ -1220,6 +1286,9 @@ function resetEverything() {
   redoStack.length = 0;
   selectOnly(null);
   inspectorOpen = false;
+  activePropertySection = 'general';
+  lastPropertyFocus = null;
+  boxPropertiesPlacementHeight = 0;
   isolatedCopyIds = null;
   placement = null;
   gesture = null;
