@@ -465,14 +465,14 @@ function toggleHelp() {
 helpButton.addEventListener('click', toggleHelp);
 document.querySelector('#close-help').addEventListener('click', toggleHelp);
 
-function openInspector(id = selectedId, focus = false) {
+function openInspector(id = selectedId) {
   if (id === null) return;
   selectOnly(id);
   inspectorOpen = true;
   inspectorKind = 'box';
   inspectorView = 'properties';
   render();
-  if (focus) document.querySelector('#box-text').focus();
+  document.querySelector('#box-text').focus();
 }
 
 function openCanvasInspector(point = null) {
@@ -487,6 +487,7 @@ function openCanvasInspector(point = null) {
       y: (window.innerHeight - inspector.offsetHeight) / 2 };
     positionInspector();
   }
+  document.querySelector('#canvas-properties button').focus();
 }
 
 workspace.addEventListener('contextmenu', event => {
@@ -868,7 +869,8 @@ document.addEventListener('keydown', event => {
     if (inspectorOpen && colorTarget?.direct && inspectorView === 'properties') focusColorField();
     return;
   }
-  if (textEditor || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (inspector.contains(document.activeElement) || textEditor
+    || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if (ctrl && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'n') {
     event.preventDefault();
     clearCanvas();

@@ -210,7 +210,11 @@ input, select { width: 100%; padding: 5px 6px; }
   & h2 { font-size: 13px; margin: 0 0 7px; }
   & .field { display: block; margin-bottom: 9px; color: #626d82; font-size: 11px; }
   & .field input, .field select { margin-top: 3px; color: #253047; font-size: 13px; }
-  & :is(button, input, select):focus-visible { outline: none; border-color: #7658bc; box-shadow: 0 0 0 1px #7658bc; }
+  & :is(button, input, select):focus-visible, & .swatch-choice:focus {
+    outline: none;
+    border-color: #7658bc;
+    box-shadow: 0 0 0 1px #7658bc;
+  }
 }
 
 #help-panel {
@@ -260,7 +264,7 @@ input, select { width: 100%; padding: 5px 6px; }
 .chip.transparent { background: repeating-conic-gradient(#e7e7e7 0 25%, #fff 0 50%) 0 0 / 8px 8px; }
 #color-back { padding: 3px 5px; border: 0; background: transparent; color: #6746b7; }
 #delete-swatch { padding: 3px 5px; color: #852a34; }
-#swatch-list { max-height: 245px; overflow: auto; }
+#swatch-list { max-height: 245px; overflow: auto; padding: 2px; }
 .swatch-row { display: flex; gap: 4px; margin-bottom: 4px; }
 #swatch-list > .swatch-choice { margin-bottom: 4px; }
 .swatch-choice { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; text-align: left; }
