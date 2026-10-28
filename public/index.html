@@ -4,13 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Minimock</title>
-  <link rel="stylesheet" href="style.css">
+  <script>
+    const assetVersion = Date.now().toString(36);
+    const stylesheet = document.createElement('link');
+    stylesheet.rel = 'stylesheet';
+    stylesheet.href = `style.css?v=${assetVersion}`;
+    document.head.append(stylesheet);
+    document.addEventListener('DOMContentLoaded', () => {
+      for (const file of ['selection.js', 'placement.js', 'fonts.js', 'project.js', 'app.js']) {
+        const script = document.createElement('script');
+        script.async = false;
+        script.src = `${file}?v=${assetVersion}`;
+        document.head.append(script);
+      }
+    });
+  </script>
   <link id="toolbar-icons-font" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=arrow_selector_tool,crop_square,help,more_horiz&amp;display=block">
-  <script src="selection.js" defer></script>
-  <script src="placement.js" defer></script>
-  <script src="fonts.js" defer></script>
-  <script src="project.js" defer></script>
-  <script src="app.js" defer></script>
 </head>
 <body>
   <main id="workspace" tabindex="-1" aria-label="Mock canvas">
@@ -35,7 +44,7 @@
         <button type="button" id="open-button"><span>Load JSON</span><span class="menu-hint">Ctrl+O</span></button>
         <button type="button" id="preview-button"><span>Preview</span><span class="menu-hint">Ctrl+P</span></button>
         <hr>
-        <button type="button" id="clear-button"><span>Clear board</span><span class="menu-hint">Ctrl+N</span></button>
+        <button type="button" id="clear-button"><span>Clear board</span><span class="menu-hint">Shift+N</span></button>
         <hr>
         <button type="button" id="reset-button" class="hold-action"><span>Reset app</span><span class="menu-hint">Hold</span></button>
       </div>
@@ -97,7 +106,7 @@
         <div><dt><kbd>Ctrl</kbd> + <kbd>0</kbd></dt><dd>Reset zoom</dd></div>
         <div><dt><kbd>Ctrl</kbd> + <kbd>S</kbd></dt><dd>Save project</dd></div>
         <div><dt><kbd>Ctrl</kbd> + <kbd>O</kbd></dt><dd>Open project</dd></div>
-        <div><dt><kbd>Ctrl</kbd> + <kbd>N</kbd></dt><dd>Clear board (undoable)</dd></div>
+        <div><dt><kbd>Shift</kbd> + <kbd>N</kbd></dt><dd>Clear board (undoable)</dd></div>
         <div><dt>Drop JSON file</dt><dd>Open project</dd></div>
         <div><dt><kbd>Ctrl</kbd> + <kbd>P</kbd></dt><dd>Preview</dd></div>
         <div><dt>Hold Reset app</dt><dd>Reset boxes, colors, and settings</dd></div>

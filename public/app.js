@@ -1121,7 +1121,7 @@ document.addEventListener('keydown', event => {
   }
   if (inspector.contains(document.activeElement) || textEditor
     || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
-  if (ctrl && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'n') {
+  if (event.shiftKey && !ctrl && !event.altKey && event.key.toLowerCase() === 'n') {
     event.preventDefault();
     clearCanvas();
     return;
@@ -1546,7 +1546,9 @@ async function openPreview() {
     return;
   }
   try {
-    const response = await fetch(new URL('style.css', location.href));
+    const cssUrl = new URL('style.css', location.href);
+    cssUrl.searchParams.set('v', Date.now().toString(36));
+    const response = await fetch(cssUrl, { cache: 'no-store' });
     if (!response.ok) throw new Error(`Could not load CSS (${response.status}).`);
     const html = previewHTML(await response.text());
     tab.location.replace(URL.createObjectURL(new Blob([html], { type: 'text/html' })));
