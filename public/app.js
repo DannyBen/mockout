@@ -114,7 +114,7 @@ function boxColor(box, property) {
   return colorOf(box[property]);
 }
 const snap = n => MinimockPlacement.snap(n, state.grid);
-const minimum = () => state.grid || 5;
+const minimum = () => 1;
 
 function persist() {
   try { MinimockProject.persist(localStorage, STORAGE_KEY, state, savedProjectIssue); }
@@ -166,7 +166,8 @@ function render() {
 
   canvas.replaceChildren();
   for (const box of state.boxes) {
-    const borderWidth = Math.min(box.borderWidth, box.w / 2, box.h / 2);
+    const thinLine = box.w === 1 || box.h === 1;
+    const borderWidth = thinLine ? box.borderWidth : Math.min(box.borderWidth, box.w / 2, box.h / 2);
     const insetX = Math.min(paddingX(box), Math.max(0, (box.w - borderWidth * 2) / 2));
     const insetY = Math.min(paddingY(box), Math.max(0, (box.h - borderWidth * 2) / 2));
     const element = document.createElement('div');
@@ -178,7 +179,8 @@ function render() {
     Object.assign(element.style, {
       left: `${box.x}px`, top: `${box.y}px`, width: `${box.w}px`, height: `${box.h}px`,
       backgroundColor: boxColor(box, 'fill'), color: boxColor(box, 'textColor'),
-      borderColor: boxColor(box, 'borderColor'), borderWidth: `${borderWidth}px`,
+      borderColor: boxColor(box, 'borderColor'),
+      borderWidth: box.h === 1 ? `${borderWidth}px 0 0 0` : box.w === 1 ? `0 0 0 ${borderWidth}px` : `${borderWidth}px`,
       borderRadius: `${box.radius}px`, padding: `${insetY}px ${insetX}px`,
       justifyContent: { left: 'flex-start', center: 'center', right: 'flex-end' }[box.alignX],
       alignItems: { top: 'flex-start', center: 'center', bottom: 'flex-end' }[box.alignY],

@@ -14,6 +14,7 @@ const valid = () => ({
 test('version 1 projects remain valid; unsupported versions and broken boxes are rejected', () => {
   assert.equal(key, 'minimock-project');
   assert.ok(project.validProject(valid()));
+  assert.ok(project.validProject({ ...valid(), boxes: [{ ...valid().boxes[0], w: 1, h: 1 }] }));
   assert.equal(project.validProject({ ...valid(), version: 2 }), false);
   assert.equal(project.validProject({ ...valid(), boxes: [{ ...valid().boxes[0], w: 0 }] }), false);
 });
