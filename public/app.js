@@ -420,12 +420,7 @@ function finishPlacement(save) {
   workspace.focus();
 }
 
-function containsBox(outer, inner) {
-  return outer.id !== inner.id && outer.x <= inner.x && outer.y <= inner.y
-    && outer.x + outer.w >= inner.x + inner.w && outer.y + outer.h >= inner.y + inner.h
-    && (outer.x < inner.x || outer.y < inner.y
-      || outer.x + outer.w > inner.x + inner.w || outer.y + outer.h > inner.y + inner.h);
-}
+const containsBox = MinimockSelection.containsBox;
 
 function overlapsBox(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x
@@ -524,7 +519,7 @@ workspace.addEventListener('pointerdown', event => {
   const boxId = boxElement ? Number(boxElement.dataset.id) : null;
   if (event.button === 1 || spaceDown) {
     gesture = { kind: 'pan', startX: event.clientX, startY: event.clientY, x: view.x, y: view.y };
-  } else if (boxId && !event.shiftKey && !event.altKey && lastBoxClick?.id === boxId
+  } else if (boxId && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey && lastBoxClick?.id === boxId
     && event.timeStamp - lastBoxClick.time < 450
     && Math.hypot(p.x - lastBoxClick.x, p.y - lastBoxClick.y) < 7 / view.zoom) {
     lastBoxClick = null;
@@ -533,7 +528,7 @@ workspace.addEventListener('pointerdown', event => {
     return;
   } else {
     lastBoxClick = null;
-    if (tool === 'box' && !(event.altKey && boxId)) {
+    if (tool === 'box' && !(boxId && (event.altKey || event.ctrlKey || event.metaKey))) {
       gesture = { kind: 'draw', start: { x: snap(p.x), y: snap(p.y) }, clickPoint: p,
         before: snapshot(), id: null, hitId: boxId };
     } else if (boxId) {
@@ -546,12 +541,14 @@ workspace.addEventListener('pointerdown', event => {
         event.preventDefault();
         return;
       }
-      if (!selectedIds.has(boxId)) {
-        selectOnly(boxId);
+      const hit = state.boxes.find(b => b.id === boxId);
+      const resizing = Boolean(event.target.dataset.handle);
+      const box = !resizing && !event.altKey && (event.ctrlKey || event.metaKey)
+        ? MinimockSelection.nearestContainer(state.boxes, hit) ?? hit : hit;
+      if (!selectedIds.has(box.id)) {
+        selectOnly(box.id);
         inspectorView = 'properties';
       }
-      const box = state.boxes.find(b => b.id === boxId);
-      const resizing = Boolean(event.target.dataset.handle);
       gesture = {
         kind: resizing ? 'resize' : 'move',
         handle: event.target.dataset.handle || '',

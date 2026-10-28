@@ -35,3 +35,16 @@ test('selecting another box ends isolated-copy selection', () => {
   assert.equal(selection.selectOnly(before, 1).isolatedCopyIds, before.isolatedCopyIds);
   assert.equal(selection.selectOnly(before, 2).isolatedCopyIds, null);
 });
+
+test('container drag chooses the smallest enclosing box', () => {
+  const outer = { id: 1, x: 0, y: 0, w: 400, h: 400 };
+  const inner = { id: 2, x: 100, y: 100, w: 200, h: 200 };
+  const child = { id: 3, x: 150, y: 150, w: 50, h: 50 };
+  const unrelated = { id: 4, x: 500, y: 500, w: 50, h: 50 };
+  const boxes = [outer, inner, child, unrelated];
+
+  assert.equal(selection.nearestContainer(boxes, child), inner);
+  assert.equal(selection.nearestContainer(boxes, inner), outer);
+  assert.equal(selection.nearestContainer(boxes, outer), null);
+  assert.equal(selection.nearestContainer(boxes, unrelated), null);
+});
