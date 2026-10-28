@@ -1,7 +1,10 @@
-const STORAGE_KEY = 'onion-ui-canvas-v1';
+const STORAGE_KEY = 'minimock-project';
 const workspace = document.querySelector('#workspace');
 const canvas = document.querySelector('#canvas');
 const inspector = document.querySelector('#inspector');
+const notice = document.querySelector('#notice');
+const noticeMessage = document.querySelector('#notice-message');
+const recoveryActions = document.querySelector('#recovery-actions');
 const helpPanel = document.querySelector('#help-panel');
 const helpButton = document.querySelector('#help-button');
 const toolButtons = [...document.querySelectorAll('[data-tool]')];
@@ -65,6 +68,12 @@ try {
   }
 } catch {
   savedProjectIssue = 'Could not read the saved project. Local data was left untouched; autosave is paused.';
+}
+
+function showNotice(message) {
+  noticeMessage.textContent = message;
+  recoveryActions.hidden = !savedProjectIssue;
+  notice.hidden = false;
 }
 
 let selectedId = null;
@@ -1184,6 +1193,48 @@ function saveProject() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 document.querySelector('#save-button').addEventListener('click', saveProject);
+document.querySelector('#clear-button').addEventListener('click', () => {
+  if (!state.boxes.length) return;
+  change(() => { state.boxes = []; selectOnly(null); inspectorOpen = false; isolatedCopyIds = null; });
+  workspace.focus();
+});
+
+function resetEverything() {
+  const message = savedProjectIssue
+    ? 'Discard the unsupported saved project and reset everything? Download saved data first if you want to keep it.'
+    : 'Reset everything? This removes all boxes, colors, and canvas settings.';
+  if (!window.confirm(message)) return;
+  try { localStorage.removeItem(STORAGE_KEY); }
+  catch { showNotice('Could not clear saved data. Nothing was reset.'); return; }
+  state = freshState();
+  savedProjectIssue = '';
+  undoStack.length = 0;
+  redoStack.length = 0;
+  selectOnly(null);
+  inspectorOpen = false;
+  isolatedCopyIds = null;
+  placement = null;
+  gesture = null;
+  tool = 'select';
+  notice.hidden = true;
+  recoveryActions.hidden = true;
+  workspace.focus();
+  render();
+}
+document.querySelector('#reset-button').addEventListener('click', resetEverything);
+document.querySelector('#recovery-reset-button').addEventListener('click', resetEverything);
+document.querySelector('#download-saved-button').addEventListener('click', () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw === null) { showNotice('No saved data was found.'); return; }
+    const url = URL.createObjectURL(new Blob([raw], { type: 'text/plain' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'minimock-saved-data-backup.txt';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch { showNotice('Could not download saved data. It was left untouched.'); }
+});
 
 function previewHTML(css) {
   const margin = 20;
@@ -1221,16 +1272,13 @@ function previewHTML(css) {
 }
 
 async function openPreview() {
-  const notice = document.querySelector('#notice');
   if (!state.boxes.length) {
-    notice.textContent = 'Draw a box before opening a preview.';
-    notice.hidden = false;
+    showNotice('Draw a box before opening a preview.');
     return;
   }
   const tab = window.open('', '_blank');
   if (!tab) {
-    notice.textContent = 'Allow pop-ups to open the preview.';
-    notice.hidden = false;
+    showNotice('Allow pop-ups to open the preview.');
     return;
   }
   try {
@@ -1238,11 +1286,11 @@ async function openPreview() {
     if (!response.ok) throw new Error(`Could not load CSS (${response.status}).`);
     const html = previewHTML(await response.text());
     tab.location.replace(URL.createObjectURL(new Blob([html], { type: 'text/html' })));
-    notice.hidden = !savedProjectIssue;
+    if (savedProjectIssue) showNotice(savedProjectIssue);
+    else notice.hidden = true;
   } catch (error) {
     tab.close();
-    notice.textContent = `Could not open preview: ${error.message}`;
-    notice.hidden = false;
+    showNotice(`Could not open preview: ${error.message}`);
   }
 }
 document.querySelector('#preview-button').addEventListener('click', openPreview);
@@ -1252,12 +1300,11 @@ async function openProjectFile(file) {
   try {
     const loaded = JSON.parse(await file.text());
     if (!validProject(loaded)) throw new Error('This is not a Minimock project.');
-    change(() => { state = loaded; savedProjectIssue = ''; selectOnly(null); inspectorOpen = false; });
-    document.querySelector('#notice').hidden = true;
+    change(() => { state = loaded; selectOnly(null); inspectorOpen = false; });
+    if (savedProjectIssue) showNotice(savedProjectIssue);
+    else notice.hidden = true;
   } catch (error) {
-    const notice = document.querySelector('#notice');
-    notice.textContent = `Could not open project: ${error.message}`;
-    notice.hidden = false;
+    showNotice(`Could not open project: ${error.message}`);
   }
 }
 
@@ -1280,15 +1327,11 @@ document.addEventListener('drop', event => {
   if (placement) return;
   if (event.dataTransfer.files.length === 1) openProjectFile(event.dataTransfer.files[0]);
   else {
-    const notice = document.querySelector('#notice');
-    notice.textContent = 'Drop one JSON project file at a time.';
-    notice.hidden = false;
+    showNotice('Drop one JSON project file at a time.');
   }
 });
 
 render();
 if (savedProjectIssue) {
-  const notice = document.querySelector('#notice');
-  notice.textContent = savedProjectIssue;
-  notice.hidden = false;
+  showNotice(savedProjectIssue);
 }

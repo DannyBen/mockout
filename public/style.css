@@ -255,6 +255,14 @@ input, select { width: 100%; padding: 5px 6px; }
   background: #fff7f7;
   border: 1px solid #e8b5b9;
   border-radius: 5px;
+
+  #recovery-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  #recovery-actions[hidden] { display: none; }
 }
 
 .text-editor {
