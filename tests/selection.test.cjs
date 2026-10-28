@@ -29,6 +29,27 @@ test('the inspector position follows the selected box', () => {
     { left: 492, top: 200 });
 });
 
+test('properties inspector can follow one box within a multi-selection', () => {
+  const boxes = [{ id: 1 }, { id: 2 }];
+  const selectionState = {
+    selectedId: 2, selectedIds: new Set([1, 2]), inspectorOpen: true, inspectorKind: 'box',
+  };
+  assert.equal(selection.inspectedBox(boxes, selectionState), boxes[1]);
+  assert.equal(selection.inspectedBox(boxes, { ...selectionState, selectedId: 3 }), null);
+});
+
+test('mixed properties are detected without treating transparent as mixed', () => {
+  const boxes = [{ id: 1, fill: null, w: 20 }, { id: 2, fill: null, w: 30 }];
+  assert.equal(selection.commonValue(boxes, box => box.fill), null);
+  assert.equal(selection.commonValue(boxes, box => box.w), undefined);
+});
+
+test('bulk property edit changes selected boxes only', () => {
+  const boxes = [{ id: 1, text: 'One' }, { id: 2, text: 'Two' }, { id: 3, text: 'Three' }];
+  selection.applyProperty(boxes, new Set([1, 2]), 'text', 'Shared');
+  assert.deepEqual(boxes.map(box => box.text), ['Shared', 'Shared', 'Three']);
+});
+
 test('selecting another box ends isolated-copy selection', () => {
   const before = { selectedId: 1, selectedIds: new Set([1]), isolatedCopyIds: new Set([1]), inspectorOpen: false };
 

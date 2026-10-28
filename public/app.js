@@ -108,7 +108,7 @@ function canvasColor(property) {
 function boxColor(box, property) {
   if (inspectorOpen && inspectorView === 'edit' && colorTarget) {
     if (colorTarget.editId && box[property] === colorTarget.editId) return editorColor;
-    if (inspectorKind === 'box' && !colorTarget.editId && box.id === selectedId
+    if (inspectorKind === 'box' && !colorTarget.editId && selectedIds.has(box.id)
       && property === colorTarget.property) return editorColor;
   }
   return colorOf(box[property]);
@@ -219,6 +219,7 @@ function render() {
 
 function renderInspector() {
   const box = inspectedBox();
+  const boxes = selectedBoxes();
   const visible = inspectorOpen && (inspectorKind === 'canvas' || box);
   inspector.hidden = !visible;
   if (!visible) return;
@@ -236,16 +237,25 @@ function renderInspector() {
     if (inspectorView === 'choose') document.querySelector('#inspector-title').textContent = colorLabel(colorTarget.property);
   }
   if (box) {
-    for (const [field, value] of Object.entries({
-      'box-text': box.text, 'box-width': box.w, 'box-height': box.h,
-      'box-radius': box.radius, 'box-border-width': box.borderWidth,
-      'box-padding-x': paddingX(box), 'box-padding-y': paddingY(box),
+    for (const [field, getValue] of Object.entries({
+      'box-text': item => item.text, 'box-width': item => item.w, 'box-height': item => item.h,
+      'box-radius': item => item.radius, 'box-border-width': item => item.borderWidth,
+      'box-padding-x': paddingX, 'box-padding-y': paddingY,
     })) {
       const input = document.getElementById(field);
-      if (document.activeElement !== input) input.value = value;
+      const value = MinimockSelection.commonValue(boxes, getValue);
+      const mixed = value === undefined;
+      if (document.activeElement !== input) input.value = mixed ? '' : value;
+      input.parentElement.classList.toggle('mixed', mixed);
+      if (mixed) input.setAttribute('aria-description', 'Mixed values');
+      else input.removeAttribute('aria-description');
+      if (field === 'box-text') input.placeholder = mixed ? 'Mixed values' : 'Optional text';
     }
     for (const button of alignButtons) {
-      const active = box[button.dataset.alignAxis] === button.dataset.alignValue;
+      const value = MinimockSelection.commonValue(boxes, item => item[button.dataset.alignAxis]);
+      const mixed = value === undefined;
+      button.closest('.align-group').querySelector('span').classList.toggle('mixed', mixed);
+      const active = value === button.dataset.alignValue;
       button.classList.toggle('active', active);
       button.setAttribute('aria-pressed', String(active));
     }
@@ -253,12 +263,19 @@ function renderInspector() {
   for (const button of colorButtons) {
     const canvasProperty = button.dataset.canvasColorProperty;
     if (Boolean(canvasProperty) !== (inspectorKind === 'canvas')) continue;
-    const value = canvasProperty ? state.canvasColors[canvasProperty] : box[button.dataset.colorProperty];
+    const value = canvasProperty ? state.canvasColors[canvasProperty]
+      : MinimockSelection.commonValue(boxes, item => item[button.dataset.colorProperty]);
+    const mixed = !canvasProperty && value === undefined;
     const item = canvasProperty ? null : swatch(value);
     const name = document.createElement('span');
     name.className = 'swatch-name';
-    name.textContent = canvasProperty ? value.toUpperCase() : item?.name || 'Transparent';
-    button.replaceChildren(colorChip(canvasProperty ? value : item?.color), name);
+    name.textContent = mixed ? 'Mixed' : canvasProperty ? value.toUpperCase() : item?.name || 'Transparent';
+    const chip = colorChip(canvasProperty ? value : item?.color);
+    chip.classList.toggle('mixed', mixed);
+    button.parentElement.querySelector('span').classList.toggle('mixed', mixed);
+    if (mixed) button.setAttribute('aria-description', 'Mixed values');
+    else button.removeAttribute('aria-description');
+    button.replaceChildren(chip, name);
   }
   if (inspectorView === 'choose') renderSwatchList();
   positionInspector();
@@ -467,7 +484,8 @@ document.querySelector('#close-help').addEventListener('click', toggleHelp);
 
 function openInspector(id = selectedId) {
   if (id === null) return;
-  selectOnly(id);
+  if (selectedIds.has(id)) selectedId = id;
+  else selectOnly(id);
   inspectorOpen = true;
   inspectorKind = 'box';
   inspectorView = 'properties';
@@ -705,17 +723,28 @@ for (const [id, key, transform] of [
   ['box-padding-x', 'paddingX', value => Math.max(0, Number(value) || 0)],
   ['box-padding-y', 'paddingY', value => Math.max(0, Number(value) || 0)],
 ]) {
-  document.getElementById(id).addEventListener('change', event => {
-    if (selectedBox()) change(() => {
-      selectedBox()[key] = transform(event.target.value);
+  const input = document.getElementById(id);
+  input.addEventListener('change', event => {
+    if (!selectedIds.size || (input.type === 'number' && event.target.value === '')) return;
+    change(() => {
+      MinimockSelection.applyProperty(state.boxes, selectedIds, key, transform(event.target.value));
       rememberStyle(selectedBox());
     });
   });
 }
+document.querySelector('#box-text').addEventListener('keydown', event => {
+  if (!['Backspace', 'Delete'].includes(event.key) || event.target.value !== '') return;
+  if (MinimockSelection.commonValue(selectedBoxes(), box => box.text) !== undefined) return;
+  event.preventDefault();
+  change(() => {
+    MinimockSelection.applyProperty(state.boxes, selectedIds, 'text', '');
+    rememberStyle(selectedBox());
+  });
+});
 for (const button of alignButtons) {
   button.addEventListener('click', () => {
-    if (selectedBox()) change(() => {
-      selectedBox()[button.dataset.alignAxis] = button.dataset.alignValue;
+    if (selectedIds.size) change(() => {
+      MinimockSelection.applyProperty(state.boxes, selectedIds, button.dataset.alignAxis, button.dataset.alignValue);
       rememberStyle(selectedBox());
     });
   });
@@ -918,7 +947,7 @@ document.addEventListener('keydown', event => {
   if (!ctrl && !event.altKey && event.key.toLowerCase() === 'p') {
     event.preventDefault();
     if (inspectorOpen) { inspectorOpen = false; render(); }
-    else if (selectedIds.size === 1) openInspector(selectedId);
+    else if (selectedIds.size) openInspector(selectedId);
     else if (!selectedIds.size) openCanvasInspector();
     return;
   }
@@ -1028,9 +1057,9 @@ function focusColorField() {
 }
 
 function assignColor(id) {
-  if (!selectedBox() || !colorTarget) return;
+  if (!selectedIds.size || !colorTarget) return;
   change(() => {
-    selectedBox()[colorTarget.property] = id;
+    MinimockSelection.applyProperty(state.boxes, selectedIds, colorTarget.property, id);
     rememberStyle(selectedBox());
   });
   inspectorView = 'properties';
@@ -1154,7 +1183,7 @@ document.querySelector('#save-swatch').addEventListener('click', () => {
     change(() => {
       const id = `s${state.nextId++}`;
       state.swatches.push({ id, name, color: editorColor });
-      selectedBox()[colorTarget.property] = id;
+      MinimockSelection.applyProperty(state.boxes, selectedIds, colorTarget.property, id);
       rememberStyle(selectedBox());
     });
     inspectorView = 'properties';

@@ -11,8 +11,18 @@ const MinimockSelection = {
   },
 
   inspectedBox(boxes, selection) {
-    if (!selection.inspectorOpen || selection.inspectorKind !== 'box' || selection.selectedIds.size !== 1) return null;
+    if (!selection.inspectorOpen || selection.inspectorKind !== 'box' || !selection.selectedIds.has(selection.selectedId)) return null;
     return boxes.find(box => box.id === selection.selectedId) ?? null;
+  },
+
+  commonValue(boxes, getValue) {
+    if (!boxes.length) return undefined;
+    const first = getValue(boxes[0]);
+    return boxes.every(box => getValue(box) === first) ? first : undefined;
+  },
+
+  applyProperty(boxes, selectedIds, key, value) {
+    for (const box of boxes) if (selectedIds.has(box.id)) box[key] = value;
   },
 
   inspectorPosition(boxRect, panel, viewport) {
