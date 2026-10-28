@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="style.css">
   <script src="selection.js" defer></script>
   <script src="placement.js" defer></script>
+  <script src="fonts.js" defer></script>
   <script src="project.js" defer></script>
   <script src="app.js" defer></script>
 </head>
@@ -113,12 +114,13 @@
     </header>
     <section id="box-properties">
       <label class="field">Text <input id="box-text" type="text" placeholder="Optional text"></label>
-      <button type="button" id="property-cycler" aria-controls="general-properties color-properties" aria-label="Properties: General. Use left and right arrows to change section">
+      <button type="button" id="property-cycler" aria-controls="color-properties general-properties font-properties" aria-label="Properties: General. Use left and right arrows to change section">
         <span class="cycle-arrow" data-cycle-step="-1" aria-hidden="true">‹</span>
         <span class="cycle-window" aria-hidden="true">
           <span class="cycle-track">
-            <span class="cycle-option active" data-property-section="general">General</span>
             <span class="cycle-option" data-property-section="colors">Colors</span>
+            <span class="cycle-option active" data-property-section="general">General</span>
+            <span class="cycle-option" data-property-section="font">Font</span>
           </span>
         </span>
         <span class="cycle-arrow" data-cycle-step="1" aria-hidden="true">›</span>
@@ -159,6 +161,47 @@
         <div class="color-field"><span>Fill</span><button type="button" data-color-property="fill"></button></div>
         <div class="color-field"><span>Text</span><button type="button" data-color-property="textColor"></button></div>
         <div class="color-field"><span>Border</span><button type="button" data-color-property="borderColor"></button></div>
+      </div>
+      <div id="font-properties" class="section-content" hidden>
+        <label class="field">Family
+          <select id="box-font-family">
+            <option value="mixed" hidden>Mixed values</option>
+            <option value="">Default</option>
+            <option value="google">Google font…</option>
+            <option value="material">Material icons…</option>
+          </select>
+        </label>
+        <label id="google-font-field" class="field" hidden>Google family
+          <input id="box-google-font" type="text" maxlength="80" autocomplete="off" spellcheck="false" placeholder="e.g. Roboto">
+        </label>
+        <label id="material-style-field" class="field" hidden>Icon style
+          <select id="box-material-style">
+            <option value="mixed" hidden>Mixed values</option>
+            <option value="Material Symbols Outlined">Outlined</option>
+            <option value="Material Symbols Rounded">Rounded</option>
+            <option value="Material Symbols Sharp">Sharp</option>
+            <option value="Material Icons">Filled</option>
+            <option value="Material Icons Two Tone">Two Tone</option>
+          </select>
+        </label>
+        <div class="two-fields">
+          <label class="field">Size <input id="box-font-size" type="number" min="1" step="1"></label>
+          <label class="field">Weight
+            <select id="box-font-weight">
+              <option value="mixed" hidden>Mixed values</option>
+              <option value="100">100</option><option value="200">200</option><option value="300">300</option>
+              <option value="400">400</option><option value="500">500</option><option value="600">600</option>
+              <option value="700">700</option><option value="800">800</option><option value="900">900</option>
+            </select>
+          </label>
+        </div>
+        <label class="field">Style
+          <select id="box-font-style">
+            <option value="mixed" hidden>Mixed values</option>
+            <option value="normal">Normal</option><option value="italic">Italic</option>
+          </select>
+        </label>
+        <p class="font-links"><a href="https://fonts.google.com/" target="_blank" rel="noopener noreferrer">Browse fonts ↗</a><a id="browse-icons" href="https://fonts.google.com/icons" target="_blank" rel="noopener noreferrer" hidden>Browse icons ↗</a></p>
       </div>
     </section>
     <section id="canvas-properties" hidden aria-label="Canvas properties">

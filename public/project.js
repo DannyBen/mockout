@@ -1,4 +1,5 @@
 const MinimockProject = (() => {
+  const fonts = typeof module !== 'undefined' ? require('./fonts.js') : MinimockFonts;
   const defaultCanvasColors = { background: '#ffffff', gridMajor: '#f1f1f1', gridMinor: '#f1f1f1' };
 
   const makeInitialStyle = swatches => ({
@@ -7,7 +8,14 @@ const MinimockProject = (() => {
     borderColor: swatches[2]?.id ?? swatches[0]?.id ?? null,
     borderWidth: 1, radius: 0, paddingX: 3, paddingY: 0,
     alignX: 'center', alignY: 'center',
+    fontFamily: '', fontSize: 13, fontWeight: 400, fontStyle: 'normal',
   });
+
+  const validFont = item => (item.fontFamily === undefined || fonts.validFamily(item.fontFamily))
+    && (item.fontSize === undefined || (Number.isFinite(item.fontSize) && item.fontSize > 0))
+    && (item.fontWeight === undefined || (Number.isInteger(item.fontWeight)
+      && item.fontWeight >= 100 && item.fontWeight <= 900 && item.fontWeight % 100 === 0))
+    && (item.fontStyle === undefined || ['normal', 'italic'].includes(item.fontStyle));
 
   return {
     storageKey: 'minimock-project',
@@ -37,7 +45,8 @@ const MinimockProject = (() => {
         style[key] === null || swatches.some(item => item.id === style[key]))
         && ['borderWidth', 'radius', 'paddingX', 'paddingY'].every(key => Number.isFinite(style[key]) && style[key] >= 0)
         && ['left', 'center', 'right'].includes(style.alignX)
-        && ['top', 'center', 'bottom'].includes(style.alignY);
+        && ['top', 'center', 'bottom'].includes(style.alignY)
+        && validFont(style);
     },
 
     validProject(value) {
@@ -51,7 +60,8 @@ const MinimockProject = (() => {
           && b.w > 0 && b.h > 0 && typeof b.text === 'string'
           && ['paddingX', 'paddingY'].every(k => b[k] === undefined || (Number.isFinite(b[k]) && b[k] >= 0))
           && ['fill', 'textColor', 'borderColor'].every(k => b[k] === null || value.swatches.some(s => s.id === b[k]))
-          && ['left', 'center', 'right'].includes(b.alignX) && ['top', 'center', 'bottom'].includes(b.alignY));
+          && ['left', 'center', 'right'].includes(b.alignX) && ['top', 'center', 'bottom'].includes(b.alignY)
+          && validFont(b));
     },
 
     persist(storage, key, state, issue) {

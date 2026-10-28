@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const project = require('../public/project.js');
+const fonts = require('../public/fonts.js');
 const key = project.storageKey;
 
 const valid = () => ({
@@ -17,6 +18,40 @@ test('version 1 projects remain valid; unsupported versions and broken boxes are
   assert.ok(project.validProject({ ...valid(), boxes: [{ ...valid().boxes[0], w: 1, h: 1 }] }));
   assert.equal(project.validProject({ ...valid(), version: 2 }), false);
   assert.equal(project.validProject({ ...valid(), boxes: [{ ...valid().boxes[0], w: 0 }] }), false);
+  assert.ok(project.validProject({ ...valid(), boxes: [{ ...valid().boxes[0],
+    fontFamily: 'Roboto Slab', fontSize: 18, fontWeight: 700, fontStyle: 'italic' }] }));
+  assert.ok(project.validProject({ ...valid(), boxes: [{ ...valid().boxes[0],
+    fontFamily: 'Material Icons Two Tone' }] }));
+  assert.equal(project.validProject({ ...valid(), boxes: [{ ...valid().boxes[0], fontSize: -2 }] }), false);
+  assert.equal(project.validProject({ ...valid(), boxes: [{ ...valid().boxes[0], fontFamily: 'No; font' }] }), false);
+});
+
+test('font links include Google variants and both Material icon sets without duplicates', () => {
+  assert.deepEqual({ family: fonts.familyOf({}), size: fonts.sizeOf({}),
+    weight: fonts.weightOf({}), style: fonts.styleOf({}) },
+  { family: '', size: 13, weight: 400, style: 'normal' });
+  assert.deepEqual({ family: project.freshState().lastStyle.fontFamily,
+    size: project.freshState().lastStyle.fontSize }, { family: '', size: 13 });
+  const boxes = [
+    { fontFamily: 'Roboto Slab', fontWeight: 700, fontStyle: 'italic' },
+    { fontFamily: 'Roboto Slab', fontWeight: 700, fontStyle: 'italic' },
+    { fontFamily: 'Material Symbols Outlined', fontWeight: 700 },
+    { fontFamily: 'Material Icons' },
+    { fontFamily: 'Material Icons Two Tone' },
+    {},
+  ];
+  const links = fonts.stylesheets(boxes);
+  assert.equal(links.length, 6);
+  assert.ok(links.some(url => url.includes('family=Roboto+Slab&display=swap')));
+  assert.ok(links.some(url => url.includes('family=Roboto+Slab%3Aital%2Cwght%401%2C700')));
+  assert.ok(links.some(url => url.includes('family=Material+Symbols+Outlined&display=block')));
+  assert.ok(links.some(url => url.includes('family=Material+Symbols+Outlined%3Awght%40700')));
+  assert.ok(links.some(url => url.includes('family=Material+Icons&display=block')));
+  assert.ok(links.some(url => url.includes('family=Material+Icons+Two+Tone&display=block')));
+  assert.equal(fonts.stylesheets([{ fontFamily: 'Material Icons Two Tone', fontWeight: 700 }]).length, 1);
+  assert.equal(fonts.categoryOf('Material Icons Two Tone'), 'material');
+  assert.ok(fonts.stylesheets([{ fontFamily: 'Roboto', fontWeight: 700 }])
+    .some(url => url.includes('family=Roboto%3Awght%40700')));
 });
 
 test('autosave leaves unsupported saved data untouched', () => {

@@ -33,6 +33,15 @@ with HSB, RGB, or grayscale controls.
 The canvas background and grid colors are set separately, so they do not take
 up swatch names meant for the mock itself.
 
+## Fonts and icons
+
+Open a box's properties and move the section control from General to Font.
+Enter a family name from Google Fonts, or choose Material icons and an icon style.
+For an icon, put its name (such as `arrow_forward`) in the box's Text field.
+Filled and Two Tone use the classic Material Icons set; the other styles use
+Material Symbols. The Font section links to the matching catalog. Google fonts
+and icons need an internet connection in the editor and in exported previews.
+
 ## Projects and previews
 
 Minimock keeps the current mock in the browser and can save or open a JSON

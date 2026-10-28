@@ -242,6 +242,8 @@ input, select { width: 100%; padding: 5px 6px; }
   & .cycle-option { display: grid; flex: none; min-width: 56px; padding: 0 6px; place-items: center; color: #8992a3; white-space: nowrap; }
   & .cycle-option.active { color: #253047; font-weight: 700; }
   & .section-content { padding-top: 2px; }
+  & .font-links { display: flex; gap: 12px; margin: 1px 0 2px; font-size: 11px; }
+  & .font-links a { color: #6746b7; }
   & :is(button, input, select):focus-visible, & .swatch-choice:focus {
     outline: none;
     border-color: #7658bc;

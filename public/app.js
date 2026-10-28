@@ -20,6 +20,7 @@ const cycleOptions = [...propertyCycler.querySelectorAll('[data-property-section
 const channels = [1, 2, 3].map(n => document.querySelector(`#channel-${n}`));
 const channelValues = [1, 2, 3].map(n => document.querySelector(`#channel-${n}-value`));
 const { initialStyle } = MinimockProject;
+const fonts = MinimockFonts;
 const freshState = () => MinimockProject.freshState();
 const validProject = value => MinimockProject.validProject(value);
 
@@ -93,6 +94,8 @@ const styleOf = box => ({
   fill: box.fill, textColor: box.textColor, borderColor: box.borderColor,
   borderWidth: box.borderWidth, radius: box.radius,
   paddingX: paddingX(box), paddingY: paddingY(box), alignX: box.alignX, alignY: box.alignY,
+  fontFamily: fonts.familyOf(box), fontSize: fonts.sizeOf(box),
+  fontWeight: fonts.weightOf(box), fontStyle: fonts.styleOf(box),
 });
 function rememberStyle(box) { state.lastStyle = styleOf(box); }
 function selectOnly(id) {
@@ -144,6 +147,7 @@ function change(fn) {
 }
 
 function render() {
+  syncFontStylesheets();
   workspace.style.backgroundColor = canvasColor('background');
   workspace.style.setProperty('--grid-major-color', canvasColor('gridMajor'));
   workspace.style.setProperty('--grid-minor-color', canvasColor('gridMinor'));
@@ -197,6 +201,15 @@ function render() {
     label.className = 'box-label';
     label.textContent = box.text;
     label.style.textAlign = box.alignX;
+    const family = fonts.familyOf(box);
+    label.style.fontFamily = family ? `"${family}", system-ui, sans-serif` : 'system-ui, sans-serif';
+    label.style.fontSize = `${fonts.sizeOf(box)}px`;
+    label.style.fontWeight = fonts.weightOf(box);
+    label.style.fontStyle = fonts.styleOf(box);
+    if (fonts.isMaterial(family)) {
+      label.style.fontFeatureSettings = '"liga"';
+      label.style.whiteSpace = 'nowrap';
+    }
     element.append(label);
 
     if (selectedIds.has(box.id) && tool === 'select' && !textEditor && !placement) {
@@ -224,6 +237,22 @@ function render() {
   renderInspector();
 }
 
+function syncFontStylesheets() {
+  const urls = fonts.stylesheets(state.boxes);
+  const links = [...document.querySelectorAll('link[data-minimock-font]')];
+  for (const link of links) {
+    if (!urls.includes(link.href)) link.remove();
+  }
+  for (const url of urls) {
+    if (links.some(link => link.isConnected && link.href === url)) continue;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = url;
+    link.dataset.minimockFont = '';
+    document.head.append(link);
+  }
+}
+
 function renderInspector() {
   const box = inspectedBox();
   const boxes = selectedBoxes();
@@ -240,6 +269,7 @@ function renderInspector() {
   for (const option of cycleOptions) option.classList.toggle('active', option.dataset.propertySection === activePropertySection);
   document.querySelector('#general-properties').hidden = activePropertySection !== 'general';
   document.querySelector('#color-properties').hidden = activePropertySection !== 'colors';
+  document.querySelector('#font-properties').hidden = activePropertySection !== 'font';
   propertyCycler.setAttribute('aria-label', `Properties: ${cycleOptions[sectionIndex].textContent}. Use left and right arrows to change section`);
   for (const arrow of propertyCycler.querySelectorAll('[data-cycle-step]')) {
     arrow.classList.toggle('disabled', sectionIndex + Number(arrow.dataset.cycleStep) < 0
@@ -269,7 +299,47 @@ function renderInspector() {
       input.parentElement.classList.toggle('mixed', mixed);
       if (mixed) input.setAttribute('aria-description', 'Mixed values');
       else input.removeAttribute('aria-description');
-      if (field === 'box-text') input.placeholder = mixed ? 'Mixed values' : 'Optional text';
+      if (field === 'box-text') {
+        const family = MinimockSelection.commonValue(boxes, fonts.familyOf);
+        input.placeholder = mixed ? 'Mixed values' : boxes.every(item => fonts.isMaterial(fonts.familyOf(item)))
+          ? 'Icon name, e.g. arrow_forward' : 'Optional text';
+      }
+    }
+    const family = MinimockSelection.commonValue(boxes, fonts.familyOf);
+    const familyChoice = MinimockSelection.commonValue(boxes, item => fonts.categoryOf(fonts.familyOf(item))) ?? 'mixed';
+    const familySelect = document.querySelector('#box-font-family');
+    if (document.activeElement !== familySelect) familySelect.value = familyChoice;
+    familySelect.parentElement.classList.toggle('mixed', familyChoice === 'mixed');
+    for (const option of document.querySelectorAll('#box-font-weight option')) {
+      option.disabled = fonts.isSymbol(family) && Number(option.value) > 700;
+    }
+    const classicOnly = boxes.every(item => fonts.isClassicIcon(fonts.familyOf(item)));
+    document.querySelector('#box-font-weight').disabled = classicOnly;
+    document.querySelector('#box-font-style').disabled = classicOnly;
+    document.querySelector('#google-font-field').hidden = familyChoice !== 'google';
+    const googleInput = document.querySelector('#box-google-font');
+    if (document.activeElement !== googleInput) googleInput.value = familyChoice === 'google' && family !== undefined ? family : '';
+    googleInput.placeholder = familyChoice === 'google' && family === undefined ? 'Mixed values' : 'e.g. Roboto';
+    googleInput.parentElement.classList.toggle('mixed', familyChoice === 'google' && family === undefined);
+    document.querySelector('#material-style-field').hidden = familyChoice !== 'material';
+    const materialStyle = document.querySelector('#box-material-style');
+    materialStyle.value = familyChoice === 'material' && family !== undefined ? family : 'mixed';
+    materialStyle.parentElement.classList.toggle('mixed', familyChoice === 'material' && family === undefined);
+    const browseIcons = document.querySelector('#browse-icons');
+    browseIcons.hidden = familyChoice !== 'material';
+    browseIcons.href = fonts.isClassicIcon(family)
+      ? 'https://fonts.google.com/icons?icon.set=Material+Icons' : 'https://fonts.google.com/icons';
+    for (const [id, getValue] of [
+      ['box-font-size', fonts.sizeOf], ['box-font-weight', fonts.weightOf],
+      ['box-font-style', fonts.styleOf],
+    ]) {
+      const input = document.getElementById(id);
+      const value = MinimockSelection.commonValue(boxes, getValue);
+      const mixed = value === undefined;
+      if (document.activeElement !== input) input.value = mixed ? input.tagName === 'SELECT' ? 'mixed' : '' : value;
+      input.parentElement.classList.toggle('mixed', mixed);
+      if (mixed) input.setAttribute('aria-description', 'Mixed values');
+      else input.removeAttribute('aria-description');
     }
     for (const button of alignButtons) {
       const value = MinimockSelection.commonValue(boxes, item => item[button.dataset.alignAxis]);
@@ -299,7 +369,29 @@ function renderInspector() {
   }
   if (inspectorView === 'choose') renderSwatchList();
   if (inspectorKind === 'box' && inspectorView === 'properties') {
-    // Reserve the tallest pane's height so cycling cannot move the inspector at screen edges.
+    if (!boxPropertiesPlacementHeight) {
+      const sections = ['color-properties', 'general-properties', 'font-properties']
+        .map(id => document.getElementById(id));
+      const googleField = document.querySelector('#google-font-field');
+      const materialField = document.querySelector('#material-style-field');
+      const visibleSection = sections.find(section => !section.hidden);
+      const googleWasHidden = googleField.hidden;
+      const materialWasHidden = materialField.hidden;
+      for (const section of sections) {
+        for (const candidate of sections) candidate.hidden = candidate !== section;
+        if (section.id === 'font-properties') {
+          googleField.hidden = false;
+          materialField.hidden = true;
+          boxPropertiesPlacementHeight = Math.max(boxPropertiesPlacementHeight, inspector.scrollHeight, inspector.offsetHeight);
+          googleField.hidden = true;
+          materialField.hidden = false;
+        }
+        boxPropertiesPlacementHeight = Math.max(boxPropertiesPlacementHeight, inspector.scrollHeight, inspector.offsetHeight);
+      }
+      for (const section of sections) section.hidden = section !== visibleSection;
+      googleField.hidden = googleWasHidden;
+      materialField.hidden = materialWasHidden;
+    }
     boxPropertiesPlacementHeight = Math.max(boxPropertiesPlacementHeight, inspector.scrollHeight, inspector.offsetHeight);
   }
   positionInspector();
@@ -788,6 +880,9 @@ for (const [id, key, transform] of [
   ['box-border-width', 'borderWidth', value => Math.max(0, Number(value) || 0)],
   ['box-padding-x', 'paddingX', value => Math.max(0, Number(value) || 0)],
   ['box-padding-y', 'paddingY', value => Math.max(0, Number(value) || 0)],
+  ['box-font-size', 'fontSize', value => Math.max(1, Number(value) || 1)],
+  ['box-font-weight', 'fontWeight', Number],
+  ['box-font-style', 'fontStyle', value => value],
 ]) {
   const input = document.getElementById(id);
   input.addEventListener('change', event => {
@@ -798,6 +893,55 @@ for (const [id, key, transform] of [
     });
   });
 }
+const fontFamilySelect = document.querySelector('#box-font-family');
+const googleFontInput = document.querySelector('#box-google-font');
+const materialStyleSelect = document.querySelector('#box-material-style');
+function assignFontFamily(family) {
+  change(() => {
+    MinimockSelection.applyProperty(state.boxes, selectedIds, 'fontFamily', family);
+    for (const box of selectedBoxes()) {
+      if (fonts.isSymbol(family)) box.fontWeight = Math.min(fonts.weightOf(box), 700);
+      if (fonts.isClassicIcon(family)) { box.fontWeight = 400; box.fontStyle = 'normal'; }
+    }
+    rememberStyle(selectedBox());
+  });
+}
+fontFamilySelect.addEventListener('change', () => {
+  const category = fontFamilySelect.value;
+  if (category === 'google') {
+    const current = MinimockSelection.commonValue(selectedBoxes(), fonts.familyOf);
+    document.querySelector('#google-font-field').hidden = false;
+    document.querySelector('#material-style-field').hidden = true;
+    googleFontInput.value = current && !fonts.isMaterial(current) ? current : '';
+    googleFontInput.focus();
+    return;
+  }
+  if (category === 'mixed' || !selectedIds.size) return;
+  const current = MinimockSelection.commonValue(selectedBoxes(), fonts.familyOf);
+  let family = category;
+  if (category === 'material') family = fonts.isMaterial(current) ? current : 'Material Symbols Outlined';
+  assignFontFamily(family);
+  if (category === 'material') materialStyleSelect.focus();
+});
+materialStyleSelect.addEventListener('change', () => {
+  const family = materialStyleSelect.value;
+  if (!fonts.isMaterial(family) || !selectedIds.size) return;
+  assignFontFamily(family);
+});
+googleFontInput.addEventListener('change', () => {
+  const family = googleFontInput.value.trim().replace(/\s+/g, ' ');
+  if (!family || !fonts.validFamily(family) || !selectedIds.size) {
+    if (family) showNotice('Enter the family name as shown on Google Fonts.');
+    return;
+  }
+  change(() => {
+    MinimockSelection.applyProperty(state.boxes, selectedIds, 'fontFamily', family);
+    rememberStyle(selectedBox());
+  });
+});
+googleFontInput.addEventListener('blur', () => {
+  if (!googleFontInput.value.trim()) renderInspector();
+});
 document.querySelector('#box-text').addEventListener('keydown', event => {
   if (!['Backspace', 'Delete'].includes(event.key) || event.target.value !== '') return;
   if (MinimockSelection.commonValue(selectedBoxes(), box => box.text) !== undefined) return;
@@ -1359,12 +1503,15 @@ function previewHTML(css) {
   }).join('\n');
   const width = right - left + margin * 2;
   const height = bottom - top + margin * 2;
+  const fontLinks = fonts.stylesheets(state.boxes)
+    .map(url => `<link rel="stylesheet" href="${url.replaceAll('&', '&amp;')}">`).join('\n');
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Minimock preview</title>
+${fontLinks}
 <style>${css}</style>
 <style>
   :root, body { background: #fff; }
