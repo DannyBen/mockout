@@ -5,6 +5,9 @@ const inspector = document.querySelector('#inspector');
 const notice = document.querySelector('#notice');
 const noticeMessage = document.querySelector('#notice-message');
 const recoveryActions = document.querySelector('#recovery-actions');
+const projectMenu = document.querySelector('#project-menu');
+const projectMenuButton = document.querySelector('#project-menu-button');
+const projectMenuHolder = document.querySelector('#project-menu-holder');
 const helpPanel = document.querySelector('#help-panel');
 const helpButton = document.querySelector('#help-button');
 const toolButtons = [...document.querySelectorAll('[data-tool]')];
@@ -75,6 +78,22 @@ function showNotice(message) {
   recoveryActions.hidden = !savedProjectIssue;
   notice.hidden = false;
 }
+
+function closeProjectMenu(focus = false) {
+  projectMenu.hidden = true;
+  projectMenuButton.setAttribute('aria-expanded', 'false');
+  if (focus) projectMenuButton.focus();
+}
+projectMenuButton.addEventListener('click', () => {
+  projectMenu.hidden = !projectMenu.hidden;
+  projectMenuButton.setAttribute('aria-expanded', String(!projectMenu.hidden));
+});
+projectMenu.addEventListener('click', event => {
+  if (!event.target.closest('.hold-action')) closeProjectMenu();
+});
+document.addEventListener('pointerdown', event => {
+  if (!projectMenuHolder.contains(event.target)) closeProjectMenu();
+});
 
 let selectedId = null;
 let selectedIds = new Set();
@@ -380,6 +399,7 @@ function dragTargets(box, solo, resizing) {
 function startDuplicatePlacement() {
   const source = selectedBoxes();
   if (!source.length || gesture) return;
+  closeProjectMenu();
   const originals = dragTargets(source[0], false, false);
   const step = state.grid || 10;
   const previous = {
@@ -856,6 +876,11 @@ window.addEventListener('blur', () => {
 });
 
 document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !projectMenu.hidden) {
+    event.preventDefault();
+    closeProjectMenu(true);
+    return;
+  }
   if (event.key === 'Alt') {
     altDown = true;
     workspace.classList.add('alt-move');
@@ -895,6 +920,11 @@ document.addEventListener('keydown', event => {
     return;
   }
   if (textEditor || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (ctrl && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'n') {
+    event.preventDefault();
+    clearCanvas();
+    return;
+  }
   if (ctrl && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'a') {
     event.preventDefault();
     isolatedCopyIds = null;
@@ -1193,17 +1223,16 @@ function saveProject() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 document.querySelector('#save-button').addEventListener('click', saveProject);
-document.querySelector('#clear-button').addEventListener('click', () => {
+function clearCanvas() {
+  closeProjectMenu();
   if (!state.boxes.length) return;
   change(() => { state.boxes = []; selectOnly(null); inspectorOpen = false; isolatedCopyIds = null; });
   workspace.focus();
-});
-
+}
+document.querySelector('#clear-button').addEventListener('click', clearCanvas);
 function resetEverything() {
-  const message = savedProjectIssue
-    ? 'Discard the unsupported saved project and reset everything? Download saved data first if you want to keep it.'
-    : 'Reset everything? This removes all boxes, colors, and canvas settings.';
-  if (!window.confirm(message)) return;
+  if (placement) return;
+  closeProjectMenu();
   try { localStorage.removeItem(STORAGE_KEY); }
   catch { showNotice('Could not clear saved data. Nothing was reset.'); return; }
   state = freshState();
@@ -1221,8 +1250,37 @@ function resetEverything() {
   workspace.focus();
   render();
 }
-document.querySelector('#reset-button').addEventListener('click', resetEverything);
-document.querySelector('#recovery-reset-button').addEventListener('click', resetEverything);
+for (const button of document.querySelectorAll('.hold-action')) {
+  let timer = null;
+  const cancel = () => {
+    clearTimeout(timer);
+    timer = null;
+    button.classList.remove('holding');
+  };
+  const start = () => {
+    if (timer || button.disabled) return;
+    button.classList.add('holding');
+    timer = setTimeout(() => { cancel(); resetEverything(); }, 1200);
+  };
+  button.addEventListener('pointerdown', event => { if (event.button === 0) start(); });
+  button.addEventListener('pointerleave', cancel);
+  button.addEventListener('pointercancel', cancel);
+  window.addEventListener('pointerup', cancel);
+  button.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    event.stopPropagation();
+    start();
+  });
+  button.addEventListener('keyup', event => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    event.stopPropagation();
+    cancel();
+  });
+  button.addEventListener('blur', cancel);
+  button.addEventListener('click', event => event.preventDefault());
+}
 document.querySelector('#download-saved-button').addEventListener('click', () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);

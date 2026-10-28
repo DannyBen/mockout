@@ -23,12 +23,18 @@
     <button type="button" tabindex="-1" data-grid="5">5</button>
     <button type="button" tabindex="-1" data-grid="0">Off</button>
     <span class="divider"></span>
-    <button type="button" tabindex="-1" id="open-button">Open</button>
-    <button type="button" tabindex="-1" id="save-button">Save</button>
-    <button type="button" tabindex="-1" id="clear-button">Clear canvas</button>
-    <button type="button" tabindex="-1" id="reset-button">Reset everything</button>
-    <button type="button" tabindex="-1" id="preview-button">Preview</button>
-    <span class="divider"></span>
+    <div id="project-menu-holder">
+      <button type="button" id="project-menu-button" aria-label="Project actions" aria-controls="project-menu" aria-expanded="false">...</button>
+      <div id="project-menu" hidden>
+        <button type="button" id="save-button"><span>Save JSON</span><span class="menu-hint">Ctrl+S</span></button>
+        <button type="button" id="open-button"><span>Load JSON</span><span class="menu-hint">Ctrl+O</span></button>
+        <button type="button" id="preview-button"><span>Preview</span><span class="menu-hint">Ctrl+P</span></button>
+        <hr>
+        <button type="button" id="clear-button"><span>Clear board</span><span class="menu-hint">Ctrl+N</span></button>
+        <hr>
+        <button type="button" id="reset-button" class="hold-action"><span>Reset app</span><span class="menu-hint">Hold</span></button>
+      </div>
+    </div>
     <button type="button" tabindex="-1" id="help-button" aria-label="Help" aria-controls="help-panel" aria-expanded="false">?</button>
   </div>
 
@@ -83,8 +89,10 @@
         <div><dt><kbd>Ctrl</kbd> + <kbd>0</kbd></dt><dd>Reset zoom</dd></div>
         <div><dt><kbd>Ctrl</kbd> + <kbd>S</kbd></dt><dd>Save project</dd></div>
         <div><dt><kbd>Ctrl</kbd> + <kbd>O</kbd></dt><dd>Open project</dd></div>
+        <div><dt><kbd>Ctrl</kbd> + <kbd>N</kbd></dt><dd>Clear board (undoable)</dd></div>
         <div><dt>Drop JSON file</dt><dd>Open project</dd></div>
         <div><dt><kbd>Ctrl</kbd> + <kbd>P</kbd></dt><dd>Preview</dd></div>
+        <div><dt>Hold Reset app</dt><dd>Reset boxes, colors, and settings</dd></div>
         <div><dt><kbd>?</kbd></dt><dd>Toggle help</dd></div>
       </dl>
     </section>
@@ -162,7 +170,7 @@
     <span id="notice-message"></span>
     <div id="recovery-actions" hidden>
       <button type="button" id="download-saved-button">Download saved data</button>
-      <button type="button" id="recovery-reset-button">Reset everything</button>
+      <button type="button" id="recovery-reset-button" class="hold-action">Hold to reset app</button>
     </div>
   </div>
 </body>
