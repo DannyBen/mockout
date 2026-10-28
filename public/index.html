@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Minimock</title>
   <link rel="stylesheet" href="style.css">
+  <link id="toolbar-icons-font" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=arrow_selector_tool,crop_square,help,more_horiz&amp;display=block">
   <script src="selection.js" defer></script>
   <script src="placement.js" defer></script>
   <script src="fonts.js" defer></script>
@@ -17,8 +18,8 @@
   </main>
 
   <div class="corner" aria-label="Canvas controls">
-    <button type="button" tabindex="-1" data-tool="select">Select</button>
-    <button type="button" tabindex="-1" data-tool="box">Box</button>
+    <button type="button" tabindex="-1" data-tool="select" aria-label="Select tool" title="Select (V)"><span class="toolbar-text">Select</span><span class="toolbar-glyph" aria-hidden="true">arrow_selector_tool</span></button>
+    <button type="button" tabindex="-1" data-tool="box" aria-label="Box tool" title="Box (B)"><span class="toolbar-text">Box</span><span class="toolbar-glyph" aria-hidden="true">crop_square</span></button>
     <span class="divider"></span>
     <span class="small-label">Grid</span>
     <button type="button" tabindex="-1" data-grid="40">40</button>
@@ -28,7 +29,7 @@
     <button type="button" tabindex="-1" data-grid="0">Off</button>
     <span class="divider"></span>
     <div id="project-menu-holder">
-      <button type="button" id="project-menu-button" aria-label="Project actions" aria-controls="project-menu" aria-expanded="false">...</button>
+      <button type="button" id="project-menu-button" aria-label="Project actions" aria-controls="project-menu" aria-expanded="false" title="Project actions"><span class="toolbar-text">...</span><span class="toolbar-glyph" aria-hidden="true">more_horiz</span></button>
       <div id="project-menu" hidden>
         <button type="button" id="save-button"><span>Save JSON</span><span class="menu-hint">Ctrl+S</span></button>
         <button type="button" id="open-button"><span>Load JSON</span><span class="menu-hint">Ctrl+O</span></button>
@@ -39,7 +40,7 @@
         <button type="button" id="reset-button" class="hold-action"><span>Reset app</span><span class="menu-hint">Hold</span></button>
       </div>
     </div>
-    <button type="button" tabindex="-1" id="help-button" aria-label="Help" aria-controls="help-panel" aria-expanded="false">?</button>
+    <button type="button" tabindex="-1" id="help-button" aria-label="Help" aria-controls="help-panel" aria-expanded="false" title="Help (?)"><span class="toolbar-text">?</span><span class="toolbar-glyph" aria-hidden="true">help</span></button>
   </div>
 
   <p id="placement-hint" role="status" hidden>Move copy · Click or Enter to place · Esc to cancel</p>

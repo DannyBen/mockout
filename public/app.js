@@ -17,12 +17,23 @@ const alignButtons = [...document.querySelectorAll('[data-align-axis]')];
 const propertyCycler = document.querySelector('#property-cycler');
 const cycleTrack = propertyCycler.querySelector('.cycle-track');
 const cycleOptions = [...propertyCycler.querySelectorAll('[data-property-section]')];
+const toolbarIconsFont = document.querySelector('#toolbar-icons-font');
 const channels = [1, 2, 3].map(n => document.querySelector(`#channel-${n}`));
 const channelValues = [1, 2, 3].map(n => document.querySelector(`#channel-${n}-value`));
 const { initialStyle } = MinimockProject;
 const fonts = MinimockFonts;
 const freshState = () => MinimockProject.freshState();
 const validProject = value => MinimockProject.validProject(value);
+
+async function showToolbarIcons() {
+  try {
+    const faces = await document.fonts.load('20px "Material Symbols Outlined"',
+      'arrow_selector_tool crop_square help more_horiz');
+    if (faces.some(face => face.status === 'loaded')) document.body.classList.add('toolbar-icons-ready');
+  } catch { /* Keep the text labels if Google Fonts is unavailable. */ }
+}
+toolbarIconsFont.addEventListener('load', showToolbarIcons);
+if (toolbarIconsFont.sheet) showToolbarIcons();
 
 let state = freshState();
 let savedProjectIssue = '';
