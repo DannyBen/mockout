@@ -315,8 +315,24 @@ input, select { width: 100%; padding: 5px 6px; }
     text-align: center;
     white-space: nowrap;
   }
-  & footer { margin-top: 12px; padding-top: 9px; border-top: 1px solid #e4e6ed; color: #626d82; }
+  & footer { margin-top: 12px; padding-top: 9px; border-top: 1px solid #e4e6ed; color: #626d82; text-align: center; }
   & footer a { color: #6746b7; }
+  & #welcome-button {
+    width: 100%;
+    margin-top: 16px;
+    padding: 8px 12px;
+    border: 1px solid #6746b7;
+    border-radius: 5px;
+    background: #f0ebfa;
+    color: #6746b7;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  & #welcome-button:hover:not(:disabled) { background: #e8dff7; }
+  & #welcome-button:disabled { border-color: #dce1eb; background: #f5f6f9; color: #929aac; cursor: default; }
+  & #welcome-button:focus-visible { outline: 2px solid #6746b7; outline-offset: 2px; }
+  & #welcome-hint { margin: 6px 2px 0; color: #929aac; font-size: 11px; text-align: center; }
 }
 
 *::-webkit-scrollbar { width: 3px; height: 3px; }

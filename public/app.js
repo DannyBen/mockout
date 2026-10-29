@@ -10,6 +10,8 @@ const projectMenuButton = document.querySelector('#project-menu-button');
 const projectMenuHolder = document.querySelector('#project-menu-holder');
 const helpPanel = document.querySelector('#help-panel');
 const helpButton = document.querySelector('#help-button');
+const welcomeButton = document.querySelector('#welcome-button');
+const welcomeHint = document.querySelector('#welcome-hint');
 const toolButtons = [...document.querySelectorAll('[data-tool]')];
 const gridButtons = [...document.querySelectorAll('[data-grid]')];
 const colorButtons = [...document.querySelectorAll('[data-color-property], [data-canvas-color-property]')];
@@ -41,8 +43,10 @@ if (toolbarIconsFont.sheet) showToolbarIcons();
 
 let state = freshState();
 let savedProjectIssue = '';
+let firstLoad = false;
 try {
   const raw = localStorage.getItem(STORAGE_KEY);
+  firstLoad = raw === null;
   if (raw) {
     const saved = JSON.parse(raw);
     if (validProject(saved)) state = saved;
@@ -169,6 +173,10 @@ function change(fn) {
 }
 
 function render() {
+  welcomeButton.disabled = Boolean(state.boxes.length || savedProjectIssue);
+  welcomeHint.hidden = !welcomeButton.disabled;
+  welcomeHint.textContent = savedProjectIssue ? 'Resolve the saved project issue first.'
+    : 'Clear the board first to show Welcome.';
   syncFontStylesheets();
   workspace.style.backgroundColor = canvasColor('background');
   workspace.style.setProperty('--grid-major-color', canvasColor('gridMajor'));
@@ -614,6 +622,34 @@ function toggleHelp() {
 
 helpButton.addEventListener('click', toggleHelp);
 document.querySelector('#close-help').addEventListener('click', toggleHelp);
+async function fetchWelcomeProject() {
+  const response = await fetch('welcome.json', { cache: 'no-store' });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const loaded = await response.json();
+  if (!validProject(loaded)) throw new Error('The Welcome project is invalid.');
+  return loaded;
+}
+async function loadWelcome(first = false) {
+  if (state.boxes.length || savedProjectIssue) return;
+  try {
+    const loaded = await fetchWelcomeProject();
+    if (state.boxes.length || savedProjectIssue) return;
+    if (first && localStorage.getItem(STORAGE_KEY) !== null) return;
+    change(() => {
+      state = loaded;
+      selectOnly(null);
+      inspectorOpen = false;
+      focusProject(state.boxes);
+    });
+    if (first) { undoStack.length = 0; redoStack.length = 0; }
+    helpPanel.hidden = true;
+    helpButton.setAttribute('aria-expanded', 'false');
+    workspace.focus();
+  } catch (error) {
+    showNotice(`Could not load Welcome example: ${error.message}`);
+  }
+}
+welcomeButton.addEventListener('click', () => loadWelcome());
 document.querySelector('#box-properties').addEventListener('focusin', event => {
   if (inspectorKind === 'box' && inspectorView === 'properties') lastPropertyFocus.set(activePropertySection, event.target);
 });
@@ -1489,11 +1525,15 @@ function clearCanvas() {
   workspace.focus();
 }
 document.querySelector('#clear-button').addEventListener('click', clearCanvas);
-function resetEverything() {
+async function resetEverything() {
   if (placement) return;
   closeProjectMenu();
-  try { state = MinimockProject.reset(localStorage, STORAGE_KEY); }
+  let loaded;
+  try { loaded = await fetchWelcomeProject(); }
+  catch (error) { showNotice(`Could not load Welcome example: ${error.message}`); return; }
+  try { MinimockProject.reset(localStorage, STORAGE_KEY); }
   catch { showNotice('Could not clear saved data. Nothing was reset.'); return; }
+  state = loaded;
   projectFileHandle = null;
   savedProjectIssue = '';
   undoStack.length = 0;
@@ -1511,6 +1551,7 @@ function resetEverything() {
   notice.hidden = true;
   recoveryActions.hidden = true;
   workspace.focus();
+  persist();
   render();
 }
 for (const button of document.querySelectorAll('.hold-action')) {
@@ -1677,3 +1718,4 @@ render();
 if (savedProjectIssue) {
   showNotice(savedProjectIssue);
 }
+if (firstLoad) loadWelcome(true);

@@ -1,6 +1,6 @@
 const MinimockProject = (() => {
   const fonts = typeof module !== 'undefined' ? require('./fonts.js') : MinimockFonts;
-  const defaultCanvasColors = { background: '#ffffff', gridMajor: '#f1f1f1', gridMinor: '#f1f1f1' };
+  const defaultCanvasColors = { background: '#f0f1f6', gridMajor: '#d0d2d9', gridMinor: '#e6e8f0' };
 
   const makeInitialStyle = swatches => ({
     fill: swatches[0]?.id ?? null,

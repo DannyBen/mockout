@@ -27,8 +27,8 @@
   </main>
 
   <div class="corner" aria-label="Canvas controls">
-    <button type="button" tabindex="-1" data-tool="select" aria-label="Select tool" title="Select (V)"><span class="toolbar-text">Select</span><span class="toolbar-glyph" aria-hidden="true">arrow_selector_tool</span></button>
-    <button type="button" tabindex="-1" data-tool="box" aria-label="Box tool" title="Box (B)"><span class="toolbar-text">Box</span><span class="toolbar-glyph" aria-hidden="true">crop_square</span></button>
+    <button type="button" tabindex="-1" data-tool="select" aria-label="Select tool"><span class="toolbar-text">Select</span><span class="toolbar-glyph" aria-hidden="true">arrow_selector_tool</span></button>
+    <button type="button" tabindex="-1" data-tool="box" aria-label="Box tool"><span class="toolbar-text">Box</span><span class="toolbar-glyph" aria-hidden="true">crop_square</span></button>
     <span class="divider"></span>
     <span class="small-label">Grid</span>
     <button type="button" tabindex="-1" data-grid="40">40</button>
@@ -38,7 +38,7 @@
     <button type="button" tabindex="-1" data-grid="0">Off</button>
     <span class="divider"></span>
     <div id="project-menu-holder">
-      <button type="button" id="project-menu-button" aria-label="Project actions" aria-controls="project-menu" aria-expanded="false" title="Project actions"><span class="toolbar-text">...</span><span class="toolbar-glyph" aria-hidden="true">more_horiz</span></button>
+      <button type="button" id="project-menu-button" aria-label="Project actions" aria-controls="project-menu" aria-expanded="false"><span class="toolbar-text">...</span><span class="toolbar-glyph" aria-hidden="true">more_horiz</span></button>
       <div id="project-menu" hidden>
         <button type="button" id="save-button"><span>Save JSON</span><span class="menu-hint">Ctrl+S</span></button>
         <button type="button" id="save-as-button"><span>Save as…</span></button>
@@ -50,7 +50,7 @@
         <button type="button" id="reset-button" class="hold-action"><span>Reset app</span><span class="menu-hint">Hold</span></button>
       </div>
     </div>
-    <button type="button" tabindex="-1" id="help-button" aria-label="Help" aria-controls="help-panel" aria-expanded="false" title="Help (?)"><span class="toolbar-text">?</span><span class="toolbar-glyph" aria-hidden="true">help</span></button>
+    <button type="button" tabindex="-1" id="help-button" aria-label="Help" aria-controls="help-panel" aria-expanded="false"><span class="toolbar-text">?</span><span class="toolbar-glyph" aria-hidden="true">help</span></button>
   </div>
 
   <p id="placement-hint" role="status" hidden>Move copy · Click or Enter to place · Esc to cancel</p>
@@ -122,6 +122,8 @@
         <div><dt>Help</dt><dd><kbd>?</kbd></dd></div>
       </dl>
     </section>
+    <button type="button" id="welcome-button">Show Welcome example</button>
+    <p id="welcome-hint" hidden></p>
     <footer>Minimock · <a href="https://github.com/dannyben/minimock" target="_blank" rel="noopener noreferrer">GitHub</a></footer>
   </aside>
 
