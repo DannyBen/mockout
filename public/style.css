@@ -106,7 +106,7 @@ button { cursor: pointer; }
 .handle[data-handle="sw"] { left: 0; bottom: 0; cursor: nesw-resize; }
 .handle[data-handle="w"] { left: 0; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
 
-.corner, #inspector, #help-panel {
+.corner, #inspector, #help-panel, #placement-hint {
   background: rgba(255, 255, 255, .97);
   border: 1px solid #ccd2df;
   box-shadow: 0 6px 24px #2834511f;
@@ -191,8 +191,6 @@ body.toolbar-icons-ready .corner {
   margin: 0;
   padding: 7px 10px;
   border-radius: 5px;
-  color: #fff;
-  background: #253047;
   pointer-events: none;
 }
 
