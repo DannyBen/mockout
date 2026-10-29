@@ -99,10 +99,27 @@ let spaceDown = false;
 let altDown = false;
 const view = { x: 0, y: 0, zoom: 1 };
 function focusProject(boxes) {
-  const origin = MinimockProject.topLeft(boxes);
   view.zoom = 1;
-  view.x = origin ? 24 - origin.x : 0;
-  view.y = origin ? document.querySelector('.corner').getBoundingClientRect().bottom + 20 - origin.y : 0;
+  view.x = 0;
+  view.y = 0;
+  if (!boxes.length) return;
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const box of boxes) {
+    minX = Math.min(minX, box.x);
+    minY = Math.min(minY, box.y);
+    maxX = Math.max(maxX, box.x + box.w);
+    maxY = Math.max(maxY, box.y + box.h);
+  }
+  const top = document.querySelector('.corner').getBoundingClientRect().bottom
+    - workspace.getBoundingClientRect().top + 20;
+  const availableHeight = Math.max(1, workspace.clientHeight - top - 24);
+  view.zoom = Math.max(0.2, Math.min(1,
+    (workspace.clientWidth - 48) / (maxX - minX), availableHeight / (maxY - minY)));
+  view.x = (workspace.clientWidth - (maxX - minX) * view.zoom) / 2 - minX * view.zoom;
+  view.y = top + (availableHeight - (maxY - minY) * view.zoom) / 2 - minY * view.zoom;
 }
 let colorTarget = null;
 let colorMode = 'hsb';
