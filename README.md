@@ -20,7 +20,9 @@ a larger box move with it, and overlapping boxes arrange their layer order as
 you work. Use the grid to keep sizes and positions aligned.
 
 Every box color uses a named swatch. Change a swatch once to update all boxes
-that use it. You can also choose fonts and Material icons in box properties.
+that use it. Swatches and canvas colors support light and dark appearances;
+dark colors default to Invert, with Same and Custom options. You can also choose
+fonts and Material icons in box properties.
 
 ## Keep your work
 
@@ -28,5 +30,5 @@ Your current project is saved automatically in this browser. Use **Save JSON**
 to keep a portable copy, and **Load JSON** to reopen it. **Preview** opens your
 mock without the editor controls or grid.
 
-To explore the Welcome project again, clear the board and choose
+To explore the Welcome project again, choose **New blank**, then
 **Show Welcome example** in Help.

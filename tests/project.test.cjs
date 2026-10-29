@@ -44,6 +44,22 @@ test('color editing modes are optional in older projects and validated when save
     { background: 'gray', gridMajor: 'gray', gridMinor: 'gray' });
 });
 
+test('dark colors invert by default and validate optional overrides in version 1', () => {
+  const old = valid();
+  assert.equal(project.validProject(old), true);
+  assert.equal(project.resolveColor('#ffffff', undefined, 'dark'), '#000000');
+  assert.equal(project.resolveColor('#253047', undefined, 'dark'), '#dacfb8');
+  assert.equal(project.resolveColor('#253047', { mode: 'same' }, 'dark'), '#253047');
+  assert.equal(project.resolveColor('#253047', { mode: 'custom', color: '#abcdef' }, 'dark'), '#abcdef');
+  assert.equal(project.resolveColor('#253047', undefined, 'light'), '#253047');
+  const dark = { mode: 'custom', color: '#abcdef', colorMode: 'hsb' };
+  assert.equal(project.validProject({ ...old, swatches: [{ ...old.swatches[0], dark }],
+    canvasDark: { background: { mode: 'invert' }, gridMajor: { mode: 'same' }, gridMinor: dark } }), true);
+  assert.equal(project.validProject({ ...old, swatches: [{ ...old.swatches[0],
+    dark: { mode: 'custom' } }] }), false);
+  assert.equal(project.validProject({ ...old, canvasDark: { background: { mode: 'unknown' } } }), false);
+});
+
 test('font links include Google variants and both Material icon sets without duplicates', () => {
   assert.deepEqual({ family: fonts.familyOf({}), size: fonts.sizeOf({}),
     weight: fonts.weightOf({}), style: fonts.styleOf({}) },
@@ -108,16 +124,14 @@ test('JSON export starts at the top-left box without changing live or autosaved 
   assert.deepEqual(project.forExport({ ...live, boxes: [] }).boxes, []);
 });
 
-test('Clear board removes boxes but preserves project settings and the prior state', () => {
-  const before = valid();
-  before.grid = 5;
-  const after = project.clearBoard(before);
-
-  assert.deepEqual(after.boxes, []);
-  assert.equal(after.grid, 5);
-  assert.deepEqual(after.swatches, before.swatches);
-  assert.deepEqual(after.canvasColors, before.canvasColors);
-  assert.equal(before.boxes.length, 1);
+test('a blank project starts with the basic palette and a white canvas', () => {
+  const blank = project.freshState();
+  assert.equal(blank.version, 1);
+  assert.deepEqual(blank.boxes, []);
+  assert.deepEqual(blank.swatches.map(s => s.name), ['White', 'Ink', 'Line']);
+  assert.deepEqual(blank.canvasColors,
+    { background: '#ffffff', gridMajor: '#d0d0d0', gridMinor: '#e8e8e8' });
+  assert.equal(blank.grid, 10);
 });
 
 test('Reset app removes the saved project and returns version 1 defaults', () => {

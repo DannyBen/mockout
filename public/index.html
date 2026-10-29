@@ -40,11 +40,13 @@
     <button type="button" tabindex="-1" data-tool="box" aria-label="Box tool"><span class="toolbar-text">Box</span><span class="toolbar-glyph" aria-hidden="true">crop_square</span></button>
     <span class="divider"></span>
     <span class="small-label">Grid</span>
-    <button type="button" tabindex="-1" data-grid="40">40</button>
-    <button type="button" tabindex="-1" data-grid="20">20</button>
-    <button type="button" tabindex="-1" data-grid="10">10</button>
-    <button type="button" tabindex="-1" data-grid="5">5</button>
-    <button type="button" tabindex="-1" data-grid="0">Off</button>
+    <div class="grid-buttons" role="group" aria-label="Grid size">
+      <button type="button" tabindex="-1" data-grid="40">40</button>
+      <button type="button" tabindex="-1" data-grid="20">20</button>
+      <button type="button" tabindex="-1" data-grid="10">10</button>
+      <button type="button" tabindex="-1" data-grid="5">5</button>
+      <button type="button" tabindex="-1" data-grid="0">Off</button>
+    </div>
     <span class="divider"></span>
     <div id="project-menu-holder">
       <button type="button" tabindex="-1" id="project-menu-button" aria-label="Project actions" aria-controls="project-menu" aria-expanded="false"><span class="toolbar-text">...</span><span class="toolbar-glyph" aria-hidden="true">more_horiz</span></button>
@@ -54,7 +56,7 @@
         <button type="button" id="open-button"><span>Load JSON</span><span class="menu-hint">Ctrl+O</span></button>
         <button type="button" id="preview-button"><span>Preview</span><span class="menu-hint">Ctrl+P</span></button>
         <hr>
-        <button type="button" id="clear-button"><span>Clear board</span><span class="menu-hint">Shift+N</span></button>
+        <button type="button" id="new-blank-button"><span>New blank</span><span class="menu-hint">Shift+N</span></button>
         <hr>
         <button type="button" id="reset-button" class="hold-action"><span>Reset app</span><span class="menu-hint">Hold</span></button>
       </div>
@@ -140,9 +142,9 @@
         <div><dt>Save JSON</dt><dd><kbd>Ctrl</kbd> + <kbd>S</kbd></dd></div>
         <div><dt>Save as…</dt><dd><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd></dd></div>
         <div><dt>Open JSON</dt><dd><div><kbd>Ctrl</kbd> + <kbd>O</kbd></div><div>Drop JSON file</div></dd></div>
-        <div><dt>Clear board</dt><dd><kbd>Shift</kbd> + <kbd>N</kbd></dd></div>
+        <div><dt>New blank project</dt><dd><kbd>Shift</kbd> + <kbd>N</kbd></dd></div>
         <div><dt>Preview</dt><dd><kbd>Ctrl</kbd> + <kbd>P</kbd></dd></div>
-        <div><dt>Reset boxes, colors, and settings</dt><dd>Hold Reset app</dd></div>
+        <div><dt>Reset app and load Welcome</dt><dd>Hold Reset app</dd></div>
         <div><dt>Help</dt><dd><kbd>?</kbd></dd></div>
       </dl>
     </section>
@@ -246,9 +248,10 @@
       </div>
     </section>
     <section id="canvas-properties" hidden aria-label="Canvas properties">
-      <div class="color-field canvas-color-field"><span>Background</span><button type="button" data-canvas-color-property="background"></button></div>
-      <div class="color-field canvas-color-field"><span>Grid major</span><button type="button" data-canvas-color-property="gridMajor"></button></div>
-      <div class="color-field canvas-color-field"><span>Grid minor</span><button type="button" data-canvas-color-property="gridMinor"></button></div>
+      <div class="canvas-color-head"><span></span><span>Light</span><span>Dark</span></div>
+      <div class="color-field canvas-color-field"><span>Background</span><button type="button" data-canvas-color-property="background" data-canvas-side="light"></button><button type="button" data-canvas-color-property="background" data-canvas-side="dark"></button></div>
+      <div class="color-field canvas-color-field"><span>Grid major</span><button type="button" data-canvas-color-property="gridMajor" data-canvas-side="light"></button><button type="button" data-canvas-color-property="gridMajor" data-canvas-side="dark"></button></div>
+      <div class="color-field canvas-color-field"><span>Grid minor</span><button type="button" data-canvas-color-property="gridMinor" data-canvas-side="light"></button><button type="button" data-canvas-color-property="gridMinor" data-canvas-side="dark"></button></div>
     </section>
     <section id="swatch-chooser" hidden aria-label="Choose swatch">
       <div id="swatch-list"></div>
@@ -256,9 +259,12 @@
     </section>
     <section id="swatch-editor" hidden aria-label="Swatch color picker">
       <label class="editor-field">Name <input id="swatch-name" type="text" maxlength="60" placeholder="Swatch name"></label>
-      <label class="editor-field">Hex <input id="color-hex" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="RRGGBB"></label>
+      <div id="color-side" role="group" aria-label="Color appearance"><button type="button" data-color-side="light" aria-pressed="true">Light</button><button type="button" data-color-side="dark" aria-pressed="false">Dark</button></div>
+      <label id="dark-behavior-field" class="editor-field" hidden>Dark <select id="dark-behavior"><option value="invert">Invert</option><option value="same">Same</option><option value="custom">Custom</option></select></label>
+      <label id="color-hex-field" class="editor-field">Hex <input id="color-hex" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="RRGGBB"></label>
       <div id="color-preview" aria-label="Color preview"></div>
-      <div class="editor-field">Mode <select id="color-mode" aria-label="Color mode"><option value="hsb">HSB</option><option value="rgb">RGB</option><option value="gray">Grayscale</option></select></div>
+      <div id="derived-color" hidden></div>
+      <div id="color-mode-field" class="editor-field">Mode <select id="color-mode" aria-label="Color mode"><option value="hsb">HSB</option><option value="rgb">RGB</option><option value="gray">Grayscale</option></select></div>
       <div class="color-channel"><label for="channel-1" id="channel-1-label">H</label><input id="channel-1" type="range" min="0" max="360"><input id="channel-1-value" type="number" min="0" max="360" aria-label="Hue value"></div>
       <div class="color-channel"><label for="channel-2" id="channel-2-label">S</label><input id="channel-2" type="range" min="0" max="100"><input id="channel-2-value" type="number" min="0" max="100" aria-label="Saturation value"></div>
       <div class="color-channel"><label for="channel-3" id="channel-3-label">B</label><input id="channel-3" type="range" min="0" max="100"><input id="channel-3-value" type="number" min="0" max="100" aria-label="Brightness value"></div>

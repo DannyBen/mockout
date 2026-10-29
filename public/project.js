@@ -1,7 +1,13 @@
 const MockoutProject = (() => {
   const fonts = typeof module !== 'undefined' ? require('./fonts.js') : MockoutFonts;
-  const defaultCanvasColors = { background: '#f0f1f6', gridMajor: '#d0d2d9', gridMinor: '#e6e8f0' };
+  const defaultCanvasColors = { background: '#ffffff', gridMajor: '#d0d0d0', gridMinor: '#e8e8e8' };
   const colorModeValues = ['hsb', 'rgb', 'gray'];
+  const hexColor = value => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
+  const validDark = dark => dark === undefined || (dark && typeof dark === 'object' && !Array.isArray(dark)
+    && ['invert', 'same', 'custom'].includes(dark.mode)
+    && (dark.color === undefined || hexColor(dark.color))
+    && (dark.colorMode === undefined || colorModeValues.includes(dark.colorMode))
+    && (dark.mode !== 'custom' || hexColor(dark.color)));
 
   const makeInitialStyle = swatches => ({
     fill: swatches[0]?.id ?? null,
@@ -22,6 +28,18 @@ const MockoutProject = (() => {
     storageKey: 'mockout-project',
     initialStyle: makeInitialStyle,
 
+    invertColor(color) {
+      return '#' + [1, 3, 5].map(index => (255 - parseInt(color.slice(index, index + 2), 16))
+        .toString(16).padStart(2, '0')).join('');
+    },
+
+    resolveColor(color, dark, theme) {
+      if (theme !== 'dark') return color;
+      if (dark?.mode === 'same') return color;
+      if (dark?.mode === 'custom') return dark.color;
+      return this.invertColor(color);
+    },
+
     suggestedFileName(date = new Date()) {
       const pad = value => String(value).padStart(2, '0');
       const stamp = `${pad(date.getFullYear() % 100)}${pad(date.getMonth() + 1)}${pad(date.getDate())}`
@@ -41,8 +59,6 @@ const MockoutProject = (() => {
         canvasColorModes: { background: 'gray', gridMajor: 'gray', gridMinor: 'gray' },
       };
     },
-
-    clearBoard(state) { return { ...state, boxes: [] }; },
 
     topLeft(boxes) {
       if (!boxes.length) return null;
@@ -81,10 +97,13 @@ const MockoutProject = (() => {
       return value && value.version === 1 && [0, 5, 10, 20, 40].includes(value.grid)
         && Number.isInteger(value.nextId) && Array.isArray(value.swatches) && Array.isArray(value.boxes)
         && value.swatches.every(s => typeof s.id === 'string' && typeof s.name === 'string'
-          && /^#[0-9a-f]{6}$/i.test(s.color) && (s.mode === undefined || colorModeValues.includes(s.mode)))
+          && hexColor(s.color) && (s.mode === undefined || colorModeValues.includes(s.mode)) && validDark(s.dark))
         && (value.lastStyle === undefined || this.validStyle(value.lastStyle, value.swatches))
         && value.canvasColors && ['background', 'gridMajor', 'gridMinor'].every(key =>
-          /^#[0-9a-f]{6}$/i.test(value.canvasColors[key]))
+          hexColor(value.canvasColors[key]))
+        && (value.canvasDark === undefined || (value.canvasDark && typeof value.canvasDark === 'object'
+          && !Array.isArray(value.canvasDark) && ['background', 'gridMajor', 'gridMinor'].every(key =>
+            validDark(value.canvasDark[key]))))
         && (value.canvasColorModes === undefined || (value.canvasColorModes
           && typeof value.canvasColorModes === 'object'
           && !Array.isArray(value.canvasColorModes)
