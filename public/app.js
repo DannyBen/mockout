@@ -1034,11 +1034,19 @@ function cycleSelection(step) {
 workspace.addEventListener('wheel', event => {
   if (event.ctrlKey || event.metaKey) return;
   event.preventDefault();
-  if (textEditor || placement) return;
+  if (textEditor) return;
   const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? workspace.clientHeight : 1;
-  view.x -= (event.deltaX + (event.shiftKey ? event.deltaY : 0)) * unit;
-  if (!event.shiftKey) view.y -= event.deltaY * unit;
-  render();
+  const panX = (event.deltaX + (event.shiftKey ? event.deltaY : 0)) * unit;
+  const panY = event.shiftKey ? 0 : event.deltaY * unit;
+  view.x -= panX;
+  view.y -= panY;
+  if (placement) {
+    for (const start of placement.starts) {
+      start.x += panX / view.zoom;
+      start.y += panY / view.zoom;
+    }
+    movePlacement(event.clientX, event.clientY);
+  } else render();
 }, { passive: false });
 
 document.addEventListener('wheel', event => {
@@ -1076,6 +1084,9 @@ document.addEventListener('keydown', event => {
     workspace.classList.add('alt-move');
   }
   const ctrl = event.ctrlKey || event.metaKey;
+  const digit = /^(?:Digit|Numpad)([0-9])$/.exec(event.code)?.[1];
+  const zoomInKey = event.code === 'Equal' || event.code === 'NumpadAdd';
+  const zoomOutKey = (event.code === 'Minus' && !event.shiftKey) || event.code === 'NumpadSubtract';
   if (placement) {
     if (event.key === 'Escape') { event.preventDefault(); finishPlacement(false); return; }
     if (event.key === 'Enter') { event.preventDefault(); finishPlacement(true); return; }
@@ -1091,9 +1102,9 @@ document.addEventListener('keydown', event => {
     if (ctrl || event.code === 'Space' || event.key === 'Tab' || event.key.length === 1) event.preventDefault();
     return;
   }
-  if (event.altKey && !ctrl && !event.shiftKey && /^[1-4]$/.test(event.key) && !textEditor && selectedIds.size) {
+  if (event.altKey && !ctrl && !event.shiftKey && /^[1-4]$/.test(digit || '') && !textEditor && selectedIds.size) {
     event.preventDefault();
-    activePropertySection = propertySections[Number(event.key) - 1].id;
+    activePropertySection = propertySections[Number(digit) - 1].id;
     if (inspectorOpen && inspectorKind === 'box') {
       inspectorView = 'properties';
       renderInspector();
@@ -1103,12 +1114,20 @@ document.addEventListener('keydown', event => {
     }
     return;
   }
-  if (ctrl && event.key.toLowerCase() === 's') { event.preventDefault(); saveProject(); return; }
-  if (ctrl && event.key.toLowerCase() === 'o') { event.preventDefault(); chooseProjectFile(); return; }
-  if (ctrl && event.key.toLowerCase() === 'p') { event.preventDefault(); openPreview(); return; }
-  if (ctrl && ['0', '+', '=', '-'].includes(event.key)) {
+  if (ctrl && event.code === 'KeyS') { event.preventDefault(); saveProject(); return; }
+  if (ctrl && event.code === 'KeyO') { event.preventDefault(); chooseProjectFile(); return; }
+  if (ctrl && event.code === 'KeyP') { event.preventDefault(); openPreview(); return; }
+  if (ctrl && event.code === 'KeyD') {
     event.preventDefault();
-    if (!textEditor) zoomAt(event.key === '0' ? 1 / view.zoom : event.key === '-' ? 1 / 1.2 : 1.2,
+    if (!textEditor) {
+      if (inspector.contains(document.activeElement)) document.activeElement.blur();
+      if (selectedIds.size) startDuplicatePlacement();
+    }
+    return;
+  }
+  if (ctrl && ((digit === '0' && !event.shiftKey) || zoomInKey || zoomOutKey)) {
+    event.preventDefault();
+    if (!textEditor) zoomAt(digit === '0' ? 1 / view.zoom : zoomOutKey ? 1 / 1.2 : 1.2,
       workspace.clientWidth / 2, workspace.clientHeight / 2);
     return;
   }
@@ -1123,12 +1142,12 @@ document.addEventListener('keydown', event => {
   }
   if (inspector.contains(document.activeElement) || textEditor
     || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
-  if (event.shiftKey && !ctrl && !event.altKey && event.key.toLowerCase() === 'n') {
+  if (event.shiftKey && !ctrl && !event.altKey && event.code === 'KeyN') {
     event.preventDefault();
     clearCanvas();
     return;
   }
-  if (ctrl && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'a') {
+  if (ctrl && !event.altKey && !event.shiftKey && event.code === 'KeyA') {
     event.preventDefault();
     isolatedCopyIds = null;
     selectedIds = new Set(state.boxes.map(box => box.id));
@@ -1139,7 +1158,7 @@ document.addEventListener('keydown', event => {
     render();
     return;
   }
-  if (event.key === '?' && !ctrl && !event.altKey) {
+  if (event.code === 'Slash' && event.shiftKey && !ctrl && !event.altKey) {
     event.preventDefault();
     if (!event.repeat) toggleHelp();
     return;
@@ -1149,25 +1168,20 @@ document.addEventListener('keydown', event => {
     if (!spaceDown) { spaceDown = true; render(); }
     return;
   }
-  if (ctrl && event.key.toLowerCase() === 'z') { event.preventDefault(); event.shiftKey ? redo() : undo(); return; }
-  if (ctrl && event.key.toLowerCase() === 'y') { event.preventDefault(); redo(); return; }
-  if (['+', '=', '-'].includes(event.key) && !event.altKey && !ctrl) {
+  if (ctrl && event.code === 'KeyZ') { event.preventDefault(); event.shiftKey ? redo() : undo(); return; }
+  if (ctrl && event.code === 'KeyY') { event.preventDefault(); redo(); return; }
+  if ((zoomInKey || zoomOutKey) && !event.altKey && !ctrl) {
     event.preventDefault();
-    zoomAt(event.key === '-' ? 1 / 1.2 : 1.2, workspace.clientWidth / 2, workspace.clientHeight / 2);
+    zoomAt(zoomOutKey ? 1 / 1.2 : 1.2, workspace.clientWidth / 2, workspace.clientHeight / 2);
     return;
   }
-  if (ctrl && event.key.toLowerCase() === 'd') {
-    event.preventDefault();
-    if (selectedIds.size) startDuplicatePlacement();
+  if (!ctrl && !event.altKey && !event.shiftKey && /^[1-5]$/.test(digit || '')) {
+    change(() => { state.grid = [40, 20, 10, 5, 0][Number(digit) - 1]; });
     return;
   }
-  if (!ctrl && !event.altKey && /^[1-5]$/.test(event.key)) {
-    change(() => { state.grid = [40, 20, 10, 5, 0][Number(event.key) - 1]; });
-    return;
-  }
-  if (!ctrl && !event.altKey && event.key.toLowerCase() === 'v') { event.preventDefault(); setTool('select'); return; }
-  if (!ctrl && !event.altKey && event.key.toLowerCase() === 'b') { event.preventDefault(); setTool('box'); return; }
-  if (!ctrl && !event.altKey && event.key.toLowerCase() === 'p') {
+  if (!ctrl && !event.altKey && event.code === 'KeyV') { event.preventDefault(); setTool('select'); return; }
+  if (!ctrl && !event.altKey && event.code === 'KeyB') { event.preventDefault(); setTool('box'); return; }
+  if (!ctrl && !event.altKey && event.code === 'KeyP') {
     event.preventDefault();
     if (inspectorOpen) { inspectorOpen = false; render(); }
     else if (selectedIds.size) openInspector(selectedId);
