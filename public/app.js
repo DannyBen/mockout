@@ -1114,6 +1114,13 @@ document.addEventListener('keydown', event => {
     }
     return;
   }
+  if (inspectorOpen && inspectorKind === 'box' && inspectorView === 'properties'
+    && inspector.contains(document.activeElement) && !ctrl && !event.altKey && !event.shiftKey
+    && ['PageUp', 'PageDown'].includes(event.code)) {
+    event.preventDefault();
+    showPropertySection(propertySectionIndex() + (event.code === 'PageDown' ? 1 : -1));
+    return;
+  }
   if (ctrl && event.code === 'KeyS') { event.preventDefault(); saveProject(); return; }
   if (ctrl && event.code === 'KeyO') { event.preventDefault(); chooseProjectFile(); return; }
   if (ctrl && event.code === 'KeyP') { event.preventDefault(); openPreview(); return; }
