@@ -69,7 +69,8 @@
         <div><dt><kbd>Ctrl</kbd> + <kbd>A</kbd></dt><dd>Select all boxes</dd></div>
         <div><dt><kbd>Enter</kbd> / <kbd>F2</kbd></dt><dd>Edit text</dd></div>
         <div><dt><kbd>P</kbd></dt><dd>Box or canvas properties</dd></div>
-        <div><dt><kbd>←</kbd> / <kbd>→</kbd> / wheel</dt><dd>Change Properties section</dd></div>
+        <div><dt><kbd>Alt</kbd> + <kbd>1</kbd>–<kbd>4</kbd></dt><dd>Open Shape, Colors, Text, or Font properties</dd></div>
+        <div><dt>Click section arrows</dt><dd>Change Properties section</dd></div>
         <div><dt><kbd>Backspace</kbd> / <kbd>Delete</kbd></dt><dd>Clear mixed text in Properties</dd></div>
         <div><dt>Right click</dt><dd>Properties</dd></div>
       </dl>
@@ -125,19 +126,12 @@
       <button type="button" id="delete-swatch" hidden>Delete</button>
     </header>
     <section id="box-properties">
-      <label class="field">Text <input id="box-text" type="text" placeholder="Optional text"></label>
-      <button type="button" id="property-cycler" aria-controls="color-properties general-properties font-properties" aria-label="Properties: General. Use left and right arrows to change section">
+      <div id="property-cycler" role="group" aria-label="Properties section: 1 Shape">
         <span class="cycle-arrow" data-cycle-step="-1" aria-hidden="true">‹</span>
-        <span class="cycle-window" aria-hidden="true">
-          <span class="cycle-track">
-            <span class="cycle-option" data-property-section="colors">Colors</span>
-            <span class="cycle-option active" data-property-section="general">General</span>
-            <span class="cycle-option" data-property-section="font">Font</span>
-          </span>
-        </span>
+        <span class="cycle-label" aria-hidden="true">1 Shape</span>
         <span class="cycle-arrow" data-cycle-step="1" aria-hidden="true">›</span>
-      </button>
-      <div id="general-properties" class="section-content">
+      </div>
+      <div id="shape-properties" class="section-content">
         <div class="two-fields">
           <label class="field">Width <input id="box-width" type="number" min="1" step="1"></label>
           <label class="field">Height <input id="box-height" type="number" min="1" step="1"></label>
@@ -150,6 +144,14 @@
           <label class="field">Padding X <input id="box-padding-x" type="number" min="0" step="1"></label>
           <label class="field">Padding Y <input id="box-padding-y" type="number" min="0" step="1"></label>
         </div>
+      </div>
+      <div id="color-properties" class="section-content" hidden>
+        <div class="color-field"><span>Fill</span><button type="button" data-color-property="fill"></button></div>
+        <div class="color-field"><span>Text</span><button type="button" data-color-property="textColor"></button></div>
+        <div class="color-field"><span>Border</span><button type="button" data-color-property="borderColor"></button></div>
+      </div>
+      <div id="text-properties" class="section-content" hidden>
+        <label class="field">Text <input id="box-text" type="text" placeholder="Optional text"></label>
         <div class="two-fields align-fields">
           <div class="align-group" role="group" aria-label="Horizontal alignment">
             <span>Horizontal</span>
@@ -168,11 +170,6 @@
             </div>
           </div>
         </div>
-      </div>
-      <div id="color-properties" class="section-content" hidden>
-        <div class="color-field"><span>Fill</span><button type="button" data-color-property="fill"></button></div>
-        <div class="color-field"><span>Text</span><button type="button" data-color-property="textColor"></button></div>
-        <div class="color-field"><span>Border</span><button type="button" data-color-property="borderColor"></button></div>
       </div>
       <div id="font-properties" class="section-content" hidden>
         <label class="field">Family

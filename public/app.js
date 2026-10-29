@@ -15,8 +15,12 @@ const gridButtons = [...document.querySelectorAll('[data-grid]')];
 const colorButtons = [...document.querySelectorAll('[data-color-property], [data-canvas-color-property]')];
 const alignButtons = [...document.querySelectorAll('[data-align-axis]')];
 const propertyCycler = document.querySelector('#property-cycler');
-const cycleTrack = propertyCycler.querySelector('.cycle-track');
-const cycleOptions = [...propertyCycler.querySelectorAll('[data-property-section]')];
+const propertySections = [
+  { id: 'shape', label: 'Shape', element: document.querySelector('#shape-properties') },
+  { id: 'colors', label: 'Colors', element: document.querySelector('#color-properties') },
+  { id: 'text', label: 'Text', element: document.querySelector('#text-properties') },
+  { id: 'font', label: 'Font', element: document.querySelector('#font-properties') },
+];
 const toolbarIconsFont = document.querySelector('#toolbar-icons-font');
 const channels = [1, 2, 3].map(n => document.querySelector(`#channel-${n}`));
 const channelValues = [1, 2, 3].map(n => document.querySelector(`#channel-${n}-value`));
@@ -83,8 +87,8 @@ let inspectorOpen = false;
 let inspectorKind = 'box';
 let inspectorPoint = { x: 12, y: 12 };
 let inspectorView = 'properties';
-let activePropertySection = 'general';
-let lastPropertyFocus = null;
+let activePropertySection = 'shape';
+const lastPropertyFocus = new Map();
 let boxPropertiesPlacementHeight = 0;
 let tool = 'select';
 let spaceDown = false;
@@ -105,7 +109,7 @@ const redoStack = [];
 const snapshot = () => JSON.stringify(state);
 const selectedBox = () => state.boxes.find(b => b.id === selectedId);
 const selectedBoxes = () => state.boxes.filter(b => selectedIds.has(b.id));
-const propertySectionIndex = () => cycleOptions.findIndex(option => option.dataset.propertySection === activePropertySection);
+const propertySectionIndex = () => propertySections.findIndex(section => section.id === activePropertySection);
 const paddingX = box => box.paddingX ?? 3;
 const paddingY = box => box.paddingY ?? 3;
 const styleOf = box => ({
@@ -284,18 +288,13 @@ function renderInspector() {
   document.querySelector('#swatch-name').parentElement.hidden = inspectorView === 'edit' && Boolean(colorTarget?.direct);
   document.querySelector('#inspector-header').hidden = inspectorView === 'properties';
   const sectionIndex = propertySectionIndex();
-  for (const option of cycleOptions) option.classList.toggle('active', option.dataset.propertySection === activePropertySection);
-  document.querySelector('#general-properties').hidden = activePropertySection !== 'general';
-  document.querySelector('#color-properties').hidden = activePropertySection !== 'colors';
-  document.querySelector('#font-properties').hidden = activePropertySection !== 'font';
-  propertyCycler.setAttribute('aria-label', `Properties: ${cycleOptions[sectionIndex].textContent}. Use left and right arrows to change section`);
+  for (const section of propertySections) section.element.hidden = section.id !== activePropertySection;
+  const sectionLabel = `${sectionIndex + 1} ${propertySections[sectionIndex].label}`;
+  propertyCycler.querySelector('.cycle-label').textContent = sectionLabel;
+  propertyCycler.setAttribute('aria-label', `Properties section: ${sectionLabel}`);
   for (const arrow of propertyCycler.querySelectorAll('[data-cycle-step]')) {
     arrow.classList.toggle('disabled', sectionIndex + Number(arrow.dataset.cycleStep) < 0
-      || sectionIndex + Number(arrow.dataset.cycleStep) >= cycleOptions.length);
-  }
-  if (inspectorKind === 'box' && inspectorView === 'properties') {
-    const active = cycleOptions[sectionIndex];
-    cycleTrack.style.transform = `translateX(-${active.offsetLeft + active.offsetWidth / 2}px)`;
+      || sectionIndex + Number(arrow.dataset.cycleStep) >= propertySections.length);
   }
   if (inspectorView !== 'properties') {
     document.querySelector('#inspector-title').hidden = inspectorView === 'edit';
@@ -388,7 +387,7 @@ function renderInspector() {
   if (inspectorView === 'choose') renderSwatchList();
   if (inspectorKind === 'box' && inspectorView === 'properties') {
     if (!boxPropertiesPlacementHeight) {
-      const sections = ['color-properties', 'general-properties', 'font-properties']
+      const sections = ['shape-properties', 'color-properties', 'text-properties', 'font-properties']
         .map(id => document.getElementById(id));
       const googleField = document.querySelector('#google-font-field');
       const materialField = document.querySelector('#material-style-field');
@@ -616,43 +615,25 @@ function toggleHelp() {
 helpButton.addEventListener('click', toggleHelp);
 document.querySelector('#close-help').addEventListener('click', toggleHelp);
 document.querySelector('#box-properties').addEventListener('focusin', event => {
-  if (inspectorKind === 'box' && inspectorView === 'properties') lastPropertyFocus = event.target;
+  if (inspectorKind === 'box' && inspectorView === 'properties') lastPropertyFocus.set(activePropertySection, event.target);
 });
+function focusPropertySection() {
+  const field = lastPropertyFocus.get(activePropertySection);
+  if (field?.isConnected && !field.closest('[hidden]')) field.focus();
+  else propertySections[propertySectionIndex()].element.querySelector('input, select, button')?.focus();
+}
 function showPropertySection(index) {
-  const option = cycleOptions[index];
-  if (!option || option.dataset.propertySection === activePropertySection) return;
-  activePropertySection = option.dataset.propertySection;
+  const section = propertySections[index];
+  if (!section) { focusPropertySection(); return; }
+  activePropertySection = section.id;
   renderInspector();
+  focusPropertySection();
 }
 propertyCycler.addEventListener('click', event => {
-  const option = event.target.closest('[data-property-section]');
   const step = event.target.closest('[data-cycle-step]');
-  if (option) showPropertySection(cycleOptions.indexOf(option));
-  else if (step) showPropertySection(propertySectionIndex() + Number(step.dataset.cycleStep));
+  if (step) showPropertySection(propertySectionIndex() + Number(step.dataset.cycleStep));
 });
-propertyCycler.addEventListener('keydown', event => {
-  if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
-  event.preventDefault();
-  showPropertySection(propertySectionIndex() + (event.key === 'ArrowRight' ? 1 : -1));
-});
-let wheelTravel = 0;
-let wheelLocked = false;
-let wheelReset = null;
-propertyCycler.addEventListener('wheel', event => {
-  event.preventDefault();
-  propertyCycler.focus();
-  const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-  if (!wheelLocked) {
-    wheelTravel += delta * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 100 : 1);
-    if (Math.abs(wheelTravel) >= 18) {
-      showPropertySection(propertySectionIndex() + Math.sign(wheelTravel));
-      wheelTravel = 0;
-      wheelLocked = true;
-    }
-  }
-  clearTimeout(wheelReset);
-  wheelReset = setTimeout(() => { wheelTravel = 0; wheelLocked = false; }, 180);
-}, { passive: false });
+propertyCycler.addEventListener('mousedown', event => event.preventDefault());
 
 function openInspector(id = selectedId) {
   if (id === null) return;
@@ -663,9 +644,7 @@ function openInspector(id = selectedId) {
   inspectorKind = 'box';
   inspectorView = 'properties';
   render();
-  const focus = lastPropertyFocus?.isConnected && !lastPropertyFocus.closest('[hidden]')
-    ? lastPropertyFocus : propertyCycler;
-  focus.focus();
+  focusPropertySection();
 }
 
 function openCanvasInspector(point = null) {
@@ -1112,6 +1091,18 @@ document.addEventListener('keydown', event => {
     if (ctrl || event.code === 'Space' || event.key === 'Tab' || event.key.length === 1) event.preventDefault();
     return;
   }
+  if (event.altKey && !ctrl && !event.shiftKey && /^[1-4]$/.test(event.key) && !textEditor && selectedIds.size) {
+    event.preventDefault();
+    activePropertySection = propertySections[Number(event.key) - 1].id;
+    if (inspectorOpen && inspectorKind === 'box') {
+      inspectorView = 'properties';
+      renderInspector();
+      focusPropertySection();
+    } else {
+      openInspector(selectedId);
+    }
+    return;
+  }
   if (ctrl && event.key.toLowerCase() === 's') { event.preventDefault(); saveProject(); return; }
   if (ctrl && event.key.toLowerCase() === 'o') { event.preventDefault(); chooseProjectFile(); return; }
   if (ctrl && event.key.toLowerCase() === 'p') { event.preventDefault(); openPreview(); return; }
@@ -1488,8 +1479,8 @@ function resetEverything() {
   redoStack.length = 0;
   selectOnly(null);
   inspectorOpen = false;
-  activePropertySection = 'general';
-  lastPropertyFocus = null;
+  activePropertySection = 'shape';
+  lastPropertyFocus.clear();
   boxPropertiesPlacementHeight = 0;
   isolatedCopyIds = null;
   placement = null;
