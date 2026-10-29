@@ -8,6 +8,10 @@ const recoveryActions = document.querySelector('#recovery-actions');
 const projectMenu = document.querySelector('#project-menu');
 const projectMenuButton = document.querySelector('#project-menu-button');
 const projectMenuHolder = document.querySelector('#project-menu-holder');
+const themeMenu = document.querySelector('#theme-menu');
+const themeMenuButton = document.querySelector('#theme-menu-button');
+const themeMenuHolder = document.querySelector('#theme-menu-holder');
+const themeMedia = matchMedia('(prefers-color-scheme: dark)');
 const helpPanel = document.querySelector('#help-panel');
 const helpButton = document.querySelector('#help-button');
 const welcomeButton = document.querySelector('#welcome-button');
@@ -62,20 +66,65 @@ function showNotice(message) {
   notice.hidden = false;
 }
 
-function closeProjectMenu(focus = false) {
-  projectMenu.hidden = true;
-  projectMenuButton.setAttribute('aria-expanded', 'false');
-  if (focus) projectMenuButton.focus();
+const toolbarMenus = [
+  { menu: projectMenu, button: projectMenuButton, holder: projectMenuHolder },
+  { menu: themeMenu, button: themeMenuButton, holder: themeMenuHolder },
+];
+function closeToolbarMenu(item, focusCanvas = false) {
+  item.menu.hidden = true;
+  item.button.setAttribute('aria-expanded', 'false');
+  if (focusCanvas) workspace.focus();
 }
-projectMenuButton.addEventListener('click', () => {
-  projectMenu.hidden = !projectMenu.hidden;
-  projectMenuButton.setAttribute('aria-expanded', String(!projectMenu.hidden));
+function closeProjectMenu() { closeToolbarMenu(toolbarMenus[0]); }
+function toggleToolbarMenu(item) {
+  const opening = item.menu.hidden;
+  for (const other of toolbarMenus) closeToolbarMenu(other);
+  if (!opening) { workspace.focus(); return; }
+  item.menu.hidden = false;
+  item.button.setAttribute('aria-expanded', 'true');
+  (item.menu.querySelector('[aria-pressed="true"]') || item.menu.querySelector('button:not(:disabled)'))?.focus();
+}
+function setTheme(theme) {
+  if (theme === 'auto') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = theme;
+  document.documentElement.dataset.uiTheme = theme === 'auto'
+    ? themeMedia.matches ? 'dark' : 'light' : theme;
+  themeMenuButton.dataset.theme = theme;
+  themeMenuButton.setAttribute('aria-label', `Theme: ${theme}`);
+  for (const button of themeMenu.querySelectorAll('[data-theme-choice]')) {
+    button.setAttribute('aria-pressed', String(button.dataset.themeChoice === theme));
+  }
+  try { localStorage.setItem('mockout-ui-theme', theme); }
+  catch { /* The selected theme still applies for this session. */ }
+}
+themeMedia.addEventListener('change', event => {
+  if (!document.documentElement.dataset.theme) {
+    document.documentElement.dataset.uiTheme = event.matches ? 'dark' : 'light';
+  }
 });
+const initialTheme = document.documentElement.dataset.theme || 'auto';
+themeMenuButton.dataset.theme = initialTheme;
+themeMenuButton.setAttribute('aria-label', `Theme: ${initialTheme}`);
+for (const button of themeMenu.querySelectorAll('[data-theme-choice]')) {
+  button.setAttribute('aria-pressed', String(button.dataset.themeChoice === initialTheme));
+}
+themeMenuButton.addEventListener('click', () => toggleToolbarMenu(toolbarMenus[1]));
+themeMenu.addEventListener('click', event => {
+  const button = event.target.closest('[data-theme-choice]');
+  if (!button) return;
+  setTheme(button.dataset.themeChoice);
+  closeToolbarMenu(toolbarMenus[1], true);
+});
+projectMenuButton.addEventListener('click', () => toggleToolbarMenu(toolbarMenus[0]));
 projectMenu.addEventListener('click', event => {
-  if (!event.target.closest('.hold-action')) closeProjectMenu();
+  if (!event.target.closest('.hold-action')) closeToolbarMenu(toolbarMenus[0], true);
 });
 document.addEventListener('pointerdown', event => {
-  if (!projectMenuHolder.contains(event.target)) closeProjectMenu();
+  const toolbarButton = event.target.closest('.corner button');
+  if (toolbarButton && !toolbarButton.closest('.toolbar-menu')) event.preventDefault();
+  for (const item of toolbarMenus) {
+    if (!item.holder.contains(event.target)) closeToolbarMenu(item);
+  }
 });
 
 let selectedId = null;
@@ -1127,9 +1176,25 @@ window.addEventListener('blur', () => {
 });
 
 document.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && !projectMenu.hidden) {
+  const openMenu = toolbarMenus.find(item => !item.menu.hidden);
+  if (openMenu && openMenu.holder.contains(document.activeElement)) {
+    if (event.key === 'Escape' || event.key === 'Tab') {
+      event.preventDefault();
+      closeToolbarMenu(openMenu, true);
+      return;
+    }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const buttons = [...openMenu.menu.querySelectorAll('button:not(:disabled)')];
+      const index = buttons.indexOf(document.activeElement);
+      buttons[(index + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length].focus();
+      return;
+    }
+    return;
+  }
+  if (openMenu && event.key === 'Escape') {
     event.preventDefault();
-    closeProjectMenu(true);
+    closeToolbarMenu(openMenu, true);
     return;
   }
   if (event.key === 'Alt') {
@@ -1174,7 +1239,7 @@ document.addEventListener('keydown', event => {
     showPropertySection(propertySectionIndex() + (event.code === 'PageDown' ? 1 : -1));
     return;
   }
-  if (ctrl && event.code === 'KeyS') { event.preventDefault(); saveProject(); return; }
+  if (ctrl && event.code === 'KeyS') { event.preventDefault(); saveProject(event.shiftKey); return; }
   if (ctrl && event.code === 'KeyO') { event.preventDefault(); chooseProjectFile(); return; }
   if (ctrl && event.code === 'KeyP') { event.preventDefault(); openPreview(); return; }
   if (ctrl && event.code === 'KeyD') {
