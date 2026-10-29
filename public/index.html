@@ -41,6 +41,7 @@
       <button type="button" id="project-menu-button" aria-label="Project actions" aria-controls="project-menu" aria-expanded="false" title="Project actions"><span class="toolbar-text">...</span><span class="toolbar-glyph" aria-hidden="true">more_horiz</span></button>
       <div id="project-menu" hidden>
         <button type="button" id="save-button"><span>Save JSON</span><span class="menu-hint">Ctrl+S</span></button>
+        <button type="button" id="save-as-button"><span>Save as…</span></button>
         <button type="button" id="open-button"><span>Load JSON</span><span class="menu-hint">Ctrl+O</span></button>
         <button type="button" id="preview-button"><span>Preview</span><span class="menu-hint">Ctrl+P</span></button>
         <hr>
@@ -79,7 +80,8 @@
         <div><dt>Drag</dt><dd>Move with contained boxes</dd></div>
         <div><dt><kbd>Ctrl</kbd> + drag</dt><dd>Move nearest enclosing box</dd></div>
         <div><dt><kbd>Alt</kbd> + drag</dt><dd>Move one box</dd></div>
-        <div><dt><kbd>Arrows</kbd></dt><dd>Move selection</dd></div>
+        <div><dt><kbd>Arrows</kbd></dt><dd>Move with contained boxes</dd></div>
+        <div><dt><kbd>Alt</kbd> + <kbd>Arrows</kbd></dt><dd>Move one box</dd></div>
         <div><dt><kbd>Shift</kbd> + <kbd>Arrows</kbd></dt><dd>Resize selection</dd></div>
         <div><dt><kbd>Ctrl</kbd> + <kbd>Arrows</kbd></dt><dd>Move five grid steps</dd></div>
         <div><dt><kbd>Ctrl</kbd> + <kbd>D</kbd></dt><dd>Duplicate and place</dd></div>
@@ -106,7 +108,7 @@
         <div><dt><kbd>Ctrl</kbd> + <kbd>0</kbd></dt><dd>Reset zoom</dd></div>
         <div><dt><kbd>Ctrl</kbd> + <kbd>S</kbd></dt><dd>Save project</dd></div>
         <div><dt><kbd>Ctrl</kbd> + <kbd>O</kbd></dt><dd>Open project</dd></div>
-        <div><dt><kbd>Shift</kbd> + <kbd>N</kbd></dt><dd>Clear board (undoable)</dd></div>
+        <div><dt><kbd>Shift</kbd> + <kbd>N</kbd></dt><dd>Clear board; next save asks for a file</dd></div>
         <div><dt>Drop JSON file</dt><dd>Open project</dd></div>
         <div><dt><kbd>Ctrl</kbd> + <kbd>P</kbd></dt><dd>Preview</dd></div>
         <div><dt>Hold Reset app</dt><dd>Reset boxes, colors, and settings</dd></div>

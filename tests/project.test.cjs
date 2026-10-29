@@ -4,6 +4,11 @@ const project = require('../public/project.js');
 const fonts = require('../public/fonts.js');
 const key = project.storageKey;
 
+test('new project files suggest a compact timestamped name', () => {
+  assert.equal(project.suggestedFileName(new Date(2026, 9, 29, 14, 30, 45)),
+    'minimock-261029-143045.json');
+});
+
 const valid = () => ({
   version: 1, grid: 10, nextId: 2,
   swatches: [{ id: 's1', name: 'White', color: '#ffffff' }],

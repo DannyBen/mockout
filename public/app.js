@@ -78,6 +78,7 @@ let pointerPosition = null;
 let placement = null;
 let isolatedCopyIds = null;
 let textEditor = null;
+let projectFileHandle = null;
 let inspectorOpen = false;
 let inspectorKind = 'box';
 let inspectorPoint = { x: 12, y: 12 };
@@ -1112,7 +1113,7 @@ document.addEventListener('keydown', event => {
     return;
   }
   if (ctrl && event.key.toLowerCase() === 's') { event.preventDefault(); saveProject(); return; }
-  if (ctrl && event.key.toLowerCase() === 'o') { event.preventDefault(); document.querySelector('#open-file').click(); return; }
+  if (ctrl && event.key.toLowerCase() === 'o') { event.preventDefault(); chooseProjectFile(); return; }
   if (ctrl && event.key.toLowerCase() === 'p') { event.preventDefault(); openPreview(); return; }
   if (ctrl && ['0', '+', '=', '-'].includes(event.key)) {
     event.preventDefault();
@@ -1194,11 +1195,15 @@ document.addEventListener('keydown', event => {
   if (event.key === 'F2' && selectedIds.size === 1) { event.preventDefault(); editText(selectedId); return; }
   if (event.key === 'Tab') { event.preventDefault(); cycleSelection(event.shiftKey ? -1 : 1); return; }
   const direction = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
-  if (direction && !event.altKey && selectedIds.size) {
+  if (direction && selectedIds.size) {
     event.preventDefault();
     const amount = (state.grid || 1) * (ctrl ? 5 : 1);
     change(() => {
-      for (const box of selectedBoxes()) {
+      const targets = event.shiftKey
+        ? (event.altKey ? [selectedBox()] : selectedBoxes())
+        : dragTargets(selectedBox(), event.altKey, false);
+      for (const target of targets) {
+        const box = state.boxes.find(item => item.id === target.id);
         if (event.shiftKey) {
           if (direction[0]) box.w = Math.max(minimum(), snap(box.x + box.w + direction[0] * amount) - box.x);
           if (direction[1]) box.h = Math.max(minimum(), snap(box.y + box.h + direction[1] * amount) - box.y);
@@ -1207,7 +1212,9 @@ document.addEventListener('keydown', event => {
           box.y += direction[1] * amount;
         }
       }
+      if (!event.shiftKey) arrangeStack(targets.map(box => box.id));
     });
+    return;
   }
   if (direction && !selectedIds.size && !ctrl && !event.altKey && !event.shiftKey) {
     event.preventDefault();
@@ -1424,18 +1431,37 @@ document.querySelector('#save-swatch').addEventListener('click', () => {
   else focusColorField();
 });
 
-function saveProject() {
+function downloadProject() {
   const blob = new Blob([JSON.stringify(MinimockProject.forExport(state), null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = 'minimock.json';
+  link.download = MinimockProject.suggestedFileName();
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-document.querySelector('#save-button').addEventListener('click', saveProject);
+async function saveProject(asNew = false) {
+  if (!window.showSaveFilePicker) { downloadProject(); return; }
+  try {
+    const handle = !asNew && projectFileHandle ? projectFileHandle : await window.showSaveFilePicker({
+      suggestedName: MinimockProject.suggestedFileName(),
+      types: [{ description: 'Minimock project', accept: { 'application/json': ['.json'] } }],
+    });
+    const writable = await handle.createWritable();
+    await writable.write(JSON.stringify(MinimockProject.forExport(state), null, 2));
+    await writable.close();
+    projectFileHandle = handle;
+  } catch (error) {
+    if (error.name !== 'AbortError') showNotice(`Could not save project: ${error.message}`);
+  }
+}
+document.querySelector('#save-button').addEventListener('click', () => saveProject());
+const saveAsButton = document.querySelector('#save-as-button');
+if (window.showSaveFilePicker) saveAsButton.addEventListener('click', () => saveProject(true));
+else saveAsButton.remove();
 function clearCanvas() {
   closeProjectMenu();
+  projectFileHandle = null;
   if (state.boxes.length) {
     change(() => {
       state = MinimockProject.clearBoard(state);
@@ -1456,6 +1482,7 @@ function resetEverything() {
   closeProjectMenu();
   try { state = MinimockProject.reset(localStorage, STORAGE_KEY); }
   catch { showNotice('Could not clear saved data. Nothing was reset.'); return; }
+  projectFileHandle = null;
   savedProjectIssue = '';
   undoStack.length = 0;
   redoStack.length = 0;
@@ -1581,13 +1608,27 @@ async function openPreview() {
   }
 }
 document.querySelector('#preview-button').addEventListener('click', openPreview);
-document.querySelector('#open-button').addEventListener('click', () => document.querySelector('#open-file').click());
-async function openProjectFile(file) {
+async function chooseProjectFile() {
+  if (!window.showOpenFilePicker) { document.querySelector('#open-file').click(); return; }
+  try {
+    const [handle] = await window.showOpenFilePicker({
+      types: [{ description: 'Minimock project', accept: { 'application/json': ['.json'] } }],
+    });
+    if (handle) await openProjectFile(await handle.getFile(), handle);
+  } catch (error) {
+    if (error.name !== 'AbortError') showNotice(`Could not open project: ${error.message}`);
+  }
+}
+document.querySelector('#open-button').addEventListener('click', chooseProjectFile);
+async function openProjectFile(file, handle = null) {
   if (placement) return;
   try {
     const loaded = JSON.parse(await file.text());
     if (!validProject(loaded)) throw new Error('This is not a Minimock project.');
     change(() => { state = loaded; selectOnly(null); inspectorOpen = false; focusProject(state.boxes); });
+    projectFileHandle = handle;
+    undoStack.length = 0;
+    redoStack.length = 0;
     render();
     if (savedProjectIssue) showNotice(savedProjectIssue);
     else notice.hidden = true;

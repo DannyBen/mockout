@@ -21,6 +21,13 @@ const MinimockProject = (() => {
     storageKey: 'minimock-project',
     initialStyle: makeInitialStyle,
 
+    suggestedFileName(date = new Date()) {
+      const pad = value => String(value).padStart(2, '0');
+      const stamp = `${pad(date.getFullYear() % 100)}${pad(date.getMonth() + 1)}${pad(date.getDate())}`
+        + `-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+      return `minimock-${stamp}.json`;
+    },
+
     freshState() {
       const swatches = [
         { id: 's1', name: 'White', color: '#ffffff' },
