@@ -6,7 +6,7 @@ const key = project.storageKey;
 
 test('new project files suggest a compact timestamped name', () => {
   assert.equal(project.suggestedFileName(new Date(2026, 9, 29, 14, 30, 45)),
-    'minimock-261029-143045.json');
+    'mockout-261029-143045.json');
 });
 
 const valid = () => ({
@@ -18,7 +18,7 @@ const valid = () => ({
 });
 
 test('version 1 projects remain valid; unsupported versions and broken boxes are rejected', () => {
-  assert.equal(key, 'minimock-project');
+  assert.equal(key, 'mockout-project');
   assert.ok(project.validProject(valid()));
   assert.ok(project.validProject({ ...valid(), boxes: [{ ...valid().boxes[0], w: 1, h: 1 }] }));
   assert.equal(project.validProject({ ...valid(), version: 2 }), false);

@@ -1,4 +1,4 @@
-const MinimockSelection = {
+const MockoutSelection = {
   selectOnly(current, id) {
     const isolatedCopyIds = current.isolatedCopyIds;
     return {
@@ -50,4 +50,4 @@ const MinimockSelection = {
   },
 };
 
-if (typeof module !== 'undefined') module.exports = MinimockSelection;
+if (typeof module !== 'undefined') module.exports = MockoutSelection;

@@ -1,5 +1,5 @@
-const MinimockProject = (() => {
-  const fonts = typeof module !== 'undefined' ? require('./fonts.js') : MinimockFonts;
+const MockoutProject = (() => {
+  const fonts = typeof module !== 'undefined' ? require('./fonts.js') : MockoutFonts;
   const defaultCanvasColors = { background: '#f0f1f6', gridMajor: '#d0d2d9', gridMinor: '#e6e8f0' };
 
   const makeInitialStyle = swatches => ({
@@ -18,14 +18,14 @@ const MinimockProject = (() => {
     && (item.fontStyle === undefined || ['normal', 'italic'].includes(item.fontStyle));
 
   return {
-    storageKey: 'minimock-project',
+    storageKey: 'mockout-project',
     initialStyle: makeInitialStyle,
 
     suggestedFileName(date = new Date()) {
       const pad = value => String(value).padStart(2, '0');
       const stamp = `${pad(date.getFullYear() % 100)}${pad(date.getMonth() + 1)}${pad(date.getDate())}`
         + `-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
-      return `minimock-${stamp}.json`;
+      return `mockout-${stamp}.json`;
     },
 
     freshState() {
@@ -97,4 +97,4 @@ const MinimockProject = (() => {
   };
 })();
 
-if (typeof module !== 'undefined') module.exports = MinimockProject;
+if (typeof module !== 'undefined') module.exports = MockoutProject;

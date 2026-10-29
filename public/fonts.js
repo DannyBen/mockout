@@ -1,4 +1,4 @@
-const MinimockFonts = (() => {
+const MockoutFonts = (() => {
   const symbolFamilies = ['Material Symbols Outlined', 'Material Symbols Rounded', 'Material Symbols Sharp'];
   const classicIconFamilies = ['Material Icons', 'Material Icons Two Tone'];
   const materialFamilies = [...symbolFamilies, ...classicIconFamilies];
@@ -41,4 +41,4 @@ const MinimockFonts = (() => {
     isMaterial, isSymbol, isClassicIcon, categoryOf, validFamily, stylesheets };
 })();
 
-if (typeof module !== 'undefined') module.exports = MinimockFonts;
+if (typeof module !== 'undefined') module.exports = MockoutFonts;

@@ -1,4 +1,4 @@
-const MinimockPlacement = {
+const MockoutPlacement = {
   snap(value, grid) { return grid ? Math.round(value / grid) * grid : Math.round(value); },
 
   worldPoint(pointer, rect, view) {
@@ -24,4 +24,4 @@ const MinimockPlacement = {
   },
 };
 
-if (typeof module !== 'undefined') module.exports = MinimockPlacement;
+if (typeof module !== 'undefined') module.exports = MockoutPlacement;

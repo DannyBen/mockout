@@ -1,4 +1,4 @@
-const STORAGE_KEY = MinimockProject.storageKey;
+const STORAGE_KEY = MockoutProject.storageKey;
 const workspace = document.querySelector('#workspace');
 const canvas = document.querySelector('#canvas');
 const inspector = document.querySelector('#inspector');
@@ -26,10 +26,10 @@ const propertySections = [
 const toolbarIconsFont = document.querySelector('#toolbar-icons-font');
 const channels = [1, 2, 3].map(n => document.querySelector(`#channel-${n}`));
 const channelValues = [1, 2, 3].map(n => document.querySelector(`#channel-${n}-value`));
-const { initialStyle } = MinimockProject;
-const fonts = MinimockFonts;
-const freshState = () => MinimockProject.freshState();
-const validProject = value => MinimockProject.validProject(value);
+const { initialStyle } = MockoutProject;
+const fonts = MockoutFonts;
+const freshState = () => MockoutProject.freshState();
+const validProject = value => MockoutProject.validProject(value);
 
 async function showToolbarIcons() {
   try {
@@ -142,13 +142,13 @@ const styleOf = box => ({
 });
 function rememberStyle(box) { state.lastStyle = styleOf(box); }
 function selectOnly(id) {
-  const next = MinimockSelection.selectOnly({ selectedId, selectedIds, isolatedCopyIds, inspectorOpen }, id);
+  const next = MockoutSelection.selectOnly({ selectedId, selectedIds, isolatedCopyIds, inspectorOpen }, id);
   selectedId = next.selectedId;
   selectedIds = next.selectedIds;
   isolatedCopyIds = next.isolatedCopyIds;
   inspectorOpen = next.inspectorOpen;
 }
-const inspectedBox = () => MinimockSelection.inspectedBox(state.boxes,
+const inspectedBox = () => MockoutSelection.inspectedBox(state.boxes,
   { selectedId, selectedIds, inspectorOpen, inspectorKind });
 const swatch = id => state.swatches.find(s => s.id === id);
 const colorOf = id => inspectorOpen && inspectorView === 'edit' && colorTarget?.editId && colorTarget.editId === id
@@ -166,11 +166,11 @@ function boxColor(box, property) {
   }
   return colorOf(box[property]);
 }
-const snap = n => MinimockPlacement.snap(n, state.grid);
+const snap = n => MockoutPlacement.snap(n, state.grid);
 const minimum = () => 1;
 
 function persist() {
-  try { MinimockProject.persist(localStorage, STORAGE_KEY, state, savedProjectIssue); }
+  try { MockoutProject.persist(localStorage, STORAGE_KEY, state, savedProjectIssue); }
   catch { /* File save remains available. */ }
 }
 
@@ -286,7 +286,7 @@ function render() {
 
 function syncFontStylesheets() {
   const urls = fonts.stylesheets(state.boxes);
-  const links = [...document.querySelectorAll('link[data-minimock-font]')];
+  const links = [...document.querySelectorAll('link[data-mockout-font]')];
   for (const link of links) {
     if (!urls.includes(link.href)) link.remove();
   }
@@ -295,7 +295,7 @@ function syncFontStylesheets() {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = url;
-    link.dataset.minimockFont = '';
+    link.dataset.mockoutFont = '';
     document.head.append(link);
   }
 }
@@ -335,20 +335,20 @@ function renderInspector() {
       'box-padding-x': paddingX, 'box-padding-y': paddingY,
     })) {
       const input = document.getElementById(field);
-      const value = MinimockSelection.commonValue(boxes, getValue);
+      const value = MockoutSelection.commonValue(boxes, getValue);
       const mixed = value === undefined;
       if (document.activeElement !== input) input.value = mixed ? '' : value;
       input.parentElement.classList.toggle('mixed', mixed);
       if (mixed) input.setAttribute('aria-description', 'Mixed values');
       else input.removeAttribute('aria-description');
       if (field === 'box-text') {
-        const family = MinimockSelection.commonValue(boxes, fonts.familyOf);
+        const family = MockoutSelection.commonValue(boxes, fonts.familyOf);
         input.placeholder = mixed ? 'Mixed values' : boxes.every(item => fonts.isMaterial(fonts.familyOf(item)))
           ? 'Icon name, e.g. arrow_forward' : 'Optional text';
       }
     }
-    const family = MinimockSelection.commonValue(boxes, fonts.familyOf);
-    const familyChoice = MinimockSelection.commonValue(boxes, item => fonts.categoryOf(fonts.familyOf(item))) ?? 'mixed';
+    const family = MockoutSelection.commonValue(boxes, fonts.familyOf);
+    const familyChoice = MockoutSelection.commonValue(boxes, item => fonts.categoryOf(fonts.familyOf(item))) ?? 'mixed';
     const familySelect = document.querySelector('#box-font-family');
     if (document.activeElement !== familySelect) familySelect.value = familyChoice;
     familySelect.parentElement.classList.toggle('mixed', familyChoice === 'mixed');
@@ -376,7 +376,7 @@ function renderInspector() {
       ['box-font-style', fonts.styleOf],
     ]) {
       const input = document.getElementById(id);
-      const value = MinimockSelection.commonValue(boxes, getValue);
+      const value = MockoutSelection.commonValue(boxes, getValue);
       const mixed = value === undefined;
       if (document.activeElement !== input) input.value = mixed ? input.tagName === 'SELECT' ? 'mixed' : '' : value;
       input.parentElement.classList.toggle('mixed', mixed);
@@ -384,7 +384,7 @@ function renderInspector() {
       else input.removeAttribute('aria-description');
     }
     for (const button of alignButtons) {
-      const value = MinimockSelection.commonValue(boxes, item => item[button.dataset.alignAxis]);
+      const value = MockoutSelection.commonValue(boxes, item => item[button.dataset.alignAxis]);
       const mixed = value === undefined;
       button.closest('.align-group').querySelector('span').classList.toggle('mixed', mixed);
       const active = value === button.dataset.alignValue;
@@ -396,7 +396,7 @@ function renderInspector() {
     const canvasProperty = button.dataset.canvasColorProperty;
     if (Boolean(canvasProperty) !== (inspectorKind === 'canvas')) continue;
     const value = canvasProperty ? state.canvasColors[canvasProperty]
-      : MinimockSelection.commonValue(boxes, item => item[button.dataset.colorProperty]);
+      : MockoutSelection.commonValue(boxes, item => item[button.dataset.colorProperty]);
     const mixed = !canvasProperty && value === undefined;
     const item = canvasProperty ? null : swatch(value);
     const name = document.createElement('span');
@@ -485,7 +485,7 @@ function positionInspector() {
   if (!box) return;
   const boxRect = [...canvas.querySelectorAll('.box')].find(element => Number(element.dataset.id) === box.id)?.getBoundingClientRect();
   if (!boxRect) return;
-  const position = MinimockSelection.inspectorPosition(boxRect,
+  const position = MockoutSelection.inspectorPosition(boxRect,
     { width: inspector.offsetWidth, height: Math.max(inspector.offsetHeight, boxPropertiesPlacementHeight) },
     { width: window.innerWidth, height: window.innerHeight });
   inspector.style.left = `${position.left}px`;
@@ -503,7 +503,7 @@ function colorChip(color) {
 }
 
 function point(event) {
-  return MinimockPlacement.worldPoint(event, workspace.getBoundingClientRect(), view);
+  return MockoutPlacement.worldPoint(event, workspace.getBoundingClientRect(), view);
 }
 
 function newBox(x, y) {
@@ -540,7 +540,7 @@ function startDuplicatePlacement() {
     inspectorOpen, tool, isolatedCopyIds,
   };
   const cursor = pointerPosition && point({ clientX: pointerPosition.x, clientY: pointerPosition.y });
-  const { x: dx, y: dy } = MinimockPlacement.duplicateOffset(source[0], cursor, state.grid);
+  const { x: dx, y: dy } = MockoutPlacement.duplicateOffset(source[0], cursor, state.grid);
   const copies = originals.map(box => ({
     ...box, id: state.nextId++, x: box.x + dx, y: box.y + dy,
   }));
@@ -567,7 +567,7 @@ function movePlacement(clientX, clientY) {
     placement.pointer = { x: clientX, y: clientY };
   }
   const first = placement.starts[0];
-  const { x: dx, y: dy } = MinimockPlacement.moveDelta(first, placement.pointerOrigin,
+  const { x: dx, y: dy } = MockoutPlacement.moveDelta(first, placement.pointerOrigin,
     placement.pointer, { x: placement.nudgeX, y: placement.nudgeY }, view.zoom, state.grid);
   for (const start of placement.starts) {
     const box = state.boxes.find(item => item.id === start.id);
@@ -595,7 +595,7 @@ function finishPlacement(save) {
   workspace.focus();
 }
 
-const containsBox = MinimockSelection.containsBox;
+const containsBox = MockoutSelection.containsBox;
 
 function overlapsBox(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x
@@ -771,7 +771,7 @@ workspace.addEventListener('pointerdown', event => {
       const hit = state.boxes.find(b => b.id === boxId);
       const resizing = Boolean(event.target.dataset.handle);
       const box = !resizing && !event.altKey && (event.ctrlKey || event.metaKey)
-        ? MinimockSelection.nearestContainer(state.boxes, hit) ?? hit : hit;
+        ? MockoutSelection.nearestContainer(state.boxes, hit) ?? hit : hit;
       if (!selectedIds.has(box.id)) {
         selectOnly(box.id);
         inspectorView = 'properties';
@@ -938,7 +938,7 @@ for (const [id, key, transform] of [
   input.addEventListener('change', event => {
     if (!selectedIds.size || (input.type === 'number' && event.target.value === '')) return;
     change(() => {
-      MinimockSelection.applyProperty(state.boxes, selectedIds, key, transform(event.target.value));
+      MockoutSelection.applyProperty(state.boxes, selectedIds, key, transform(event.target.value));
       rememberStyle(selectedBox());
     });
   });
@@ -948,7 +948,7 @@ const googleFontInput = document.querySelector('#box-google-font');
 const materialStyleSelect = document.querySelector('#box-material-style');
 function assignFontFamily(family) {
   change(() => {
-    MinimockSelection.applyProperty(state.boxes, selectedIds, 'fontFamily', family);
+    MockoutSelection.applyProperty(state.boxes, selectedIds, 'fontFamily', family);
     for (const box of selectedBoxes()) {
       if (fonts.isSymbol(family)) box.fontWeight = Math.min(fonts.weightOf(box), 700);
       if (fonts.isClassicIcon(family)) { box.fontWeight = 400; box.fontStyle = 'normal'; }
@@ -959,7 +959,7 @@ function assignFontFamily(family) {
 fontFamilySelect.addEventListener('change', () => {
   const category = fontFamilySelect.value;
   if (category === 'google') {
-    const current = MinimockSelection.commonValue(selectedBoxes(), fonts.familyOf);
+    const current = MockoutSelection.commonValue(selectedBoxes(), fonts.familyOf);
     document.querySelector('#google-font-field').hidden = false;
     document.querySelector('#material-style-field').hidden = true;
     googleFontInput.value = current && !fonts.isMaterial(current) ? current : '';
@@ -967,7 +967,7 @@ fontFamilySelect.addEventListener('change', () => {
     return;
   }
   if (category === 'mixed' || !selectedIds.size) return;
-  const current = MinimockSelection.commonValue(selectedBoxes(), fonts.familyOf);
+  const current = MockoutSelection.commonValue(selectedBoxes(), fonts.familyOf);
   let family = category;
   if (category === 'material') family = fonts.isMaterial(current) ? current : 'Material Symbols Outlined';
   assignFontFamily(family);
@@ -985,7 +985,7 @@ googleFontInput.addEventListener('change', () => {
     return;
   }
   change(() => {
-    MinimockSelection.applyProperty(state.boxes, selectedIds, 'fontFamily', family);
+    MockoutSelection.applyProperty(state.boxes, selectedIds, 'fontFamily', family);
     rememberStyle(selectedBox());
   });
 });
@@ -994,17 +994,17 @@ googleFontInput.addEventListener('blur', () => {
 });
 document.querySelector('#box-text').addEventListener('keydown', event => {
   if (!['Backspace', 'Delete'].includes(event.key) || event.target.value !== '') return;
-  if (MinimockSelection.commonValue(selectedBoxes(), box => box.text) !== undefined) return;
+  if (MockoutSelection.commonValue(selectedBoxes(), box => box.text) !== undefined) return;
   event.preventDefault();
   change(() => {
-    MinimockSelection.applyProperty(state.boxes, selectedIds, 'text', '');
+    MockoutSelection.applyProperty(state.boxes, selectedIds, 'text', '');
     rememberStyle(selectedBox());
   });
 });
 for (const button of alignButtons) {
   button.addEventListener('click', () => {
     if (selectedIds.size) change(() => {
-      MinimockSelection.applyProperty(state.boxes, selectedIds, button.dataset.alignAxis, button.dataset.alignValue);
+      MockoutSelection.applyProperty(state.boxes, selectedIds, button.dataset.alignAxis, button.dataset.alignValue);
       rememberStyle(selectedBox());
     });
   });
@@ -1362,7 +1362,7 @@ function focusColorField() {
 function assignColor(id) {
   if (!selectedIds.size || !colorTarget) return;
   change(() => {
-    MinimockSelection.applyProperty(state.boxes, selectedIds, colorTarget.property, id);
+    MockoutSelection.applyProperty(state.boxes, selectedIds, colorTarget.property, id);
     rememberStyle(selectedBox());
   });
   inspectorView = 'properties';
@@ -1486,7 +1486,7 @@ document.querySelector('#save-swatch').addEventListener('click', () => {
     change(() => {
       const id = `s${state.nextId++}`;
       state.swatches.push({ id, name, color: editorColor });
-      MinimockSelection.applyProperty(state.boxes, selectedIds, colorTarget.property, id);
+      MockoutSelection.applyProperty(state.boxes, selectedIds, colorTarget.property, id);
       rememberStyle(selectedBox());
     });
     inspectorView = 'properties';
@@ -1497,11 +1497,11 @@ document.querySelector('#save-swatch').addEventListener('click', () => {
 });
 
 function downloadProject() {
-  const blob = new Blob([JSON.stringify(MinimockProject.forExport(state), null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(MockoutProject.forExport(state), null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = MinimockProject.suggestedFileName();
+  link.download = MockoutProject.suggestedFileName();
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -1509,11 +1509,11 @@ async function saveProject(asNew = false) {
   if (!window.showSaveFilePicker) { downloadProject(); return; }
   try {
     const handle = !asNew && projectFileHandle ? projectFileHandle : await window.showSaveFilePicker({
-      suggestedName: MinimockProject.suggestedFileName(),
-      types: [{ description: 'Minimock project', accept: { 'application/json': ['.json'] } }],
+      suggestedName: MockoutProject.suggestedFileName(),
+      types: [{ description: 'Mockout project', accept: { 'application/json': ['.json'] } }],
     });
     const writable = await handle.createWritable();
-    await writable.write(JSON.stringify(MinimockProject.forExport(state), null, 2));
+    await writable.write(JSON.stringify(MockoutProject.forExport(state), null, 2));
     await writable.close();
     projectFileHandle = handle;
   } catch (error) {
@@ -1529,7 +1529,7 @@ function clearCanvas() {
   projectFileHandle = null;
   if (state.boxes.length) {
     change(() => {
-      state = MinimockProject.clearBoard(state);
+      state = MockoutProject.clearBoard(state);
       selectOnly(null);
       inspectorOpen = false;
       isolatedCopyIds = null;
@@ -1548,7 +1548,7 @@ async function resetEverything() {
   let loaded;
   try { loaded = await fetchWelcomeProject(); }
   catch (error) { showNotice(`Could not load Welcome example: ${error.message}`); return; }
-  try { MinimockProject.reset(localStorage, STORAGE_KEY); }
+  try { MockoutProject.reset(localStorage, STORAGE_KEY); }
   catch { showNotice('Could not clear saved data. Nothing was reset.'); return; }
   state = loaded;
   projectFileHandle = null;
@@ -1609,7 +1609,7 @@ document.querySelector('#download-saved-button').addEventListener('click', () =>
     const url = URL.createObjectURL(new Blob([raw], { type: 'text/plain' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'minimock-saved-data-backup.txt';
+    link.download = 'mockout-saved-data-backup.txt';
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch { showNotice('Could not download saved data. It was left untouched.'); }
@@ -1639,7 +1639,7 @@ function previewHTML(css) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Minimock preview</title>
+<title>Mockout preview</title>
 ${fontLinks}
 <style>${css}</style>
 <style>
@@ -1682,7 +1682,7 @@ async function chooseProjectFile() {
   if (!window.showOpenFilePicker) { document.querySelector('#open-file').click(); return; }
   try {
     const [handle] = await window.showOpenFilePicker({
-      types: [{ description: 'Minimock project', accept: { 'application/json': ['.json'] } }],
+      types: [{ description: 'Mockout project', accept: { 'application/json': ['.json'] } }],
     });
     if (handle) await openProjectFile(await handle.getFile(), handle);
   } catch (error) {
@@ -1694,7 +1694,7 @@ async function openProjectFile(file, handle = null) {
   if (placement) return;
   try {
     const loaded = JSON.parse(await file.text());
-    if (!validProject(loaded)) throw new Error('This is not a Minimock project.');
+    if (!validProject(loaded)) throw new Error('This is not a Mockout project.');
     change(() => { state = loaded; selectOnly(null); inspectorOpen = false; focusProject(state.boxes); });
     projectFileHandle = handle;
     undoStack.length = 0;
