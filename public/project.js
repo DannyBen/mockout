@@ -35,6 +35,25 @@ const MinimockProject = (() => {
 
     clearBoard(state) { return { ...state, boxes: [] }; },
 
+    topLeft(boxes) {
+      if (!boxes.length) return null;
+      let x = Infinity;
+      let y = Infinity;
+      for (const box of boxes) {
+        x = Math.min(x, box.x);
+        y = Math.min(y, box.y);
+      }
+      return { x, y };
+    },
+
+    forExport(state) {
+      const origin = this.topLeft(state.boxes);
+      if (!origin) return state;
+      return { ...state, boxes: state.boxes.map(box => ({
+        ...box, x: box.x - origin.x, y: box.y - origin.y,
+      })) };
+    },
+
     reset(storage, key) {
       storage.removeItem(key);
       return this.freshState();

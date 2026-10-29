@@ -72,6 +72,24 @@ test('supported projects autosave under the current key', () => {
   assert.deepEqual(JSON.parse(stored.get(key)), valid());
 });
 
+test('JSON export starts at the top-left box without changing live or autosaved coordinates', () => {
+  const live = valid();
+  live.boxes.push({ ...live.boxes[0], id: 2, x: 100000, y: 100000 });
+  live.boxes[0].x = 99950;
+  live.boxes[0].y = 100020;
+  const stored = new Map();
+  const storage = { setItem(key, value) { stored.set(key, value); } };
+
+  const exported = project.forExport(live);
+  project.persist(storage, key, live, '');
+
+  assert.deepEqual(exported.boxes.map(box => [box.x, box.y]), [[0, 20], [50, 0]]);
+  assert.equal(exported.version, 1);
+  assert.deepEqual(live.boxes.map(box => [box.x, box.y]), [[99950, 100020], [100000, 100000]]);
+  assert.deepEqual(JSON.parse(stored.get(key)), live);
+  assert.deepEqual(project.forExport({ ...live, boxes: [] }).boxes, []);
+});
+
 test('Clear board removes boxes but preserves project settings and the prior state', () => {
   const before = valid();
   before.grid = 5;

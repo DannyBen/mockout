@@ -89,6 +89,12 @@ let tool = 'select';
 let spaceDown = false;
 let altDown = false;
 const view = { x: 0, y: 0, zoom: 1 };
+function focusProject(boxes) {
+  const origin = MinimockProject.topLeft(boxes);
+  view.zoom = 1;
+  view.x = origin ? 24 - origin.x : 0;
+  view.y = origin ? document.querySelector('.corner').getBoundingClientRect().bottom + 20 - origin.y : 0;
+}
 let colorTarget = null;
 let colorMode = 'hsb';
 let editorColor = '#6746b7';
@@ -1415,7 +1421,7 @@ document.querySelector('#save-swatch').addEventListener('click', () => {
 });
 
 function saveProject() {
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(MinimockProject.forExport(state), null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -1566,7 +1572,8 @@ async function openProjectFile(file) {
   try {
     const loaded = JSON.parse(await file.text());
     if (!validProject(loaded)) throw new Error('This is not a Minimock project.');
-    change(() => { state = loaded; selectOnly(null); inspectorOpen = false; });
+    change(() => { state = loaded; selectOnly(null); inspectorOpen = false; focusProject(state.boxes); });
+    render();
     if (savedProjectIssue) showNotice(savedProjectIssue);
     else notice.hidden = true;
   } catch (error) {
@@ -1597,6 +1604,7 @@ document.addEventListener('drop', event => {
   }
 });
 
+focusProject(state.boxes);
 render();
 if (savedProjectIssue) {
   showNotice(savedProjectIssue);
