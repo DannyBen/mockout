@@ -6,72 +6,86 @@
     {
       "id": "s1",
       "name": "Paper",
-      "color": "#ffffff"
+      "color": "#ffffff",
+      "mode": "hsb"
     },
     {
       "id": "s2",
       "name": "Ink",
-      "color": "#202741"
+      "color": "#202741",
+      "mode": "hsb"
     },
     {
       "id": "s3",
       "name": "Line",
-      "color": "#dfe2eb"
+      "color": "#dfe2eb",
+      "mode": "hsb"
     },
     {
       "id": "s4",
       "name": "Night",
-      "color": "#19213d"
+      "color": "#19213d",
+      "mode": "hsb"
     },
     {
       "id": "s5",
       "name": "Violet",
-      "color": "#7255d5"
+      "color": "#7255d5",
+      "mode": "hsb"
     },
     {
       "id": "s6",
       "name": "Lavender",
-      "color": "#eee9ff"
+      "color": "#eee9ff",
+      "mode": "hsb"
     },
     {
       "id": "s7",
       "name": "Muted",
-      "color": "#737d94"
+      "color": "#737d94",
+      "mode": "hsb"
     },
     {
       "id": "s8",
       "name": "Mint",
-      "color": "#bcebd8"
+      "color": "#bcebd8",
+      "mode": "hsb"
     },
     {
       "id": "s9",
       "name": "Peach",
-      "color": "#ffb298"
+      "color": "#ffb298",
+      "mode": "hsb"
     },
     {
       "id": "s10",
       "name": "Mist",
-      "color": "#f6f7fb"
+      "color": "#f6f7fb",
+      "mode": "hsb"
     },
     {
       "id": "s11",
       "name": "Light text",
-      "color": "#cbd2e9"
+      "color": "#cbd2e9",
+      "mode": "hsb"
     },
     {
       "id": "s12",
       "name": "Soft violet",
-      "color": "#a993f6"
+      "color": "#a993f6",
+      "mode": "hsb"
     },
     {
       "id": "s13",
       "name": "Blue",
-      "color": "#6f9fdf"
+      "color": "#6f9fdf",
+      "mode": "hsb"
     },
     {
       "id": "s14",
       "name": "Pale blue",
-      "color": "#eaf2ff"
+      "color": "#eaf2ff",
+      "mode": "hsb"
     }
   ],
   "boxes": [
@@ -1985,5 +1999,10 @@
     "background": "#f0f1f6",
     "gridMajor": "#d0d2d9",
     "gridMinor": "#e6e8f0"
+  },
+  "canvasColorModes": {
+    "background": "rgb",
+    "gridMajor": "rgb",
+    "gridMinor": "rgb"
   }
 }

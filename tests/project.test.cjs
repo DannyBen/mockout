@@ -31,6 +31,19 @@ test('version 1 projects remain valid; unsupported versions and broken boxes are
   assert.equal(project.validProject({ ...valid(), boxes: [{ ...valid().boxes[0], fontFamily: 'No; font' }] }), false);
 });
 
+test('color editing modes are optional in older projects and validated when saved', () => {
+  assert.ok(project.validProject(valid()));
+  assert.ok(project.validProject({ ...valid(),
+    swatches: [{ ...valid().swatches[0], mode: 'rgb' }],
+    canvasColorModes: { background: 'gray' },
+  }));
+  assert.equal(project.validProject({ ...valid(), swatches: [{ ...valid().swatches[0], mode: 'other' }] }), false);
+  assert.equal(project.validProject({ ...valid(), canvasColorModes: { background: 'other' } }), false);
+  assert.deepEqual(project.freshState().swatches.map(s => s.mode), ['hsb', 'hsb', 'hsb']);
+  assert.deepEqual(project.freshState().canvasColorModes,
+    { background: 'gray', gridMajor: 'gray', gridMinor: 'gray' });
+});
+
 test('font links include Google variants and both Material icon sets without duplicates', () => {
   assert.deepEqual({ family: fonts.familyOf({}), size: fonts.sizeOf({}),
     weight: fonts.weightOf({}), style: fonts.styleOf({}) },

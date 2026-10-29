@@ -442,6 +442,7 @@ input, select { width: 100%; padding: 5px 6px; }
 .swatch-row { display: flex; gap: 4px; margin-bottom: 4px; }
 #swatch-list > .swatch-choice { margin-bottom: 4px; }
 .swatch-choice { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; text-align: left; }
+.swatch-choice[aria-pressed="true"] { background: var(--ui-active); border-color: var(--ui-accent); }
 .swatch-row .swatch-choice { flex: 1; }
 .swatch-edit { flex: none; color: var(--ui-muted); }
 #new-swatch, #save-swatch { width: 100%; margin-top: 8px; color: var(--ui-on-accent); background: var(--ui-accent); border-color: var(--ui-accent); }

@@ -1,6 +1,7 @@
 const MockoutProject = (() => {
   const fonts = typeof module !== 'undefined' ? require('./fonts.js') : MockoutFonts;
   const defaultCanvasColors = { background: '#f0f1f6', gridMajor: '#d0d2d9', gridMinor: '#e6e8f0' };
+  const colorModeValues = ['hsb', 'rgb', 'gray'];
 
   const makeInitialStyle = swatches => ({
     fill: swatches[0]?.id ?? null,
@@ -30,13 +31,14 @@ const MockoutProject = (() => {
 
     freshState() {
       const swatches = [
-        { id: 's1', name: 'White', color: '#ffffff' },
-        { id: 's2', name: 'Ink', color: '#253047' },
-        { id: 's3', name: 'Line', color: '#aeb6c5' },
+        { id: 's1', name: 'White', color: '#ffffff', mode: 'hsb' },
+        { id: 's2', name: 'Ink', color: '#253047', mode: 'hsb' },
+        { id: 's3', name: 'Line', color: '#aeb6c5', mode: 'hsb' },
       ];
       return {
         version: 1, grid: 10, nextId: 4, swatches, boxes: [], lastStyle: makeInitialStyle(swatches),
         canvasColors: { ...defaultCanvasColors },
+        canvasColorModes: { background: 'gray', gridMajor: 'gray', gridMinor: 'gray' },
       };
     },
 
@@ -78,10 +80,16 @@ const MockoutProject = (() => {
     validProject(value) {
       return value && value.version === 1 && [0, 5, 10, 20, 40].includes(value.grid)
         && Number.isInteger(value.nextId) && Array.isArray(value.swatches) && Array.isArray(value.boxes)
-        && value.swatches.every(s => typeof s.id === 'string' && typeof s.name === 'string' && /^#[0-9a-f]{6}$/i.test(s.color))
+        && value.swatches.every(s => typeof s.id === 'string' && typeof s.name === 'string'
+          && /^#[0-9a-f]{6}$/i.test(s.color) && (s.mode === undefined || colorModeValues.includes(s.mode)))
         && (value.lastStyle === undefined || this.validStyle(value.lastStyle, value.swatches))
         && value.canvasColors && ['background', 'gridMajor', 'gridMinor'].every(key =>
           /^#[0-9a-f]{6}$/i.test(value.canvasColors[key]))
+        && (value.canvasColorModes === undefined || (value.canvasColorModes
+          && typeof value.canvasColorModes === 'object'
+          && !Array.isArray(value.canvasColorModes)
+          && ['background', 'gridMajor', 'gridMinor'].every(key =>
+            value.canvasColorModes[key] === undefined || colorModeValues.includes(value.canvasColorModes[key]))))
         && value.boxes.every(b => Number.isInteger(b.id) && ['x', 'y', 'w', 'h', 'radius', 'borderWidth'].every(k => Number.isFinite(b[k]))
           && b.w > 0 && b.h > 0 && typeof b.text === 'string'
           && ['paddingX', 'paddingY'].every(k => b[k] === undefined || (Number.isFinite(b[k]) && b[k] >= 0))
