@@ -992,9 +992,11 @@ for (const button of gridButtons) {
 
 function undo() {
   if (!undoStack.length) return;
+  const wasEmpty = !state.boxes.length;
   isolatedCopyIds = null;
   redoStack.push(snapshot());
   state = JSON.parse(undoStack.pop());
+  if (wasEmpty !== !state.boxes.length) focusProject(state.boxes);
   selectedIds = new Set([...selectedIds].filter(id => state.boxes.some(b => b.id === id)));
   selectedId = selectedIds.values().next().value ?? null;
   persist();
@@ -1002,9 +1004,11 @@ function undo() {
 }
 function redo() {
   if (!redoStack.length) return;
+  const wasEmpty = !state.boxes.length;
   isolatedCopyIds = null;
   undoStack.push(snapshot());
   state = JSON.parse(redoStack.pop());
+  if (wasEmpty !== !state.boxes.length) focusProject(state.boxes);
   selectedIds = new Set([...selectedIds].filter(id => state.boxes.some(b => b.id === id)));
   selectedId = selectedIds.values().next().value ?? null;
   persist();
@@ -1432,8 +1436,18 @@ function saveProject() {
 document.querySelector('#save-button').addEventListener('click', saveProject);
 function clearCanvas() {
   closeProjectMenu();
-  if (!state.boxes.length) return;
-  change(() => { state = MinimockProject.clearBoard(state); selectOnly(null); inspectorOpen = false; isolatedCopyIds = null; });
+  if (state.boxes.length) {
+    change(() => {
+      state = MinimockProject.clearBoard(state);
+      selectOnly(null);
+      inspectorOpen = false;
+      isolatedCopyIds = null;
+      focusProject(state.boxes);
+    });
+  } else {
+    focusProject(state.boxes);
+    render();
+  }
   workspace.focus();
 }
 document.querySelector('#clear-button').addEventListener('click', clearCanvas);
@@ -1454,6 +1468,7 @@ function resetEverything() {
   placement = null;
   gesture = null;
   tool = 'select';
+  focusProject(state.boxes);
   notice.hidden = true;
   recoveryActions.hidden = true;
   workspace.focus();
