@@ -5,7 +5,7 @@
   "swatches": [
     {
       "id": "s1",
-      "name": "Paper",
+      "name": "Surface",
       "color": "#ffffff",
       "mode": "gray",
       "dark": {
@@ -16,7 +16,7 @@
     },
     {
       "id": "s2",
-      "name": "Ink",
+      "name": "Text",
       "color": "#202741",
       "mode": "hsb",
       "dark": {
@@ -26,8 +26,19 @@
       }
     },
     {
+      "id": "s7",
+      "name": "Muted text",
+      "color": "#737d94",
+      "mode": "hsb",
+      "dark": {
+        "mode": "custom",
+        "color": "#aab4c9",
+        "colorMode": "hsb"
+      }
+    },
+    {
       "id": "s3",
-      "name": "Line",
+      "name": "Border",
       "color": "#dfe2eb",
       "mode": "hsb",
       "dark": {
@@ -37,17 +48,8 @@
       }
     },
     {
-      "id": "s4",
-      "name": "Night",
-      "color": "#19213d",
-      "mode": "hsb",
-      "dark": {
-        "mode": "same"
-      }
-    },
-    {
       "id": "s5",
-      "name": "Violet",
+      "name": "Accent",
       "color": "#7255d5",
       "mode": "hsb",
       "dark": {
@@ -58,7 +60,7 @@
     },
     {
       "id": "s6",
-      "name": "Lavender",
+      "name": "Accent background",
       "color": "#eee9ff",
       "mode": "hsb",
       "dark": {
@@ -68,19 +70,19 @@
       }
     },
     {
-      "id": "s7",
-      "name": "Muted",
-      "color": "#737d94",
+      "id": "s12",
+      "name": "Accent detail",
+      "color": "#a993f6",
       "mode": "hsb",
       "dark": {
         "mode": "custom",
-        "color": "#aab4c9",
+        "color": "#c0adff",
         "colorMode": "hsb"
       }
     },
     {
       "id": "s8",
-      "name": "Mint",
+      "name": "Accent 2",
       "color": "#bcebd8",
       "mode": "hsb",
       "dark": {
@@ -91,7 +93,7 @@
     },
     {
       "id": "s9",
-      "name": "Peach",
+      "name": "Accent 3",
       "color": "#ffb298",
       "mode": "hsb",
       "dark": {
@@ -99,61 +101,17 @@
       }
     },
     {
-      "id": "s10",
-      "name": "Mist",
-      "color": "#f6f7fb",
-      "mode": "hsb",
-      "dark": {
-        "mode": "custom",
-        "color": "#252d43",
-        "colorMode": "hsb"
-      }
-    },
-    {
-      "id": "s11",
-      "name": "Light text",
-      "color": "#cbd2e9",
+      "id": "s4",
+      "name": "Banner background",
+      "color": "#19213d",
       "mode": "hsb",
       "dark": {
         "mode": "same"
       }
     },
     {
-      "id": "s12",
-      "name": "Soft violet",
-      "color": "#a993f6",
-      "mode": "hsb",
-      "dark": {
-        "mode": "custom",
-        "color": "#c0adff",
-        "colorMode": "hsb"
-      }
-    },
-    {
-      "id": "s13",
-      "name": "Blue",
-      "color": "#6f9fdf",
-      "mode": "hsb",
-      "dark": {
-        "mode": "custom",
-        "color": "#90bfff",
-        "colorMode": "hsb"
-      }
-    },
-    {
-      "id": "s14",
-      "name": "Pale blue",
-      "color": "#eaf2ff",
-      "mode": "hsb",
-      "dark": {
-        "mode": "custom",
-        "color": "#2d405f",
-        "colorMode": "hsb"
-      }
-    },
-    {
       "id": "s15",
-      "name": "Hero text",
+      "name": "Banner text",
       "color": "#ffffff",
       "mode": "gray",
       "dark": {
@@ -674,7 +632,7 @@
       "h": 35,
       "text": "Buttons, cards, icons, whole screens \u2014\nall made from editable boxes.",
       "fill": null,
-      "textColor": "s11",
+      "textColor": "s15",
       "borderColor": null,
       "borderWidth": 0,
       "radius": 0,
@@ -1093,7 +1051,7 @@
       "w": 70,
       "h": 90,
       "text": "",
-      "fill": "s10",
+      "fill": "s1",
       "textColor": "s2",
       "borderColor": null,
       "borderWidth": 0,
@@ -1660,9 +1618,9 @@
       "w": 75,
       "h": 80,
       "text": "",
-      "fill": "s14",
+      "fill": "s6",
       "textColor": "s2",
-      "borderColor": "s13",
+      "borderColor": "s5",
       "borderWidth": 1,
       "radius": 7,
       "paddingX": 0,
@@ -1682,7 +1640,7 @@
       "h": 15,
       "text": "PARENT",
       "fill": null,
-      "textColor": "s13",
+      "textColor": "s5",
       "borderColor": null,
       "borderWidth": 0,
       "radius": 0,
@@ -1704,7 +1662,7 @@
       "text": "child",
       "fill": "s1",
       "textColor": "s2",
-      "borderColor": "s13",
+      "borderColor": "s5",
       "borderWidth": 1,
       "radius": 4,
       "paddingX": 0,
@@ -1724,7 +1682,7 @@
       "h": 15,
       "text": "\u2192",
       "fill": null,
-      "textColor": "s13",
+      "textColor": "s5",
       "borderColor": null,
       "borderWidth": 0,
       "radius": 0,
@@ -1828,9 +1786,9 @@
       "w": 50,
       "h": 45,
       "text": "",
-      "fill": "s14",
+      "fill": "s6",
       "textColor": "s2",
-      "borderColor": "s13",
+      "borderColor": "s5",
       "borderWidth": 1,
       "radius": 6,
       "paddingX": 0,
@@ -1996,7 +1954,7 @@
       "w": 25,
       "h": 25,
       "text": "\u25c8",
-      "fill": "s14",
+      "fill": "s6",
       "textColor": "s5",
       "borderColor": null,
       "borderWidth": 0,
