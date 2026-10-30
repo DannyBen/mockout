@@ -34,6 +34,8 @@ The bottom-left status shows **Local session** or the connected filename.
 Connected files save automatically after edits, including undo and redo. A check
 shows the file connection; routine saves stay quiet. Mockout remembers it across
 reloads; choose **Reconnect** if the browser needs read/write permission again.
+Choose **Work locally** beside it to forget the connection and keep the current
+canvas in browser storage.
 
 On supported browsers, external file edits appear live; Mockout also checks when
 you return to the tab. Valid changes reload silently if your canvas has no unsaved

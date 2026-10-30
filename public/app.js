@@ -7,6 +7,7 @@ const noticeMessage = document.querySelector('#notice-message');
 const recoveryActions = document.querySelector('#recovery-actions');
 const fileStatus = document.querySelector('#file-status');
 const reconnectFileButton = document.querySelector('#reconnect-file');
+const workLocallyButton = document.querySelector('#work-locally');
 const fileChangeActions = document.querySelector('#file-change-actions');
 const reloadFileButton = document.querySelector('#reload-file');
 const saveOursButton = document.querySelector('#save-ours');
@@ -209,6 +210,7 @@ function setProjectFileHandle(handle, { remember = true, needsPermission = false
   }
   const connected = Boolean(handle) && !needsPermission;
   reconnectFileButton.hidden = !needsPermission;
+  workLocallyButton.hidden = !needsPermission;
   updateFileStatus();
   if (handle && (connected || canRead) && typeof FileSystemObserver === 'function') {
     const observer = new FileSystemObserver(() => checkExternalFile());
@@ -290,6 +292,10 @@ async function restoreFileConnection() {
 }
 reconnectFileButton.addEventListener('click', () => {
   if (projectFileHandle) checkFileConnection(projectFileHandle, fileConnectionRevision, true);
+});
+workLocallyButton.addEventListener('click', () => {
+  setProjectFileHandle(null);
+  workspace.focus();
 });
 
 function showFileUpdate(message) {

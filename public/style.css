@@ -249,6 +249,8 @@ button { cursor: pointer; }
   background: var(--ui-panel);
   border: 1px solid var(--ui-panel-border);
   border-radius: 5px;
+
+  & button[hidden] { display: none; }
 }
 
 #file-status {
@@ -271,8 +273,6 @@ button { cursor: pointer; }
   & .file-detail { flex: none; white-space: nowrap; }
   & .file-detail:not(:empty)::before { content: '·'; margin-right: 7px; }
 }
-
-#reconnect-file[hidden] { display: none; }
 
 body.toolbar-icons-ready :is(.corner, #file-status) {
   & .toolbar-glyph { display: block; }
