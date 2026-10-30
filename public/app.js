@@ -6,6 +6,7 @@ const notice = document.querySelector('#notice');
 const noticeMessage = document.querySelector('#notice-message');
 const recoveryActions = document.querySelector('#recovery-actions');
 const fileStatus = document.querySelector('#file-status');
+const reconnectFileButton = document.querySelector('#reconnect-file');
 const projectMenu = document.querySelector('#project-menu');
 const projectMenuButton = document.querySelector('#project-menu-button');
 const projectMenuHolder = document.querySelector('#project-menu-holder');
@@ -129,14 +130,75 @@ let copiedBoxes = null;
 let isolatedCopyIds = null;
 let textEditor = null;
 let projectFileHandle = null;
-function setProjectFileHandle(handle) {
+let fileConnectionRevision = 0;
+let fileConnectionSave = Promise.resolve();
+function setProjectFileHandle(handle, { remember = true, needsPermission = false } = {}) {
+  fileConnectionRevision++;
   projectFileHandle = handle;
-  fileStatus.dataset.connected = String(Boolean(handle));
-  fileStatus.querySelector('.toolbar-glyph').textContent = handle ? 'check_circle' : 'warning_amber';
-  fileStatus.querySelector('.toolbar-text').textContent = handle ? '✓' : '△';
+  const connected = Boolean(handle) && !needsPermission;
+  reconnectFileButton.hidden = !needsPermission;
+  fileStatus.dataset.connected = String(connected);
+  fileStatus.querySelector('.toolbar-glyph').textContent = connected ? 'check_circle' : 'warning_amber';
+  fileStatus.querySelector('.toolbar-text').textContent = connected ? '✓' : '△';
   fileStatus.querySelector('.file-name').textContent = handle ? handle.name.replace(/\.json$/i, '') : 'Local session';
-  fileStatus.setAttribute('aria-label', handle ? `Connected file: ${handle.name}` : 'Local session, no file connected');
+  fileStatus.setAttribute('aria-label', handle
+    ? `${needsPermission ? 'Reconnect file' : 'Connected file'}: ${handle.name}` : 'Local session, no file connected');
+  if (remember) {
+    fileConnectionSave = fileConnectionSave.then(() => storedFileConnection(true, handle))
+      .catch(error => showNotice(`Could not remember the file connection: ${error.message}`));
+    return fileConnectionSave;
+  }
 }
+
+function storedFileConnection(write = false, handle = null) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('mockout-file-connection', 1);
+    request.onupgradeneeded = () => request.result.createObjectStore('connection');
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const database = request.result;
+      try {
+        const transaction = database.transaction('connection', write ? 'readwrite' : 'readonly');
+        const store = transaction.objectStore('connection');
+        const operation = write ? handle ? store.put(handle, 'current') : store.delete('current') : store.get('current');
+        transaction.oncomplete = () => { database.close(); resolve(operation.result); };
+        transaction.onabort = () => { database.close(); reject(transaction.error || new Error('Storage was interrupted.')); };
+      } catch (error) { database.close(); reject(error); }
+    };
+  });
+}
+
+async function checkFileConnection(handle, revision, requestPermission = false) {
+  try {
+    const permission = requestPermission ? await handle.requestPermission({ mode: 'read' })
+      : await handle.queryPermission({ mode: 'read' });
+    if (permission === 'granted') await handle.getFile();
+    if (revision !== fileConnectionRevision) return;
+    setProjectFileHandle(handle, { remember: false, needsPermission: permission !== 'granted' });
+  } catch (error) {
+    if (revision !== fileConnectionRevision) return;
+    if (error.name === 'NotFoundError') setProjectFileHandle(null);
+    else {
+      setProjectFileHandle(handle, { remember: false, needsPermission: true });
+      showNotice(`Could not reconnect the file: ${error.message}`);
+    }
+  }
+}
+
+async function restoreFileConnection() {
+  const revision = fileConnectionRevision;
+  try {
+    const handle = await storedFileConnection();
+    if (revision !== fileConnectionRevision || !handle) return;
+    if (firstLoad) { setProjectFileHandle(null); return; }
+    await checkFileConnection(handle, revision);
+  } catch (error) {
+    if (revision === fileConnectionRevision) showNotice(`Could not restore the file connection: ${error.message}`);
+  }
+}
+reconnectFileButton.addEventListener('click', () => {
+  if (projectFileHandle) checkFileConnection(projectFileHandle, fileConnectionRevision, true);
+});
 let inspectorOpen = false;
 let inspectorKind = 'box';
 let inspectorPoint = { x: 12, y: 12 };
@@ -1787,7 +1849,7 @@ async function saveProject(asNew = false) {
     const writable = await handle.createWritable();
     await writable.write(JSON.stringify(MockoutProject.forExport(state), null, 2));
     await writable.close();
-    setProjectFileHandle(handle);
+    await setProjectFileHandle(handle);
   } catch (error) {
     if (error.name !== 'AbortError') showNotice(`Could not save project: ${error.message}`);
   }
@@ -1963,12 +2025,12 @@ async function openProjectFile(file, handle = null) {
     const loaded = JSON.parse(await file.text());
     if (!validProject(loaded)) throw new Error('This is not a Mockout project.');
     change(() => { state = loaded; selectOnly(null); inspectorOpen = false; focusProject(state.boxes); });
-    setProjectFileHandle(handle);
+    if (savedProjectIssue) showNotice(savedProjectIssue);
+    else notice.hidden = true;
+    await setProjectFileHandle(handle);
     undoStack.length = 0;
     redoStack.length = 0;
     render();
-    if (savedProjectIssue) showNotice(savedProjectIssue);
-    else notice.hidden = true;
   } catch (error) {
     showNotice(`Could not open project: ${error.message}`);
   }
@@ -2015,3 +2077,4 @@ if (savedProjectIssue) {
   showNotice(savedProjectIssue);
 }
 if (firstLoad) loadWelcome(true);
+if (!savedProjectIssue && window.showOpenFilePicker) restoreFileConnection();

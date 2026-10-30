@@ -240,6 +240,8 @@ button { cursor: pointer; }
   & .file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 
+#reconnect-file[hidden] { display: none; }
+
 body.toolbar-icons-ready .corner {
   & .toolbar-glyph { display: block; }
   & .toolbar-text { display: none; }

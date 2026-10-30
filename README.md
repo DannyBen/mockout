@@ -30,5 +30,8 @@ Your current project is saved automatically in this browser. Use **Save JSON**
 to keep a portable copy, and **Load JSON** to reopen it. **Preview** opens your
 mock without the editor controls or grid.
 
+The toolbar shows the connected filename. Mockout remembers this connection
+across reloads; choose **Reconnect** if the browser needs permission again.
+
 To explore the Welcome project again, choose **New blank**, then
 **Show Welcome example** in Help.
