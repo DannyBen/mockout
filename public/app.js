@@ -893,19 +893,13 @@ workspace.addEventListener('pointerdown', event => {
     return;
   } else {
     lastBoxClick = null;
-    if (tool === 'box' && !(boxId && (event.altKey || event.ctrlKey || event.metaKey))) {
+    if (event.shiftKey && !event.altKey) {
+      isolatedCopyIds = null;
+      gesture = { kind: 'marquee', start: p, end: null, base: new Set(selectedIds), clickId: boxId };
+    } else if (tool === 'box' && !(boxId && (event.altKey || event.ctrlKey || event.metaKey))) {
       gesture = { kind: 'draw', start: { x: snap(p.x), y: snap(p.y) }, clickPoint: p,
         before: snapshot(), id: null, hitId: boxId };
     } else if (boxId) {
-      if (event.shiftKey && !event.altKey) {
-        isolatedCopyIds = null;
-        if (selectedIds.has(boxId)) selectedIds.delete(boxId);
-        else selectedIds.add(boxId);
-        selectedId = selectedIds.values().next().value ?? null;
-        render();
-        event.preventDefault();
-        return;
-      }
       const hit = state.boxes.find(b => b.id === boxId);
       const resizing = Boolean(event.target.dataset.handle);
       const box = !resizing && !event.altKey && (event.ctrlKey || event.metaKey)
@@ -960,6 +954,8 @@ workspace.addEventListener('pointermove', event => {
     box.w = Math.max(minimum(), Math.abs(end.x - gesture.start.x));
     box.h = Math.max(minimum(), Math.abs(end.y - gesture.start.y));
   } else if (gesture.kind === 'marquee') {
+    if (gesture.clickId && !gesture.end
+      && Math.hypot(p.x - gesture.start.x, p.y - gesture.start.y) * view.zoom < 4) return;
     gesture.end = p;
     const left = Math.min(gesture.start.x, p.x);
     const right = Math.max(gesture.start.x, p.x);
@@ -1002,6 +998,11 @@ workspace.addEventListener('pointermove', event => {
 function endGesture(event) {
   if (!gesture) return;
   const { before, kind } = gesture;
+  if (kind === 'marquee' && gesture.clickId && !gesture.end) {
+    if (selectedIds.has(gesture.clickId)) selectedIds.delete(gesture.clickId);
+    else selectedIds.add(gesture.clickId);
+    selectedId = selectedIds.values().next().value ?? null;
+  }
   if ((kind === 'move' || (kind === 'draw' && gesture.id === null && gesture.hitId)) && before === snapshot()) {
     lastBoxClick = { id: gesture.hitId || gesture.id, ...(gesture.clickPoint || gesture.start), time: event.timeStamp };
   } else {
