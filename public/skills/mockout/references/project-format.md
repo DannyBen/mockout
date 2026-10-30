@@ -114,12 +114,45 @@ Removing a swatch requires updating all matching references, including
 `lastStyle.fill`, `lastStyle.textColor`, and `lastStyle.borderColor` if present.
 Prefer reusing or editing existing roles rather than deleting them.
 
-## Last style and icons
+## Last style
 
 `lastStyle` uses the box style fields without `id`, geometry, or `text`.
 When present, it requires `fill`, `textColor`, `borderColor`, `borderWidth`,
 `radius`, **both** padding fields, `alignX`, and `alignY`. Font fields are optional.
 
+## Icons
+
+Both Unicode symbols and Material icons are ordinary boxes. The following
+fragments show icon-specific fields to set on an otherwise complete box.
+
+### Unicode symbols
+
+Put the actual character in `text` and use a normal text font:
+
+```json
+{ "text": "♥", "fontFamily": "", "fontSize": 20 }
+```
+
+For example, `♥`, `→`, or `✦` can serve as simple icons. With `fontFamily: ""`,
+the font panel correctly shows **Default**: the symbol is a character in the
+normal font. Resizing it does not turn it into a Material icon. Glyph appearance
+and availability can vary with the font and platform.
+
+### Material icons
+
+Put the icon's ligature name in `text` and select a Material font:
+
+```json
+{
+  "text": "favorite",
+  "fontFamily": "Material Symbols Outlined",
+  "fontSize": 20,
+  "fontWeight": 400,
+  "fontStyle": "normal"
+}
+```
+
+This renders the icon named `favorite`; the font panel shows **Material**.
 Supported icon font families are `Material Symbols Outlined`,
 `Material Symbols Rounded`, `Material Symbols Sharp`, `Material Icons`, and
 `Material Icons Two Tone`. Put the icon's ligature name, such as `search`, in
@@ -131,6 +164,11 @@ normal text in `Assistant`. Inspect its box font fields and swatch references
 when adding icons. The larger [Welcome project](../examples/welcome.json) uses
 Material Symbols in its Type & Icons card and demonstrates more detailed layouts
 with paired light/dark colors.
+
+Use a `textColor` swatch reference for either kind of icon, and allow enough room
+for the glyph and padding. Prefer Material for a consistent interface icon set;
+Unicode is useful for simple text symbols. Verify font loading during visual
+checks so a Material ligature name is not mistaken for the intended rendered icon.
 
 ## Checks beyond JSON Schema
 

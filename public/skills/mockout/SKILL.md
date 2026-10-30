@@ -110,6 +110,9 @@ the result has not been visually inspected; do not claim a rendered check.
 - Use a small palette with role names such as **Surface**, **Text**, **Border**,
   **Button**, and **Accent 1**. Reuse swatches and provide readable light/dark pairs.
   Swatch names are user-owned labels; box colors refer to swatch IDs.
+- For icons, follow the [Unicode and Material examples](references/project-format.md#icons).
+  Unicode uses a normal font and the literal symbol; Material uses an icon font
+  and a ligature name. Keep normal text labels in separate boxes from Material icons.
 - Place containing backgrounds earlier in the boxes array, then their contents.
   Coordinates are absolute; there are no nested children or group IDs.
   On a new empty canvas, a starting position around `(40, 80)` leaves room for
