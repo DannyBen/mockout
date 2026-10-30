@@ -60,6 +60,18 @@ test('dark colors invert by default and validate optional overrides in version 1
   assert.equal(project.validProject({ ...old, canvasDark: { background: { mode: 'unknown' } } }), false);
 });
 
+test('picker changes join the swatch draft only when accepted', () => {
+  const light = { color: '#ffffff', mode: 'rgb' };
+  const dark = { mode: 'invert', color: null, colorMode: 'rgb' };
+  const custom = project.withPickerColor(light, dark, 'dark', '#123456', 'hsb');
+  assert.deepEqual(custom.dark, { mode: 'custom', color: '#123456', colorMode: 'hsb' });
+  assert.deepEqual(custom.light, light);
+  assert.deepEqual(dark, { mode: 'invert', color: null, colorMode: 'rgb' });
+  const changedLight = project.withPickerColor(light, dark, 'light', '#abcdef', 'gray');
+  assert.deepEqual(changedLight.light, { color: '#abcdef', mode: 'gray' });
+  assert.deepEqual(changedLight.dark, dark);
+});
+
 test('font links include Google variants and both Material icon sets without duplicates', () => {
   assert.deepEqual({ family: fonts.familyOf({}), size: fonts.sizeOf({}),
     weight: fonts.weightOf({}), style: fonts.styleOf({}) },

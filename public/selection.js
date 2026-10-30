@@ -25,12 +25,17 @@ const MockoutSelection = {
     for (const box of boxes) if (selectedIds.has(box.id)) box[key] = value;
   },
 
-  inspectorPosition(boxRect, panel, viewport) {
-    let left = boxRect.right + 12;
-    if (left + panel.width > viewport.width - 12) left = boxRect.left - panel.width - 12;
+  inspectorPosition(boxRect) {
+    return { left: boxRect.right + 5, top: boxRect.top };
+  },
+
+  inspectorPan(rect, viewport, margin = 12) {
+    const axis = (start, end, size, available) => size > available - margin * 2
+      ? margin - start
+      : start < margin ? margin - start : end > available - margin ? available - margin - end : 0;
     return {
-      left: Math.max(12, Math.min(left, viewport.width - panel.width - 12)),
-      top: Math.max(12, Math.min(boxRect.top, viewport.height - panel.height - 12)),
+      x: axis(rect.left, rect.right, rect.width, viewport.width),
+      y: axis(rect.top, rect.bottom, rect.height, viewport.height),
     };
   },
 

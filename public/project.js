@@ -40,6 +40,12 @@ const MockoutProject = (() => {
       return this.invertColor(color);
     },
 
+    withPickerColor(light, dark, side, color, colorMode) {
+      return side === 'light'
+        ? { light: { color, mode: colorMode }, dark: { ...dark } }
+        : { light: { ...light }, dark: { ...dark, mode: 'custom', color, colorMode } };
+    },
+
     suggestedFileName(date = new Date()) {
       const pad = value => String(value).padStart(2, '0');
       const stamp = `${pad(date.getFullYear() % 100)}${pad(date.getMonth() + 1)}${pad(date.getDate())}`

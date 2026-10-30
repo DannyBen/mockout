@@ -19,14 +19,16 @@ test('switching boxes keeps the properties inspector open and shows the new box'
   assert.equal(before.selectedId, 1);
 });
 
-test('the inspector position follows the selected box', () => {
-  const panel = { width: 200, height: 150 };
+test('the inspector stays beside the box and pans only enough to reveal its actual size', () => {
   const viewport = { width: 800, height: 600 };
-
-  assert.deepEqual(selection.inspectorPosition({ left: 100, right: 180, top: 50 }, panel, viewport),
-    { left: 192, top: 50 });
-  assert.deepEqual(selection.inspectorPosition({ left: 400, right: 480, top: 200 }, panel, viewport),
-    { left: 492, top: 200 });
+  assert.deepEqual(selection.inspectorPosition({ right: 180, top: 50 }), { left: 185, top: 50 });
+  assert.deepEqual(selection.inspectorPosition({ right: 480, top: 200 }), { left: 485, top: 200 });
+  assert.deepEqual(selection.inspectorPan({ left: 485, top: 200, right: 685, bottom: 350,
+    width: 200, height: 150 }, viewport), { x: 0, y: 0 });
+  assert.deepEqual(selection.inspectorPan({ left: 700, top: 500, right: 900, bottom: 650,
+    width: 200, height: 150 }, viewport), { x: -112, y: -62 });
+  assert.deepEqual(selection.inspectorPan({ left: 700, top: 500, right: 1600, bottom: 1200,
+    width: 900, height: 700 }, viewport), { x: -688, y: -488 });
 });
 
 test('properties inspector can follow one box within a multi-selection', () => {

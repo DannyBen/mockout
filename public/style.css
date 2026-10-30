@@ -175,7 +175,7 @@ button { cursor: pointer; }
 .handle[data-handle="sw"] { left: 0; bottom: 0; cursor: nesw-resize; }
 .handle[data-handle="w"] { left: 0; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
 
-.corner, #inspector, #help-panel, #placement-hint {
+.corner, .mini-dialog, #help-panel, #placement-hint {
   background: var(--ui-panel);
   border: 1px solid var(--ui-panel-border);
   box-shadow: 0 6px 24px var(--ui-shadow);
@@ -292,58 +292,70 @@ button:hover { border-color: var(--ui-focus); }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--ui-focus); outline-offset: 1px; }
 input, select { width: 100%; padding: 5px 6px; }
 
-#inspector {
+.mini-dialog {
   position: fixed;
   z-index: 10;
   width: 230px;
-  max-width: calc(100vw - 24px);
-  max-height: calc(100vh - 24px);
-  overflow: auto;
   padding: 11px;
   border-radius: 7px;
 
-  & header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-  & #inspector-title { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-  & header {
-    margin: -11px -11px 10px;
-    padding: 11px;
-    background: var(--ui-surface);
-    border-bottom: 1px solid var(--ui-rule);
-    border-radius: 6px 6px 0 0;
-  }
   & h2 { font-size: 13px; margin: 0 0 7px; }
-  & .field { display: block; margin-bottom: 9px; color: var(--ui-muted); font-size: 11px; }
-  & .field input, .field select { margin-top: 3px; color: var(--ui-text); font-size: 13px; }
-  & :is(.field, .align-group > span, .color-field > span).mixed { color: var(--ui-focus); font-style: italic; }
-  & .field.mixed input { font-style: normal; }
-  & #property-cycler {
+  & label.field { display: block; margin-bottom: 9px; color: var(--ui-muted); font-size: 11px; }
+  & label.field :is(input, select) { margin-top: 3px; }
+  & div.field {
     display: grid;
-    grid-template-columns: 18px minmax(0, 1fr) 18px;
+    grid-template-columns: 70px minmax(0, 1fr);
     align-items: center;
-    width: 100%;
-    height: 32px;
-    margin-bottom: 8px;
-    padding: 0 5px;
-    border: 1px solid var(--ui-border);
-    background: var(--ui-surface);
+    gap: 6px;
+    margin: 7px 0;
     color: var(--ui-text);
-    user-select: none;
+    font-size: 13px;
   }
-  & .cycle-arrow { color: var(--ui-muted); font-size: 18px; line-height: 1; text-align: center; }
-  & .cycle-arrow:not(.disabled) { cursor: pointer; }
-  & .cycle-arrow.disabled { opacity: .3; }
-  & .cycle-label { font-weight: 700; text-align: center; }
+  & div.field > :is(input, select, button, output) { width: 100%; min-width: 0; min-height: 29px; font: inherit; }
+  & div.field > :is(button, output) { display: flex; align-items: center; gap: 6px; text-align: left; }
+  & div.field > output { padding: 5px 8px; border: 1px solid var(--ui-rule); border-radius: 4px; background: var(--ui-page); }
+  & :is(.field, .field > label, .align-group > span).mixed { color: var(--ui-focus); font-style: italic; }
+  & .field.mixed input { font-style: normal; }
+  & .field :is(input, select) { color: var(--ui-text); font-size: 13px; }
   & .section-content { padding-top: 2px; }
   & .font-links { display: flex; gap: 12px; margin: 1px 0 2px; font-size: 11px; }
   & .font-links a { color: var(--ui-accent); }
-  & :is(button, input, select):focus, & .swatch-choice:focus {
+  & :is(button, input, select):focus {
     outline: none;
     border-color: var(--ui-focus);
     box-shadow: 0 0 0 1px var(--ui-focus);
   }
 }
 
-#inspector.canvas-properties-view { width: 360px; }
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 42px;
+  margin: -11px -11px 10px;
+  padding: 7px 9px;
+  background: var(--ui-surface);
+  border-bottom: 1px solid var(--ui-rule);
+  border-radius: 6px 6px 0 0;
+
+  & > button { flex: none; padding: 2px 5px; border: 0; background: transparent; }
+  & > button:disabled { opacity: .3; }
+  & > button:last-child { margin-left: auto; }
+}
+
+.dialog-path {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+  white-space: nowrap;
+
+  & .dialog-crumb { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  & button.dialog-crumb { padding: 0; border: 0; background: transparent; color: var(--ui-accent); }
+  & strong.dialog-crumb { font-weight: 700; }
+  & .dialog-separator { flex: none; color: var(--ui-muted); }
+}
 
 #help-panel {
   position: fixed;
@@ -438,37 +450,23 @@ input, select { width: 100%; padding: 5px 6px; }
 .align-buttons button { display: grid; place-items: center; min-width: 0; height: 29px; padding: 3px; }
 .align-buttons button.active { color: var(--ui-accent); background: var(--ui-active); border-color: var(--ui-accent); }
 .align-buttons svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
-.color-field { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 6px; margin: 5px 0; }
-.canvas-color-field, .canvas-color-head { grid-template-columns: 74px repeat(2, minmax(0, 1fr)); }
-.canvas-color-head { display: grid; gap: 6px; color: var(--ui-muted); font-size: 11px; text-align: center; }
-.color-field button { display: flex; align-items: center; gap: 6px; min-width: 0; text-align: left; }
 .swatch-name { overflow: hidden; min-width: 0; white-space: nowrap; text-overflow: ellipsis; }
 .chip { flex: none; width: 15px; height: 15px; border: 1px solid var(--ui-subtle); border-radius: 3px; background: var(--chip-color); }
 .chip.transparent { background: repeating-conic-gradient(var(--ui-checker) 0 25%, var(--ui-surface) 0 50%) 0 0 / 8px 8px; }
 .chip.mixed { background: linear-gradient(135deg, var(--ui-mixed) 50%, var(--ui-surface) 50%); }
-#color-back { padding: 3px 5px; border: 0; background: transparent; color: var(--ui-accent); }
 #delete-swatch { padding: 3px 5px; color: var(--ui-danger); }
-#swatch-list { max-height: 245px; overflow: auto; padding: 2px; }
-.swatch-row { display: flex; gap: 4px; margin-bottom: 4px; }
-#swatch-list > .swatch-choice { margin-bottom: 4px; }
-.swatch-choice { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; text-align: left; }
-.swatch-choice[aria-pressed="true"] { background: var(--ui-active); border-color: var(--ui-accent); }
-.swatch-row .swatch-choice { flex: 1; }
-.swatch-edit { flex: none; color: var(--ui-muted); }
-#new-swatch, #save-swatch { width: 100%; margin-top: 8px; color: var(--ui-on-accent); background: var(--ui-accent); border-color: var(--ui-accent); }
-.editor-field { display: grid; grid-template-columns: 38px minmax(0, 1fr); align-items: center; gap: 7px; margin: 7px 0; color: var(--ui-muted); font-size: 11px; }
-.editor-field input, .editor-field select { min-width: 0; color: var(--ui-text); font-size: 13px; }
-#color-side { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin: 8px 0; }
-#color-side button[aria-pressed="true"] { color: var(--ui-accent); background: var(--ui-active); border-color: var(--ui-accent); }
-#derived-color { color: var(--ui-muted); font: 12px/1.35 ui-monospace, monospace; text-align: center; }
+.dialog-choice-list { display: grid; gap: 4px; max-height: 245px; overflow: auto; padding: 2px; }
+.dialog-choice { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; text-align: left; }
+.dialog-choice[aria-selected="true"] { background: var(--ui-active); border-color: var(--ui-accent); }
+#manage-swatches, #new-swatch, #save-color, #use-color { width: 100%; margin-top: 8px; color: var(--ui-on-accent); background: var(--ui-accent); border-color: var(--ui-accent); }
 #color-hex { font-family: ui-monospace, monospace; letter-spacing: .06em; }
 #color-preview { height: 36px; margin: 9px 0; border: 1px solid var(--ui-subtle); border-radius: 4px; background: var(--preview-color); }
 .color-channel { display: grid; grid-template-columns: 14px minmax(0, 1fr) 52px; align-items: center; gap: 6px; margin: 8px 0; }
-#swatch-editor.gray-mode .color-channel { grid-template-columns: 30px minmax(0, 1fr) 52px; }
+#color-picker.gray-mode .color-channel { grid-template-columns: 30px minmax(0, 1fr) 52px; }
 .color-channel label { color: var(--ui-muted); font-size: 11px; }
 .color-channel input[type="range"] { padding: 0; accent-color: var(--ui-accent); }
 .color-channel input[type="number"] { text-align: right; }
-#color-error { margin: 8px 0 0; color: var(--ui-danger); font-size: 11px; }
+#color-error, #swatch-error { margin: 8px 0 0; color: var(--ui-danger); font-size: 11px; }
 
 #notice {
   position: fixed;

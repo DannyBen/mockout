@@ -100,8 +100,6 @@
       <dl>
         <div><dt>Box or canvas properties</dt><dd><div><kbd>P</kbd></div><div>Right click</div></dd></div>
         <div><dt>Open box properties section</dt><dd><kbd>Alt</kbd> + <kbd>1</kbd>–<kbd>4</kbd></dd></div>
-        <div><dt>Next properties section</dt><dd><kbd>PgDn</kbd></dd></div>
-        <div><dt>Previous properties section</dt><dd><kbd>PgUp</kbd></dd></div>
         <div><dt>Clear mixed text</dt><dd><div><kbd>Backspace</kbd></div><div><kbd>Delete</kbd></div></dd></div>
       </dl>
     </section>
@@ -153,18 +151,13 @@
     <footer>Mockout · <a href="https://github.com/dannyben/mockout" target="_blank" rel="noopener noreferrer">GitHub</a></footer>
   </aside>
 
-  <aside id="inspector" hidden aria-label="Selected box properties">
-    <header id="inspector-header" hidden>
-      <button type="button" id="color-back">← Back</button>
-      <strong id="inspector-title"></strong>
+  <aside id="inspector" class="mini-dialog" hidden aria-label="Inspector">
+    <header id="inspector-header" class="dialog-header">
+      <nav id="inspector-path" class="dialog-path" aria-label="Dialog path"></nav>
       <button type="button" id="delete-swatch" hidden>Delete</button>
+      <button type="button" id="close-inspector" aria-label="Close dialog">×</button>
     </header>
     <section id="box-properties">
-      <div id="property-cycler" role="group" aria-label="Properties section: 1 Shape">
-        <span class="cycle-arrow" data-cycle-step="-1" aria-hidden="true">‹</span>
-        <span class="cycle-label" aria-hidden="true">1 Shape</span>
-        <span class="cycle-arrow" data-cycle-step="1" aria-hidden="true">›</span>
-      </div>
       <div id="shape-properties" class="section-content">
         <div class="two-fields">
           <label class="field">Width <input id="box-width" type="number" min="1" step="1"></label>
@@ -180,9 +173,10 @@
         </div>
       </div>
       <div id="color-properties" class="section-content" hidden>
-        <div class="color-field"><span>Fill</span><button type="button" data-color-property="fill"></button></div>
-        <div class="color-field"><span>Text</span><button type="button" data-color-property="textColor"></button></div>
-        <div class="color-field"><span>Border</span><button type="button" data-color-property="borderColor"></button></div>
+        <div class="field"><label for="fill-color">Fill</label><button type="button" id="fill-color" data-color-property="fill"></button></div>
+        <div class="field"><label for="text-color">Text</label><button type="button" id="text-color" data-color-property="textColor"></button></div>
+        <div class="field"><label for="border-color">Border</label><button type="button" id="border-color" data-color-property="borderColor"></button></div>
+        <button type="button" id="manage-swatches">Manage swatches</button>
       </div>
       <div id="text-properties" class="section-content" hidden>
         <label class="field">Text <input id="box-text" type="text" placeholder="Optional text"></label>
@@ -247,31 +241,41 @@
         <p class="font-links"><a href="https://fonts.google.com/" target="_blank" rel="noopener noreferrer">Browse fonts ↗</a><a id="browse-icons" href="https://fonts.google.com/icons" target="_blank" rel="noopener noreferrer" hidden>Browse icons ↗</a></p>
       </div>
     </section>
-    <section id="canvas-properties" hidden aria-label="Canvas properties">
-      <div class="canvas-color-head"><span></span><span>Light</span><span>Dark</span></div>
-      <div class="color-field canvas-color-field"><span>Background</span><button type="button" data-canvas-color-property="background" data-canvas-side="light"></button><button type="button" data-canvas-color-property="background" data-canvas-side="dark"></button></div>
-      <div class="color-field canvas-color-field"><span>Grid major</span><button type="button" data-canvas-color-property="gridMajor" data-canvas-side="light"></button><button type="button" data-canvas-color-property="gridMajor" data-canvas-side="dark"></button></div>
-      <div class="color-field canvas-color-field"><span>Grid minor</span><button type="button" data-canvas-color-property="gridMinor" data-canvas-side="light"></button><button type="button" data-canvas-color-property="gridMinor" data-canvas-side="dark"></button></div>
+    <section id="canvas-properties" class="dialog-choice-list" hidden aria-label="Canvas properties">
+      <button type="button" class="dialog-choice" data-canvas-color-property="background"></button>
+      <button type="button" class="dialog-choice" data-canvas-color-property="gridMinor"></button>
+      <button type="button" class="dialog-choice" data-canvas-color-property="gridMajor"></button>
     </section>
     <section id="swatch-chooser" hidden aria-label="Choose swatch">
-      <div id="swatch-list"></div>
+      <div id="choice-swatch-list" class="dialog-choice-list" role="listbox" aria-label="Swatches"></div>
+    </section>
+    <section id="swatch-manager" hidden aria-label="Manage swatches">
+      <div id="swatch-list" class="dialog-choice-list" aria-label="Project swatches"></div>
       <button type="button" id="new-swatch">New swatch</button>
     </section>
-    <section id="swatch-editor" hidden aria-label="Swatch color picker">
-      <label class="editor-field">Name <input id="swatch-name" type="text" maxlength="60" placeholder="Swatch name"></label>
-      <div id="color-side" role="group" aria-label="Color appearance"><button type="button" data-color-side="light" aria-pressed="true">Light</button><button type="button" data-color-side="dark" aria-pressed="false">Dark</button></div>
-      <label id="dark-behavior-field" class="editor-field" hidden>Dark <select id="dark-behavior"><option value="invert">Invert</option><option value="same">Same</option><option value="custom">Custom</option></select></label>
-      <label id="color-hex-field" class="editor-field">Hex <input id="color-hex" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="RRGGBB"></label>
+    <section id="color-editor" hidden aria-label="Edit colors">
+      <div id="swatch-name-field" class="field"><label for="swatch-name">Name</label><input id="swatch-name" type="text" maxlength="60" placeholder="Swatch name"></div>
+      <div class="field"><label for="swatch-light">Light</label><button type="button" id="swatch-light" data-editor-side="light"></button></div>
+      <div class="field"><label for="dark-behavior">Dark</label><select id="dark-behavior"><option value="invert">Invert</option><option value="same">Same</option><option value="custom">Custom</option></select></div>
+      <div class="field"><span aria-hidden="true"></span><button type="button" id="swatch-dark" data-editor-side="dark" hidden></button><output id="swatch-dark-preview" aria-label="Dark color"></output></div>
+      <button type="button" id="save-color">Save swatch</button>
+      <p id="swatch-error" role="alert" hidden></p>
+    </section>
+    <section id="color-picker" hidden aria-label="Color picker">
+      <div class="field"><label for="color-hex">Hex</label><input id="color-hex" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="RRGGBB"></div>
       <div id="color-preview" aria-label="Color preview"></div>
-      <div id="derived-color" hidden></div>
-      <div id="color-mode-field" class="editor-field">Mode <select id="color-mode" aria-label="Color mode"><option value="hsb">HSB</option><option value="rgb">RGB</option><option value="gray">Grayscale</option></select></div>
+      <div class="field"><label for="color-mode">Mode</label><select id="color-mode"><option value="hsb">HSB</option><option value="rgb">RGB</option><option value="gray">Grayscale</option></select></div>
       <div class="color-channel"><label for="channel-1" id="channel-1-label">H</label><input id="channel-1" type="range" min="0" max="360"><input id="channel-1-value" type="number" min="0" max="360" aria-label="Hue value"></div>
       <div class="color-channel"><label for="channel-2" id="channel-2-label">S</label><input id="channel-2" type="range" min="0" max="100"><input id="channel-2-value" type="number" min="0" max="100" aria-label="Saturation value"></div>
       <div class="color-channel"><label for="channel-3" id="channel-3-label">B</label><input id="channel-3" type="range" min="0" max="100"><input id="channel-3-value" type="number" min="0" max="100" aria-label="Brightness value"></div>
-      <button type="button" id="save-swatch">Save</button>
+      <button type="button" id="use-color">Use color</button>
       <p id="color-error" role="alert" hidden></p>
     </section>
   </aside>
+
+  <template id="swatch-choice-template">
+    <button type="button" class="dialog-choice" tabindex="-1"><span class="chip" aria-hidden="true"></span><span class="swatch-name"></span></button>
+  </template>
 
   <input id="open-file" type="file" accept=".json,application/json" hidden>
   <div id="notice" role="alert" hidden>

@@ -18,9 +18,11 @@ const welcomeButton = document.querySelector('#welcome-button');
 const welcomeHint = document.querySelector('#welcome-hint');
 const toolButtons = [...document.querySelectorAll('[data-tool]')];
 const gridButtons = [...document.querySelectorAll('[data-grid]')];
-const colorButtons = [...document.querySelectorAll('[data-color-property], [data-canvas-color-property]')];
+const boxColorButtons = [...document.querySelectorAll('[data-color-property]')];
+const canvasColorButtons = [...document.querySelectorAll('[data-canvas-color-property]')];
 const alignButtons = [...document.querySelectorAll('[data-align-axis]')];
-const propertyCycler = document.querySelector('#property-cycler');
+const inspectorPath = document.querySelector('#inspector-path');
+const swatchChoiceTemplate = document.querySelector('#swatch-choice-template');
 const propertySections = [
   { id: 'shape', label: 'Shape', element: document.querySelector('#shape-properties') },
   { id: 'colors', label: 'Colors', element: document.querySelector('#color-properties') },
@@ -144,7 +146,6 @@ let inspectorPoint = { x: 12, y: 12 };
 let inspectorView = 'properties';
 let activePropertySection = 'shape';
 const lastPropertyFocus = new Map();
-let boxPropertiesPlacementHeight = 0;
 let tool = 'select';
 let spaceDown = false;
 let altDown = false;
@@ -178,6 +179,7 @@ let editorColor = '#6746b7';
 let editorSide = 'light';
 let editorLight = { color: editorColor, mode: colorMode };
 let editorDark = { mode: 'invert', color: null, colorMode: colorMode };
+let pickerOnAccept = null;
 const undoStack = [];
 const redoStack = [];
 
@@ -207,16 +209,23 @@ const inspectedBox = () => MockoutSelection.inspectedBox(state.boxes,
 const swatch = id => state.swatches.find(s => s.id === id);
 const activeTheme = () => document.documentElement.dataset.uiTheme || 'light';
 const resolvedColor = (color, dark) => MockoutProject.resolveColor(color, dark, activeTheme());
-const draftColor = () => resolvedColor(editorLight.color, editorDark);
-const colorOf = id => inspectorOpen && inspectorView === 'edit' && colorTarget?.editId && colorTarget.editId === id
+const draftColor = () => {
+  const light = inspectorView === 'picker' && editorSide === 'light' ? editorColor : editorLight.color;
+  const dark = inspectorView === 'picker' && editorSide === 'dark'
+    ? { ...editorDark, color: editorColor }
+    : editorDark;
+  return resolvedColor(light, dark);
+};
+const colorOf = id => inspectorOpen && ['edit', 'picker'].includes(inspectorView)
+  && colorTarget?.editId && colorTarget.editId === id
   ? draftColor() : id ? resolvedColor(swatch(id).color, swatch(id).dark) : 'transparent';
 function canvasColor(property) {
-  if (inspectorOpen && inspectorView === 'edit' && colorTarget?.direct
+  if (inspectorOpen && ['edit', 'picker'].includes(inspectorView) && colorTarget?.direct
     && colorTarget.property === property) return draftColor();
   return resolvedColor(state.canvasColors[property], state.canvasDark?.[property]);
 }
 function boxColor(box, property) {
-  if (inspectorOpen && inspectorView === 'edit' && colorTarget) {
+  if (inspectorOpen && ['edit', 'picker'].includes(inspectorView) && colorTarget) {
     if (colorTarget.editId && box[property] === colorTarget.editId) return draftColor();
     if (inspectorKind === 'box' && !colorTarget.editId && selectedIds.has(box.id)
       && property === colorTarget.property) return draftColor();
@@ -363,38 +372,20 @@ function renderInspector() {
   const visible = inspectorOpen && (inspectorKind === 'canvas' || box);
   inspector.hidden = !visible;
   if (!visible) return;
-  inspector.classList.toggle('canvas-properties-view', inspectorKind === 'canvas' && inspectorView === 'properties');
   document.querySelector('#box-properties').hidden = inspectorView !== 'properties' || inspectorKind !== 'box';
   document.querySelector('#canvas-properties').hidden = inspectorView !== 'properties' || inspectorKind !== 'canvas';
   document.querySelector('#swatch-chooser').hidden = inspectorView !== 'choose';
-  document.querySelector('#swatch-editor').hidden = inspectorView !== 'edit';
-  document.querySelector('#swatch-name').parentElement.hidden = inspectorView === 'edit' && Boolean(colorTarget?.direct);
-  document.querySelector('#inspector-header').hidden = inspectorView === 'properties';
+  document.querySelector('#swatch-manager').hidden = inspectorView !== 'manage';
+  document.querySelector('#color-editor').hidden = inspectorView !== 'edit';
+  document.querySelector('#color-picker').hidden = inspectorView !== 'picker';
   const sectionIndex = propertySectionIndex();
   for (const section of propertySections) section.element.hidden = section.id !== activePropertySection;
-  const sectionLabel = `${sectionIndex + 1} ${propertySections[sectionIndex].label}`;
-  propertyCycler.querySelector('.cycle-label').textContent = sectionLabel;
-  propertyCycler.setAttribute('aria-label', `Properties section: ${sectionLabel}`);
-  for (const arrow of propertyCycler.querySelectorAll('[data-cycle-step]')) {
-    arrow.classList.toggle('disabled', sectionIndex + Number(arrow.dataset.cycleStep) < 0
-      || sectionIndex + Number(arrow.dataset.cycleStep) >= propertySections.length);
-  }
-  if (inspectorView !== 'properties') {
-    document.querySelector('#inspector-title').hidden = false;
-    document.querySelector('#delete-swatch').hidden = inspectorView !== 'edit' || !colorTarget?.editId
-      || state.swatches.length <= 1 || state.boxes.some(item =>
-        ['fill', 'textColor', 'borderColor'].some(property => item[property] === colorTarget.editId));
-    if (inspectorView === 'choose') document.querySelector('#inspector-title').textContent = `Choose ${colorLabel(colorTarget.property)} swatch`;
-    else document.querySelector('#inspector-title').textContent = colorTarget.direct
-      ? `${colorLabel(colorTarget.property)} color`
-      : colorTarget.editId ? `Edit ${swatch(colorTarget.editId)?.name || 'swatch'}` : 'New swatch';
-  }
+  renderInspectorHeader();
   if (inspectorView === 'edit') {
-    for (const button of document.querySelectorAll('[data-color-side]')) {
-      button.setAttribute('aria-pressed', String(button.dataset.colorSide === editorSide));
-    }
-    document.querySelector('#dark-behavior-field').hidden = editorSide !== 'dark';
     document.querySelector('#dark-behavior').value = editorDark.mode;
+    document.querySelector('#swatch-name-field').hidden = !!colorTarget?.direct;
+    document.querySelector('#save-color').textContent = colorTarget?.direct ? 'Save colors' : 'Save swatch';
+    renderColorEditorPreview();
   }
   if (box) {
     for (const [field, getValue] of Object.entries({
@@ -460,105 +451,155 @@ function renderInspector() {
       button.setAttribute('aria-pressed', String(active));
     }
   }
-  for (const button of colorButtons) {
+  if (inspectorKind === 'box') for (const button of boxColorButtons) renderBoxColorButton(button, boxes);
+  if (inspectorKind === 'canvas') for (const button of canvasColorButtons) {
     const canvasProperty = button.dataset.canvasColorProperty;
-    if (Boolean(canvasProperty) !== (inspectorKind === 'canvas')) continue;
-    const value = canvasProperty ? state.canvasColors[canvasProperty]
-      : MockoutSelection.commonValue(boxes, item => item[button.dataset.colorProperty]);
-    const mixed = !canvasProperty && value === undefined;
-    const item = canvasProperty ? null : swatch(value);
-    const side = button.dataset.canvasSide;
-    const dark = canvasProperty ? state.canvasDark?.[canvasProperty] : item?.dark;
-    const displayed = canvasProperty
-      ? MockoutProject.resolveColor(value, dark, side)
-      : item ? resolvedColor(item.color, item.dark) : null;
-    const name = document.createElement('span');
-    name.className = 'swatch-name';
-    name.textContent = mixed ? 'Mixed' : canvasProperty
-      ? side === 'dark' ? { invert: 'Invert', same: 'Same', custom: 'Custom' }[dark?.mode || 'invert']
-        : value.toUpperCase() : item?.name || 'Transparent';
-    const chip = colorChip(displayed);
-    chip.classList.toggle('mixed', mixed);
-    button.parentElement.querySelector('span').classList.toggle('mixed', mixed);
-    if (canvasProperty) button.setAttribute('aria-label', `${colorLabel(canvasProperty)} ${side}: ${name.textContent}`);
-    if (mixed) button.setAttribute('aria-description', 'Mixed values');
-    else button.removeAttribute('aria-description');
-    button.replaceChildren(chip, name);
+    const displayed = canvasColor(canvasProperty);
+    button.setAttribute('aria-label', `${colorLabel(canvasProperty)}: ${displayed.toUpperCase()}`);
+    button.replaceChildren(colorChip(displayed), document.createTextNode(colorLabel(canvasProperty)));
   }
-  if (inspectorView === 'choose') renderSwatchList();
-  if (inspectorKind === 'box' && inspectorView === 'properties') {
-    if (!boxPropertiesPlacementHeight) {
-      const sections = ['shape-properties', 'color-properties', 'text-properties', 'font-properties']
-        .map(id => document.getElementById(id));
-      const googleField = document.querySelector('#google-font-field');
-      const materialField = document.querySelector('#material-style-field');
-      const visibleSection = sections.find(section => !section.hidden);
-      const googleWasHidden = googleField.hidden;
-      const materialWasHidden = materialField.hidden;
-      for (const section of sections) {
-        for (const candidate of sections) candidate.hidden = candidate !== section;
-        if (section.id === 'font-properties') {
-          googleField.hidden = false;
-          materialField.hidden = true;
-          boxPropertiesPlacementHeight = Math.max(boxPropertiesPlacementHeight, inspector.scrollHeight, inspector.offsetHeight);
-          googleField.hidden = true;
-          materialField.hidden = false;
-        }
-        boxPropertiesPlacementHeight = Math.max(boxPropertiesPlacementHeight, inspector.scrollHeight, inspector.offsetHeight);
-      }
-      for (const section of sections) section.hidden = section !== visibleSection;
-      googleField.hidden = googleWasHidden;
-      materialField.hidden = materialWasHidden;
-    }
-    boxPropertiesPlacementHeight = Math.max(boxPropertiesPlacementHeight, inspector.scrollHeight, inspector.offsetHeight);
-  }
+  if (inspectorView === 'choose' || inspectorView === 'manage') renderSwatchList();
   positionInspector();
 }
 
 const colorLabel = property => ({
   fill: 'Fill', textColor: 'Text', borderColor: 'Border',
-  background: 'Background', gridMajor: 'Grid major', gridMinor: 'Grid minor',
+  background: 'Background', gridMajor: 'Major grid', gridMinor: 'Minor grid',
 })[property];
 
+function renderColorEditorPreview() {
+  const light = document.querySelector('#swatch-light');
+  light.replaceChildren(colorChip(editorLight.color), document.createTextNode(editorLight.color.toUpperCase()));
+  light.setAttribute('aria-label', `Edit light color: ${editorLight.color.toUpperCase()}`);
+  const darkColor = MockoutProject.resolveColor(editorLight.color, editorDark, 'dark');
+  const custom = editorDark.mode === 'custom';
+  const darkButton = document.querySelector('#swatch-dark');
+  const darkPreview = document.querySelector('#swatch-dark-preview');
+  darkButton.hidden = !custom;
+  darkPreview.hidden = custom;
+  const darkValue = custom ? darkButton : darkPreview;
+  darkValue.replaceChildren(colorChip(darkColor), document.createTextNode(darkColor.toUpperCase()));
+  if (custom) darkButton.setAttribute('aria-label', `Edit dark color: ${darkColor.toUpperCase()}`);
+}
+
+function renderBoxColorButton(button, boxes) {
+  const value = MockoutSelection.commonValue(boxes, box => box[button.dataset.colorProperty]);
+  const mixed = value === undefined;
+  const item = swatch(value);
+  const chip = colorChip(item ? resolvedColor(item.color, item.dark) : null);
+  chip.classList.toggle('mixed', mixed);
+  button.parentElement.firstElementChild.classList.toggle('mixed', mixed);
+  if (mixed) button.setAttribute('aria-description', 'Mixed values');
+  else button.removeAttribute('aria-description');
+  button.setAttribute('aria-label', `${colorLabel(button.dataset.colorProperty)}: ${mixed ? 'Mixed' : item?.name || 'Transparent'}`);
+  button.replaceChildren(chip, document.createTextNode(mixed ? 'Mixed' : item?.name || 'Transparent'));
+}
+
+function showInspectorParent(viewName) {
+  const previousView = inspectorView;
+  inspectorView = viewName;
+  if (previousView === 'picker') pickerOnAccept = null;
+  render();
+  if (viewName === 'edit') document.querySelector(`[data-editor-side="${editorSide}"]`).focus();
+  else if (viewName === 'manage') focusSwatchEditorOpener();
+  else if (inspectorKind === 'box') {
+    if (previousView === 'choose') focusColorField();
+    else document.querySelector('#manage-swatches').focus();
+  }
+  else focusColorField();
+}
+
+function renderInspectorHeader() {
+  const properties = inspectorView === 'properties';
+  const sectionIndex = propertySectionIndex();
+  document.querySelector('#delete-swatch').hidden = inspectorView !== 'edit' || !colorTarget?.editId
+    || state.swatches.length <= 1 || state.boxes.some(item =>
+      ['fill', 'textColor', 'borderColor'].some(property => item[property] === colorTarget.editId));
+  const parts = properties
+    ? [{ label: inspectorKind === 'canvas' ? 'Canvas' : propertySections[sectionIndex].label }]
+    : inspectorKind === 'canvas'
+      ? [{ label: 'Canvas', view: 'properties' },
+        { label: colorLabel(colorTarget.property), ...(inspectorView === 'picker' ? { view: 'edit' } : {}) },
+        ...(inspectorView === 'picker' ? [{ label: editorSide === 'light' ? 'Light' : 'Dark' }] : [])]
+      : inspectorView === 'choose'
+        ? [{ label: 'Colors', view: 'properties' }, { label: colorLabel(colorTarget.property) }]
+        : inspectorView === 'manage'
+          ? [{ label: 'Colors', view: 'properties' }, { label: 'Swatches' }]
+          : inspectorView === 'edit'
+            ? [{ label: 'Swatches', view: 'manage' },
+              { label: colorTarget.editId ? swatch(colorTarget.editId)?.name || 'Swatch' : 'New' }]
+            : [{ label: 'Swatches', view: 'manage' },
+              { label: colorTarget.editId ? swatch(colorTarget.editId)?.name || 'Swatch' : 'New', view: 'edit' },
+              { label: editorSide === 'light' ? 'Light' : 'Dark' }];
+  const pathKey = `${inspectorKind}:${inspectorView}:${parts.map(part => part.label).join('/')}`;
+  if (inspectorPath.dataset.key === pathKey) return;
+  inspectorPath.dataset.key = pathKey;
+  inspectorPath.replaceChildren();
+  for (const [index, part] of parts.entries()) {
+    if (index) {
+      const separator = document.createElement('span');
+      separator.className = 'dialog-separator';
+      separator.textContent = '/';
+      separator.setAttribute('aria-hidden', 'true');
+      inspectorPath.append(separator);
+    }
+    const item = document.createElement(part.view ? 'button' : 'strong');
+    item.className = 'dialog-crumb';
+    item.textContent = part.label;
+    if (part.view) {
+      item.type = 'button';
+      item.addEventListener('click', () => showInspectorParent(part.view));
+    } else item.setAttribute('aria-current', 'page');
+    inspectorPath.append(item);
+  }
+}
+
 function renderSwatchList() {
-  const list = document.querySelector('#swatch-list');
+  const choosing = inspectorView === 'choose';
+  const list = document.querySelector(choosing ? '#choice-swatch-list' : '#swatch-list');
   const focused = list.contains(document.activeElement) ? document.activeElement : null;
   const focusedId = focused?.dataset.swatchId;
-  const focusedAction = focused?.className;
-  const selected = MockoutSelection.commonValue(selectedBoxes(), box => box[colorTarget.property]);
+  const selected = choosing ? MockoutSelection.commonValue(selectedBoxes(), box => box[colorTarget.property]) : null;
+  const items = choosing && colorTarget.property !== 'textColor'
+    ? [{ id: null, name: 'Transparent' }, ...state.swatches] : state.swatches;
   list.replaceChildren();
-  if (inspectorKind === 'box' && colorTarget.property !== 'textColor') {
-    const none = document.createElement('button');
-    none.type = 'button';
-    none.className = 'swatch-choice';
-    none.dataset.swatchId = '';
-    none.setAttribute('aria-pressed', String(selected === null));
-    none.append(colorChip(null), document.createTextNode('Transparent'));
-    none.addEventListener('click', () => assignColor(null));
-    list.append(none);
+  for (const item of items) {
+    const choice = swatchChoiceTemplate.content.firstElementChild.cloneNode(true);
+    choice.dataset.swatchId = item.id ?? '';
+    const chip = choice.querySelector('.chip');
+    if (item.id) chip.style.setProperty('--chip-color', resolvedColor(item.color, item.dark));
+    else chip.classList.add('transparent');
+    choice.querySelector('.swatch-name').textContent = item.name;
+    if (choosing) {
+      choice.setAttribute('role', 'option');
+      choice.setAttribute('aria-selected', String(selected === item.id));
+    }
+    choice.addEventListener('click', () => choosing ? assignColor(item.id) : openSwatchEditor(item.id));
+    list.append(choice);
   }
-  for (const item of state.swatches) {
-    const row = document.createElement('div');
-    row.className = 'swatch-row';
-    const choice = document.createElement('button');
-    choice.type = 'button';
-    choice.className = 'swatch-choice';
-    choice.dataset.swatchId = item.id;
-    choice.setAttribute('aria-pressed', String(selected === item.id));
-    choice.append(colorChip(resolvedColor(item.color, item.dark)), document.createTextNode(item.name));
-    choice.addEventListener('click', () => assignColor(item.id));
-    const edit = document.createElement('button');
-    edit.type = 'button';
-    edit.className = 'swatch-edit';
-    edit.dataset.swatchId = item.id;
-    edit.textContent = 'Edit';
-    edit.setAttribute('aria-label', `Edit ${item.name}`);
-    edit.addEventListener('click', () => openSwatchEditor(item.id));
-    row.append(choice, edit);
-    list.append(row);
-  }
-  if (focused) [...list.querySelectorAll('button')].find(button =>
-    button.dataset.swatchId === focusedId && button.className === focusedAction)?.focus();
+  const buttons = [...list.querySelectorAll('button')];
+  const active = buttons.find(button => button.dataset.swatchId === focusedId)
+    || (choosing && selected !== undefined && buttons.find(button => button.dataset.swatchId === (selected ?? '')))
+    || buttons[0];
+  if (active) active.tabIndex = 0;
+  if (focused) active?.focus();
+}
+
+for (const list of document.querySelectorAll('.dialog-choice-list')) {
+  list.addEventListener('focusin', event => {
+    for (const button of list.querySelectorAll('button')) button.tabIndex = button === event.target ? 0 : -1;
+  });
+  list.addEventListener('keydown', event => {
+    const direction = { ArrowDown: 1, ArrowUp: -1, Home: 'first', End: 'last' }[event.key];
+    if (!direction) return;
+    event.preventDefault();
+    const buttons = [...list.querySelectorAll('button')];
+    const index = buttons.indexOf(document.activeElement);
+    const next = direction === 'first' ? 0 : direction === 'last' ? buttons.length - 1
+      : (index + direction + buttons.length) % buttons.length;
+    buttons[next]?.focus();
+    buttons[next]?.scrollIntoView({ block: 'nearest' });
+  });
 }
 
 function positionInspector() {
@@ -572,11 +613,19 @@ function positionInspector() {
   if (!box) return;
   const boxRect = [...canvas.querySelectorAll('.box')].find(element => Number(element.dataset.id) === box.id)?.getBoundingClientRect();
   if (!boxRect) return;
-  const position = MockoutSelection.inspectorPosition(boxRect,
-    { width: inspector.offsetWidth, height: Math.max(inspector.offsetHeight, boxPropertiesPlacementHeight) },
-    { width: window.innerWidth, height: window.innerHeight });
+  const position = MockoutSelection.inspectorPosition(boxRect);
   inspector.style.left = `${position.left}px`;
   inspector.style.top = `${position.top}px`;
+}
+
+function revealInspector() {
+  if (inspector.hidden || inspectorKind !== 'box') return;
+  const pan = MockoutSelection.inspectorPan(inspector.getBoundingClientRect(),
+    { width: window.innerWidth, height: window.innerHeight });
+  if (!pan.x && !pan.y) return;
+  view.x += pan.x;
+  view.y += pan.y;
+  render();
 }
 
 window.addEventListener('resize', positionInspector);
@@ -584,6 +633,7 @@ window.addEventListener('resize', positionInspector);
 function colorChip(color) {
   const chip = document.createElement('span');
   chip.className = 'chip';
+  chip.setAttribute('aria-hidden', 'true');
   if (color) chip.style.setProperty('--chip-color', color);
   else chip.classList.add('transparent');
   return chip;
@@ -762,23 +812,16 @@ function focusPropertySection() {
   if (field?.isConnected && !field.closest('[hidden]')) field.focus();
   else propertySections[propertySectionIndex()].element.querySelector('input, select, button')?.focus();
 }
-function showPropertySection(index) {
-  const section = propertySections[index];
-  if (!section) { focusPropertySection(); return; }
-  activePropertySection = section.id;
-  renderInspector();
-  focusPropertySection();
-}
-propertyCycler.addEventListener('click', event => {
-  const step = event.target.closest('[data-cycle-step]');
-  if (step) showPropertySection(propertySectionIndex() + Number(step.dataset.cycleStep));
+document.querySelector('#close-inspector').addEventListener('click', () => {
+  inspectorOpen = false;
+  workspace.focus();
+  render();
 });
-propertyCycler.addEventListener('mousedown', event => event.preventDefault());
 
 inspector.addEventListener('keydown', event => {
   if (event.key !== 'Tab' || event.ctrlKey || event.altKey || event.metaKey) return;
   const fields = [...inspector.querySelectorAll('button, input, select, a[href]')]
-    .filter(field => !field.disabled && field.getClientRects().length);
+    .filter(field => !field.disabled && field.tabIndex >= 0 && field.getClientRects().length);
   const index = fields.indexOf(document.activeElement);
   if (index === -1 || (event.shiftKey ? index !== 0 : index !== fields.length - 1)) return;
   event.preventDefault();
@@ -794,6 +837,7 @@ function openInspector(id = selectedId) {
   inspectorKind = 'box';
   inspectorView = 'properties';
   render();
+  revealInspector();
   focusPropertySection();
 }
 
@@ -1181,7 +1225,7 @@ function cycleSelection(step) {
   render();
 }
 
-workspace.addEventListener('wheel', event => {
+function panCanvasWithWheel(event) {
   if (event.ctrlKey || event.metaKey) return;
   event.preventDefault();
   if (textEditor) return;
@@ -1197,6 +1241,15 @@ workspace.addEventListener('wheel', event => {
     }
     movePlacement(event.clientX, event.clientY);
   } else render();
+}
+workspace.addEventListener('wheel', panCanvasWithWheel, { passive: false });
+inspector.addEventListener('wheel', event => {
+  if (event.target.closest('select, input[type="range"]')) return;
+  const list = event.target.closest('.dialog-choice-list');
+  if (list && list.scrollHeight > list.clientHeight
+    && ((event.deltaY < 0 && list.scrollTop > 0)
+      || (event.deltaY > 0 && list.scrollTop + list.clientHeight < list.scrollHeight))) return;
+  panCanvasWithWheel(event);
 }, { passive: false });
 
 document.addEventListener('wheel', event => {
@@ -1278,13 +1331,6 @@ document.addEventListener('keydown', event => {
     } else {
       openInspector(selectedId);
     }
-    return;
-  }
-  if (inspectorOpen && inspectorKind === 'box' && inspectorView === 'properties'
-    && inspector.contains(document.activeElement) && !ctrl && !event.altKey && !event.shiftKey
-    && ['PageUp', 'PageDown'].includes(event.code)) {
-    event.preventDefault();
-    showPropertySection(propertySectionIndex() + (event.code === 'PageDown' ? 1 : -1));
     return;
   }
   if (ctrl && event.code === 'KeyS') { event.preventDefault(); saveProject(event.shiftKey); return; }
@@ -1433,16 +1479,11 @@ function hsbToRgb(h, s, v) {
 function showColor() {
   const rgb = colorMode === 'rgb';
   const gray = colorMode === 'gray';
-  const editable = editorSide === 'light' || editorDark.mode === 'custom';
-  document.querySelector('#swatch-editor').classList.toggle('gray-mode', gray);
-  document.querySelector('#color-hex-field').hidden = !editable;
-  document.querySelector('#color-mode-field').hidden = !editable;
-  document.querySelector('#derived-color').hidden = editable;
-  document.querySelector('#derived-color').textContent = `${editorDark.mode === 'same' ? 'Same as light' : 'Inverted'} · ${editorColor.toUpperCase()}`;
+  document.querySelector('#color-picker').classList.toggle('gray-mode', gray);
   const values = gray ? [grayValue(editorColor)]
     : rgb ? hexToRgb(editorColor) : rgbToHsb(...hexToRgb(editorColor));
   channels.forEach((input, i) => {
-    input.closest('.color-channel').hidden = !editable || (gray && i > 0);
+    input.closest('.color-channel').hidden = gray && i > 0;
     const label = (gray ? ['Gray', '', ''] : rgb ? ['R', 'G', 'B'] : ['H', 'S', 'B'])[i];
     const max = rgb || gray ? 255 : [360, 100, 100][i];
     input.max = max;
@@ -1455,73 +1496,34 @@ function showColor() {
   document.querySelector('#color-preview').style.setProperty('--preview-color', editorColor);
   document.querySelector('#color-hex').value = editorColor.slice(1).toUpperCase();
   document.querySelector('#color-error').hidden = true;
-  saveEditorDraft();
   render();
 }
 
-function saveEditorDraft() {
-  if (editorSide === 'light') editorLight = { color: editorColor, mode: colorMode };
-  else if (editorDark.mode === 'custom') {
-    editorDark.color = editorColor;
-    editorDark.colorMode = colorMode;
-  }
-}
-
-function loadEditorSide() {
-  if (editorSide === 'light') {
-    editorColor = editorLight.color;
-    colorMode = editorLight.mode;
-  } else {
-    editorColor = MockoutProject.resolveColor(editorLight.color, editorDark, 'dark');
-    colorMode = editorDark.colorMode || editorLight.mode;
-  }
+function openColorPicker(color, mode, onAccept) {
+  editorColor = color;
+  colorMode = mode;
+  pickerOnAccept = onAccept;
+  inspectorView = 'picker';
   document.querySelector('#color-mode').value = colorMode;
   showColor();
+  revealInspector();
+  document.querySelector('#color-hex').focus();
+}
+
+function openManageSwatches() {
+  colorTarget = { editId: null };
+  inspectorView = 'manage';
+  renderInspector();
+  revealInspector();
+  (document.querySelector('#swatch-list .dialog-choice') || document.querySelector('#new-swatch')).focus();
 }
 
 function openColor(property) {
-  colorTarget = { property, editId: null };
+  colorTarget = { property };
   inspectorView = 'choose';
   renderInspector();
-  (document.querySelector('#swatch-list .swatch-choice[aria-pressed="true"]')
-    || document.querySelector('#swatch-list .swatch-choice'))?.focus();
-}
-
-function openDirectColor(property, side = 'light') {
-  colorTarget = { property, direct: true };
-  editorLight = { color: state.canvasColors[property], mode: state.canvasColorModes?.[property] ?? 'gray' };
-  editorDark = { mode: 'invert', color: null, colorMode: editorLight.mode,
-    ...state.canvasDark?.[property] };
-  editorSide = side;
-  inspectorView = 'edit';
-  renderInspector();
-  loadEditorSide();
-  (document.querySelector('#color-hex-field:not([hidden]) #color-hex')
-    || document.querySelector('#dark-behavior')).focus();
-}
-
-function focusColorField() {
-  const attribute = inspectorKind === 'canvas' ? 'data-canvas-color-property' : 'data-color-property';
-  const side = inspectorKind === 'canvas' ? `[data-canvas-side="${editorSide}"]` : '';
-  document.querySelector(`[${attribute}="${colorTarget.property}"]${side}`).focus();
-}
-
-function focusSwatchEditorOpener() {
-  const edit = [...document.querySelectorAll('#swatch-list .swatch-edit')]
-    .find(button => button.dataset.swatchId === colorTarget.editId);
-  (edit || document.querySelector('#new-swatch')).focus();
-}
-
-function returnFromColorView() {
-  if (inspectorView === 'edit' && !colorTarget?.direct) {
-    inspectorView = 'choose';
-    render();
-    focusSwatchEditorOpener();
-  } else {
-    inspectorView = 'properties';
-    render();
-    focusColorField();
-  }
+  revealInspector();
+  document.querySelector('#choice-swatch-list .dialog-choice[tabindex="0"]')?.focus();
 }
 
 function assignColor(id) {
@@ -1535,44 +1537,80 @@ function assignColor(id) {
   focusColorField();
 }
 
+function openCanvasColorEditor(property) {
+  colorTarget = { property, direct: true };
+  document.querySelector('#swatch-error').hidden = true;
+  editorLight = { color: state.canvasColors[property], mode: state.canvasColorModes?.[property] ?? 'gray' };
+  editorDark = { mode: 'invert', color: null, colorMode: editorLight.mode,
+    ...state.canvasDark?.[property] };
+  editorSide = 'light';
+  inspectorView = 'edit';
+  renderInspector();
+  revealInspector();
+  document.querySelector('#swatch-light').focus();
+}
+
+function focusColorField() {
+  const selector = inspectorKind === 'box'
+    ? `[data-color-property="${colorTarget.property}"]`
+    : `[data-canvas-color-property="${colorTarget.property}"]`;
+  document.querySelector(selector).focus();
+}
+
+function focusSwatchEditorOpener() {
+  const edit = [...document.querySelectorAll('#swatch-list .dialog-choice')]
+    .find(button => button.dataset.swatchId === colorTarget.editId);
+  (edit || document.querySelector('#new-swatch')).focus();
+}
+
+function returnFromColorView() {
+  showInspectorParent(inspectorView === 'picker' ? 'edit'
+    : colorTarget?.direct ? 'properties' : 'manage');
+}
+
 function openSwatchEditor(id = null) {
   colorTarget.editId = id;
   const item = swatch(id);
-  editorLight = { color: item?.color || swatch(selectedBox()?.[colorTarget.property])?.color || '#6746b7',
+  editorLight = { color: item?.color || '#6746b7',
     mode: item?.mode ?? 'hsb' };
   editorDark = { mode: 'invert', color: null, colorMode: editorLight.mode, ...item?.dark };
-  editorSide = id && activeTheme() === 'dark' ? 'dark' : 'light';
+  editorSide = 'light';
   document.querySelector('#swatch-name').value = item?.name || '';
+  document.querySelector('#swatch-error').hidden = true;
   inspectorView = 'edit';
   renderInspector();
-  loadEditorSide();
+  revealInspector();
   document.querySelector('#swatch-name').focus();
 }
 
-for (const button of colorButtons) button.addEventListener('click', () => {
-  if (button.dataset.canvasColorProperty) openDirectColor(button.dataset.canvasColorProperty, button.dataset.canvasSide);
-  else openColor(button.dataset.colorProperty);
-});
-for (const button of document.querySelectorAll('[data-color-side]')) button.addEventListener('click', () => {
-  if (editorSide === button.dataset.colorSide) return;
-  saveEditorDraft();
-  editorSide = button.dataset.colorSide;
-  loadEditorSide();
-  if (editorSide === 'dark') document.querySelector('#dark-behavior').focus();
-  else document.querySelector('#color-hex').focus();
-});
+function openEditorColorPicker(side) {
+  if (side === 'dark' && editorDark.mode !== 'custom') return;
+  editorSide = side;
+  const color = side === 'light' ? editorLight.color : editorDark.color;
+  const mode = side === 'light' ? editorLight.mode : editorDark.colorMode || editorLight.mode;
+  openColorPicker(color, mode, (chosenColor, chosenMode) => {
+    const next = MockoutProject.withPickerColor(editorLight, editorDark,
+      side, chosenColor, chosenMode);
+    editorLight = next.light;
+    editorDark = next.dark;
+  });
+}
+
+for (const button of boxColorButtons) button.addEventListener('click', () => openColor(button.dataset.colorProperty));
+for (const button of canvasColorButtons) button.addEventListener('click', () =>
+  openCanvasColorEditor(button.dataset.canvasColorProperty));
+document.querySelector('#manage-swatches').addEventListener('click', openManageSwatches);
+for (const button of document.querySelectorAll('[data-editor-side]')) button.addEventListener('click', () =>
+  openEditorColorPicker(button.dataset.editorSide));
 document.querySelector('#dark-behavior').addEventListener('change', event => {
-  saveEditorDraft();
   editorDark.mode = event.target.value;
   if (editorDark.mode === 'custom' && !editorDark.color) {
     editorDark.color = MockoutProject.invertColor(editorLight.color);
     editorDark.colorMode = editorLight.mode;
   }
-  loadEditorSide();
-  if (editorDark.mode === 'custom') document.querySelector('#color-hex').focus();
+  render();
 });
 document.querySelector('#new-swatch').addEventListener('click', () => openSwatchEditor());
-document.querySelector('#color-back').addEventListener('click', returnFromColorView);
 document.querySelector('#delete-swatch').addEventListener('click', () => {
   const id = colorTarget?.editId;
   if (!id || state.swatches.length <= 1 || state.boxes.some(box =>
@@ -1585,7 +1623,7 @@ document.querySelector('#delete-swatch').addEventListener('click', () => {
       }
     }
   });
-  inspectorView = 'choose';
+  inspectorView = 'manage';
   colorTarget.editId = null;
   renderInspector();
   document.querySelector('#new-swatch').focus();
@@ -1597,6 +1635,7 @@ document.querySelector('#color-mode').addEventListener('change', event => {
     editorColor = rgbToHex(value, value, value);
   }
   showColor();
+  revealInspector();
 });
 
 function updateFromChannels(source, index) {
@@ -1609,7 +1648,6 @@ function updateFromChannels(source, index) {
   document.querySelector('#color-preview').style.setProperty('--preview-color', editorColor);
   document.querySelector('#color-hex').value = editorColor.slice(1).toUpperCase();
   document.querySelector('#color-error').hidden = true;
-  saveEditorDraft();
   render();
 }
 channels.forEach((input, i) => input.addEventListener('input', () => updateFromChannels(input, i)));
@@ -1640,18 +1678,26 @@ document.querySelector('#color-hex').addEventListener('input', event => {
   const value = event.target.value.trim().replace(/^#/, '');
   if (/^[0-9a-f]{6}$/i.test(value)) useHex(value);
 });
+document.querySelector('#swatch-name').addEventListener('input', () => {
+  document.querySelector('#swatch-error').hidden = true;
+});
 
-document.querySelector('#save-swatch').addEventListener('click', () => {
-  if (!colorTarget || ((editorSide === 'light' || editorDark.mode === 'custom') && !readHex())) return;
-  saveEditorDraft();
-  const dark = { mode: editorDark.mode };
-  if (editorDark.color) dark.color = editorDark.color;
-  if (editorDark.colorMode) dark.colorMode = editorDark.colorMode;
+document.querySelector('#use-color').addEventListener('click', () => {
+  if (!pickerOnAccept || !readHex()) return;
+  pickerOnAccept(editorColor, colorMode);
+  pickerOnAccept = null;
+  inspectorView = 'edit';
+  render();
+  document.querySelector(`[data-editor-side="${editorSide}"]`).focus();
+});
+
+document.querySelector('#save-color').addEventListener('click', () => {
+  if (!colorTarget) return;
   if (colorTarget.direct) {
     change(() => {
       state.canvasColors[colorTarget.property] = editorLight.color;
       state.canvasColorModes = { ...state.canvasColorModes, [colorTarget.property]: editorLight.mode };
-      state.canvasDark = { ...state.canvasDark, [colorTarget.property]: dark };
+      state.canvasDark = { ...state.canvasDark, [colorTarget.property]: { ...editorDark } };
     });
     inspectorView = 'properties';
     renderInspector();
@@ -1660,28 +1706,29 @@ document.querySelector('#save-swatch').addEventListener('click', () => {
   }
   const name = document.querySelector('#swatch-name').value.trim();
   if (!name) {
-    const error = document.querySelector('#color-error');
+    const error = document.querySelector('#swatch-error');
     error.textContent = 'Give the swatch a name.';
     error.hidden = false;
     document.querySelector('#swatch-name').focus();
     return;
   }
+  const dark = { mode: editorDark.mode };
+  if (editorDark.color) dark.color = editorDark.color;
+  if (editorDark.colorMode) dark.colorMode = editorDark.colorMode;
   if (colorTarget.editId) {
     change(() => { Object.assign(swatch(colorTarget.editId),
       { name, color: editorLight.color, mode: editorLight.mode, dark }); });
-    inspectorView = 'choose';
+    inspectorView = 'manage';
   } else {
     change(() => {
       const id = `s${state.nextId++}`;
       state.swatches.push({ id, name, color: editorLight.color, mode: editorLight.mode, dark });
-      MockoutSelection.applyProperty(state.boxes, selectedIds, colorTarget.property, id);
-      rememberStyle(selectedBox());
+      colorTarget.editId = id;
     });
-    inspectorView = 'properties';
+    inspectorView = 'manage';
   }
   renderInspector();
-  if (inspectorView === 'choose') focusSwatchEditorOpener();
-  else focusColorField();
+  focusSwatchEditorOpener();
 });
 
 function downloadProject() {
@@ -1743,7 +1790,6 @@ async function resetEverything() {
   inspectorOpen = false;
   activePropertySection = 'shape';
   lastPropertyFocus.clear();
-  boxPropertiesPlacementHeight = 0;
   isolatedCopyIds = null;
   placement = null;
   gesture = null;
