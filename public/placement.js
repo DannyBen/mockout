@@ -15,13 +15,6 @@ const MockoutPlacement = {
       y: this.snap(cursor.y - box.h / 2, grid) - box.y,
     };
   },
-
-  moveDelta(first, origin, pointer, nudge, zoom, grid) {
-    return {
-      x: this.snap(first.x + (pointer ? (pointer.x - origin.x) / zoom : 0) + nudge.x, grid) - first.x,
-      y: this.snap(first.y + (pointer ? (pointer.y - origin.y) / zoom : 0) + nudge.y, grid) - first.y,
-    };
-  },
 };
 
 if (typeof module !== 'undefined') module.exports = MockoutPlacement;

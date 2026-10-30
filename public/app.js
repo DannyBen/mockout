@@ -135,7 +135,6 @@ let selectedId = null;
 let selectedIds = new Set();
 let gesture = null;
 let lastBoxClick = null;
-let pointerPosition = null;
 let placement = null;
 let isolatedCopyIds = null;
 let textEditor = null;
@@ -676,8 +675,7 @@ function startDuplicatePlacement() {
     before: snapshot(), selectedIds: new Set(selectedIds), selectedId,
     inspectorOpen, tool, isolatedCopyIds,
   };
-  const cursor = pointerPosition && point({ clientX: pointerPosition.x, clientY: pointerPosition.y });
-  const { x: dx, y: dy } = MockoutPlacement.duplicateOffset(source[0], cursor, state.grid);
+  const { x: dx, y: dy } = MockoutPlacement.duplicateOffset(source[0], null, state.grid);
   const copies = originals.map(box => ({
     ...box, id: state.nextId++, x: box.x + dx, y: box.y + dy,
   }));
@@ -689,29 +687,27 @@ function startDuplicatePlacement() {
   isolatedCopyIds = null;
   rememberStyle(copies[0]);
   placement = {
-    ...previous, ids: new Set(selectedIds), starts: copies.map(box => ({ id: box.id, x: box.x, y: box.y })),
-    pointerOrigin: pointerPosition && { ...pointerPosition }, pointer: pointerPosition && { ...pointerPosition },
-    nudgeX: 0, nudgeY: 0,
+    ...previous, ids: new Set(selectedIds), firstId: copies[0].id,
   };
   lastBoxClick = null;
   workspace.focus();
   render();
 }
 
-function movePlacement(clientX, clientY) {
-  if (clientX !== undefined && clientY !== undefined) {
-    placement.pointerOrigin ||= { x: clientX, y: clientY };
-    placement.pointer = { x: clientX, y: clientY };
-  }
-  const first = placement.starts[0];
-  const { x: dx, y: dy } = MockoutPlacement.moveDelta(first, placement.pointerOrigin,
-    placement.pointer, { x: placement.nudgeX, y: placement.nudgeY }, view.zoom, state.grid);
-  for (const start of placement.starts) {
-    const box = state.boxes.find(item => item.id === start.id);
-    box.x = start.x + dx;
-    box.y = start.y + dy;
+function shiftPlacement(dx, dy) {
+  for (const box of state.boxes) {
+    if (!placement.ids.has(box.id)) continue;
+    box.x += dx;
+    box.y += dy;
   }
   render();
+}
+
+function movePlacement(clientX, clientY) {
+  const first = state.boxes.find(box => box.id === placement.firstId);
+  const cursor = point({ clientX, clientY });
+  const { x: dx, y: dy } = MockoutPlacement.duplicateOffset(first, cursor, state.grid);
+  shiftPlacement(dx, dy);
 }
 
 function finishPlacement(save) {
@@ -864,19 +860,11 @@ workspace.addEventListener('contextmenu', event => {
   else openCanvasInspector({ x: event.clientX, y: event.clientY });
 });
 
-document.addEventListener('pointerdown', event => {
-  pointerPosition = { x: event.clientX, y: event.clientY };
-});
-document.addEventListener('pointermove', event => {
-  pointerPosition = { x: event.clientX, y: event.clientY };
-});
-
 workspace.addEventListener('pointerdown', event => {
   if (inspector.contains(document.activeElement)) document.activeElement.blur();
   if (placement) {
     event.preventDefault();
     if (event.button === 0) {
-      movePlacement(event.clientX, event.clientY);
       finishPlacement(true);
     }
     return;
@@ -1235,11 +1223,7 @@ function panCanvasWithWheel(event) {
   view.x -= panX;
   view.y -= panY;
   if (placement) {
-    for (const start of placement.starts) {
-      start.x += panX / view.zoom;
-      start.y += panY / view.zoom;
-    }
-    movePlacement(event.clientX, event.clientY);
+    shiftPlacement(panX / view.zoom, panY / view.zoom);
   } else render();
 }
 workspace.addEventListener('wheel', panCanvasWithWheel, { passive: false });
@@ -1313,9 +1297,7 @@ document.addEventListener('keydown', event => {
     if (direction && !event.altKey) {
       event.preventDefault();
       const amount = (state.grid || 1) * (ctrl ? 5 : 1);
-      placement.nudgeX += direction[0] * amount;
-      placement.nudgeY += direction[1] * amount;
-      movePlacement();
+      shiftPlacement(direction[0] * amount, direction[1] * amount);
       return;
     }
     if (ctrl || event.code === 'Space' || event.key === 'Tab' || event.key.length === 1) event.preventDefault();

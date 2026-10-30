@@ -25,13 +25,8 @@ test('duplicate stays under the cursor with zoom and a shifted workspace', () =>
   assert.equal(rect.top + view.y + (source.y + offset.y + source.h / 2) * view.zoom, 400);
 });
 
-test('placement follows pointer movement and keeps keyboard nudges', () => {
-  const first = { x: 630, y: 890 };
-  const origin = { x: 700, y: 500 };
-
-  assert.deepEqual(placement.moveDelta(first, origin, { x: 750, y: 530 }, { x: 0, y: 0 }, 1, 10),
-    { x: 50, y: 30 });
-  assert.deepEqual(placement.moveDelta(first, origin, { x: 750, y: 530 }, { x: 10, y: -20 }, 1, 10),
-    { x: 60, y: 10 });
-  assert.deepEqual(placement.duplicateOffset(first, null, 5), { x: 5, y: 5 });
+test('duplicate starts one grid step away before the pointer moves', () => {
+  const source = { x: 100, y: 100, w: 80, h: 60 };
+  assert.deepEqual(placement.duplicateOffset(source, null, 5), { x: 5, y: 5 });
+  assert.deepEqual(placement.duplicateOffset(source, null, 0), { x: 10, y: 10 });
 });
