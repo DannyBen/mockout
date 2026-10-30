@@ -49,7 +49,7 @@ file saves, without artificial delays or confirmation after every box.
 
 Use [email-client.json](examples/email-client.json) for an interface with Material
 icon boxes and a Google font. For a richer layout, consult
-[welcome.json](examples/welcome.json): it contains text glyphs, typography, panels
+[welcome.json](examples/welcome.json): it contains Material icons, typography, panels
 with contained elements, and paired light/dark colors. It is the same Welcome
 project shipped with Mockout and is included in this skill for local use.
 Consult it when those features are relevant; do not

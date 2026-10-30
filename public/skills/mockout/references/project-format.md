@@ -110,7 +110,8 @@ The bundled [email client](../examples/email-client.json) demonstrates real icon
 boxes using `Material Symbols Outlined` and `Material Icons`, alongside
 normal text in `Assistant`. Inspect its box font fields and swatch references
 when adding icons. The larger [Welcome project](../examples/welcome.json) uses
-text glyphs and demonstrates more detailed layouts with paired light/dark colors.
+Material Symbols in its Type & Icons card and demonstrates more detailed layouts
+with paired light/dark colors.
 
 ## Checks beyond JSON Schema
 
