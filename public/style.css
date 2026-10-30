@@ -151,6 +151,14 @@ button { cursor: pointer; }
 
 .box-label { width: 100%; max-height: 100%; overflow: hidden; pointer-events: none; }
 
+.selection-bounds {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+
+  & .handle { pointer-events: auto; }
+}
+
 #workspace.tool-box .box { cursor: crosshair; }
 #workspace.tool-box.alt-move .box { cursor: move; }
 #workspace.panning .box { cursor: grab; }

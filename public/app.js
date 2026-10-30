@@ -243,6 +243,15 @@ function change(fn) {
   commit(before);
 }
 
+function addResizeHandles(element) {
+  for (const direction of ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']) {
+    const handle = document.createElement('span');
+    handle.className = 'handle';
+    handle.dataset.handle = direction;
+    element.append(handle);
+  }
+}
+
 function render() {
   welcomeButton.disabled = Boolean(state.boxes.length || savedProjectIssue);
   welcomeHint.hidden = !welcomeButton.disabled;
@@ -313,15 +322,23 @@ function render() {
     }
     element.append(label);
 
-    if (selectedIds.has(box.id) && tool === 'select' && !textEditor && !placement) {
-      for (const direction of ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']) {
-        const handle = document.createElement('span');
-        handle.className = 'handle';
-        handle.dataset.handle = direction;
-        element.append(handle);
-      }
+    if (selectedIds.size === 1 && selectedIds.has(box.id) && tool === 'select' && !textEditor && !placement) {
+      addResizeHandles(element);
     }
     canvas.append(element);
+  }
+  if (selectedIds.size > 1 && tool === 'select' && !textEditor && !placement) {
+    const boxes = selectedBoxes();
+    const left = Math.min(...boxes.map(box => box.x));
+    const top = Math.min(...boxes.map(box => box.y));
+    const right = Math.max(...boxes.map(box => box.x + box.w));
+    const bottom = Math.max(...boxes.map(box => box.y + box.h));
+    const bounds = document.createElement('div');
+    bounds.className = 'selection-bounds';
+    Object.assign(bounds.style, { left: `${left}px`, top: `${top}px`,
+      width: `${right - left}px`, height: `${bottom - top}px` });
+    addResizeHandles(bounds);
+    canvas.append(bounds);
   }
   if (gesture?.kind === 'marquee' && gesture.end) {
     const marquee = document.createElement('div');
@@ -880,11 +897,12 @@ workspace.addEventListener('pointerdown', event => {
   }
   if (textEditor || (event.button !== 0 && event.button !== 1)) return;
   const boxElement = event.target.closest('.box');
+  const handle = event.target.dataset.handle || '';
   const p = point(event);
-  const boxId = boxElement ? Number(boxElement.dataset.id) : null;
+  const boxId = boxElement ? Number(boxElement.dataset.id) : handle ? selectedId : null;
   if (event.button === 1 || spaceDown) {
     gesture = { kind: 'pan', startX: event.clientX, startY: event.clientY, x: view.x, y: view.y };
-  } else if (boxId && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey && lastBoxClick?.id === boxId
+  } else if (boxId && !handle && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey && lastBoxClick?.id === boxId
     && event.timeStamp - lastBoxClick.time < 450
     && Math.hypot(p.x - lastBoxClick.x, p.y - lastBoxClick.y) < 7 / view.zoom) {
     lastBoxClick = null;
@@ -901,7 +919,7 @@ workspace.addEventListener('pointerdown', event => {
         before: snapshot(), id: null, hitId: boxId };
     } else if (boxId) {
       const hit = state.boxes.find(b => b.id === boxId);
-      const resizing = Boolean(event.target.dataset.handle);
+      const resizing = Boolean(handle);
       const box = !resizing && !event.altKey && (event.ctrlKey || event.metaKey)
         ? MockoutSelection.nearestContainer(state.boxes, hit) ?? hit : hit;
       if (!selectedIds.has(box.id)) {
@@ -910,7 +928,7 @@ workspace.addEventListener('pointerdown', event => {
       }
       gesture = {
         kind: resizing ? 'resize' : 'move',
-        handle: event.target.dataset.handle || '',
+        handle,
         start: p, original: { ...box },
         originals: dragTargets(box, event.altKey, resizing),
         before: snapshot(), id: box.id,
