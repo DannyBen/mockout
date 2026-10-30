@@ -60,6 +60,17 @@ test('dark colors invert by default and validate optional overrides in version 1
   assert.equal(project.validProject({ ...old, canvasDark: { background: { mode: 'unknown' } } }), false);
 });
 
+test('current color editor settings with no custom dark color survive saving and reloading', () => {
+  for (const mode of ['invert', 'same', 'custom']) {
+    const dark = { mode, color: null, colorMode: 'gray' };
+    const canvas = { ...valid(), canvasDark: { background: dark } };
+    const swatches = { ...valid(), swatches: [{ ...valid().swatches[0], dark }] };
+    for (const value of [canvas, swatches]) {
+      assert.equal(project.validProject(JSON.parse(JSON.stringify(value))), mode !== 'custom');
+    }
+  }
+});
+
 test('picker changes join the swatch draft only when accepted', () => {
   const light = { color: '#ffffff', mode: 'rgb' };
   const dark = { mode: 'invert', color: null, colorMode: 'rgb' };

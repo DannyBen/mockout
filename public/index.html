@@ -27,7 +27,7 @@
       }
     });
   </script>
-  <link id="toolbar-icons-font" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=arrow_selector_tool,check_circle,crop_square,help,more_horiz,warning_amber&amp;display=block">
+  <link id="toolbar-icons-font" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=arrow_selector_tool,check_circle,crop_square,error,help,link_off,more_horiz,warning_amber,web_asset&amp;display=block">
 </head>
 <body>
   <main id="workspace" tabindex="-1" aria-label="Mock canvas">
@@ -35,9 +35,6 @@
   </main>
 
   <div class="corner" aria-label="Canvas controls">
-    <span id="file-status" role="status" data-connected="false" aria-label="Local session, no file connected"><span class="file-icon" aria-hidden="true"><span class="toolbar-glyph">warning_amber</span><span class="toolbar-text">△</span></span><span class="file-name">Local session</span></span>
-    <button type="button" tabindex="-1" id="reconnect-file" hidden>Reconnect</button>
-    <span class="divider"></span>
     <button type="button" tabindex="-1" data-tool="select" aria-label="Select tool"><span class="toolbar-text">Select</span><span class="toolbar-glyph" aria-hidden="true">arrow_selector_tool</span></button>
     <button type="button" tabindex="-1" data-tool="box" aria-label="Box tool"><span class="toolbar-text">Box</span><span class="toolbar-glyph" aria-hidden="true">crop_square</span></button>
     <span class="divider"></span>
@@ -276,11 +273,21 @@
   </template>
 
   <input id="open-file" type="file" accept=".json,application/json" hidden>
-  <div id="notice" role="alert" hidden>
-    <span id="notice-message"></span>
-    <div id="recovery-actions" hidden>
-      <button type="button" id="download-saved-button">Download saved data</button>
-      <button type="button" id="recovery-reset-button" class="hold-action">Hold to reset app</button>
+  <div id="file-area">
+    <div id="notice" role="alert" hidden>
+      <span id="notice-message"></span>
+      <div id="recovery-actions" hidden>
+        <button type="button" id="download-saved-button">Download saved data</button>
+        <button type="button" id="recovery-reset-button" class="hold-action">Hold to reset app</button>
+      </div>
+      <div id="file-change-actions" hidden>
+        <button type="button" id="reload-file" hidden>Reload file</button>
+        <button type="button" id="save-ours">Save ours</button>
+      </div>
+    </div>
+    <div id="file-connection">
+      <span id="file-status" role="status" data-state="local" data-connected="false" aria-label="Local session, saved in this browser"><span class="file-icon" aria-hidden="true"><span class="toolbar-glyph">web_asset</span><span class="toolbar-text">▣</span></span><span class="file-name">Local session</span><span class="file-detail"></span></span>
+      <button type="button" id="reconnect-file" hidden>Reconnect</button>
     </div>
   </div>
 </body>

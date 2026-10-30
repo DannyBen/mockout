@@ -30,8 +30,15 @@ Your current project is saved automatically in this browser. Use **Save JSON**
 to keep a portable copy, and **Load JSON** to reopen it. **Preview** opens your
 mock without the editor controls or grid.
 
-The toolbar shows the connected filename. Mockout remembers this connection
-across reloads; choose **Reconnect** if the browser needs permission again.
+The bottom-left status shows **Local session** or the connected filename.
+Connected files save automatically after edits, including undo and redo. A check
+shows the file connection; routine saves stay quiet. Mockout remembers it across
+reloads; choose **Reconnect** if the browser needs read/write permission again.
+
+On supported browsers, external file edits appear live; Mockout also checks when
+you return to the tab. Valid changes reload silently if your canvas has no unsaved
+edits. If both changed, editing pauses and your canvas is kept: choose **Reload
+file** to use the file's version, or **Save ours** to replace it with your canvas.
 
 To explore the Welcome project again, choose **New blank**, then
 **Show Welcome example** in Help.

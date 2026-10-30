@@ -5,7 +5,7 @@ const MockoutProject = (() => {
   const hexColor = value => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
   const validDark = dark => dark === undefined || (dark && typeof dark === 'object' && !Array.isArray(dark)
     && ['invert', 'same', 'custom'].includes(dark.mode)
-    && (dark.color === undefined || hexColor(dark.color))
+    && (dark.color == null || hexColor(dark.color))
     && (dark.colorMode === undefined || colorModeValues.includes(dark.colorMode))
     && (dark.mode !== 'custom' || hexColor(dark.color)));
 

@@ -7,6 +7,9 @@ const noticeMessage = document.querySelector('#notice-message');
 const recoveryActions = document.querySelector('#recovery-actions');
 const fileStatus = document.querySelector('#file-status');
 const reconnectFileButton = document.querySelector('#reconnect-file');
+const fileChangeActions = document.querySelector('#file-change-actions');
+const reloadFileButton = document.querySelector('#reload-file');
+const saveOursButton = document.querySelector('#save-ours');
 const projectMenu = document.querySelector('#project-menu');
 const projectMenuButton = document.querySelector('#project-menu-button');
 const projectMenuHolder = document.querySelector('#project-menu-holder');
@@ -40,7 +43,7 @@ const validProject = value => MockoutProject.validProject(value);
 async function showToolbarIcons() {
   try {
     const faces = await document.fonts.load('20px "Material Symbols Outlined"',
-      'arrow_selector_tool check_circle crop_square help more_horiz warning_amber');
+      'arrow_selector_tool check_circle crop_square error help link_off more_horiz warning_amber web_asset');
     if (faces.some(face => face.status === 'loaded')) document.body.classList.add('toolbar-icons-ready');
   } catch { /* Keep the text labels if Google Fonts is unavailable. */ }
 }
@@ -63,8 +66,10 @@ try {
 }
 
 function showNotice(message) {
+  notice.classList.remove('file-update');
   noticeMessage.textContent = message;
   recoveryActions.hidden = !savedProjectIssue;
+  fileChangeActions.hidden = !fileConflict;
   notice.hidden = false;
 }
 
@@ -132,25 +137,101 @@ let textEditor = null;
 let projectFileHandle = null;
 let fileConnectionRevision = 0;
 let fileConnectionSave = Promise.resolve();
-function setProjectFileHandle(handle, { remember = true, needsPermission = false } = {}) {
-  fileConnectionRevision++;
-  projectFileHandle = handle;
-  const connected = Boolean(handle) && !needsPermission;
-  reconnectFileButton.hidden = !needsPermission;
-  fileStatus.dataset.connected = String(connected);
-  fileStatus.querySelector('.toolbar-glyph').textContent = connected ? 'check_circle' : 'warning_amber';
-  fileStatus.querySelector('.toolbar-text').textContent = connected ? '✓' : '△';
+let fileObserver = null;
+let fileStamp = null;
+let fileBaseline = null;
+let fileLocked = false;
+let fileConflict = false;
+let filePendingStamp = null;
+let fileWriting = false;
+let fileSaving = false;
+let fileSaveTimer = null;
+let fileSaveError = '';
+let fileChecks = Promise.resolve();
+
+function updateFileStatus() {
+  const handle = projectFileHandle;
+  const status = !handle ? 'local' : fileConflict ? filePendingStamp === null ? 'error' : 'conflict'
+    : !reconnectFileButton.hidden ? 'reconnect'
+    : fileSaveError ? 'error' : 'connected';
+  const [icon, fallback, label] = {
+    local: ['web_asset', '▣', ''],
+    connected: ['check_circle', '✓', ''],
+    reconnect: ['link_off', '↛', ''],
+    conflict: ['warning_amber', '△', 'Conflict'],
+    error: ['error', '!', fileSaveError ? 'Save failed' : 'File error'],
+  }[status];
+  const description = handle ? `${handle.name}: ${label || (status === 'reconnect' ? 'Reconnect' : 'Connected')}`
+    : 'Local session, saved in this browser';
+  const connected = String(Boolean(handle) && reconnectFileButton.hidden);
+  if (fileStatus.dataset.state === status && fileStatus.getAttribute('aria-label') === description
+    && fileStatus.dataset.connected === connected) return;
+  fileStatus.dataset.state = status;
+  fileStatus.dataset.connected = connected;
+  fileStatus.querySelector('.toolbar-glyph').textContent = icon;
+  fileStatus.querySelector('.toolbar-text').textContent = fallback;
   fileStatus.querySelector('.file-name').textContent = handle ? handle.name.replace(/\.json$/i, '') : 'Local session';
-  fileStatus.setAttribute('aria-label', handle
-    ? `${needsPermission ? 'Reconnect file' : 'Connected file'}: ${handle.name}` : 'Local session, no file connected');
-  if (remember) {
-    fileConnectionSave = fileConnectionSave.then(() => storedFileConnection(true, handle))
-      .catch(error => showNotice(`Could not remember the file connection: ${error.message}`));
-    return fileConnectionSave;
-  }
+  fileStatus.querySelector('.file-detail').textContent = label;
+  fileStatus.setAttribute('aria-label', description);
 }
 
-function storedFileConnection(write = false, handle = null) {
+function clearFileSaveError() {
+  if (!fileSaveError) return;
+  fileSaveError = '';
+  if (!savedProjectIssue && !fileConflict) notice.hidden = true;
+}
+
+function queueFileSave() {
+  clearTimeout(fileSaveTimer);
+  updateFileStatus();
+  if (!projectFileHandle || fileLocked || fileSaving || fileSaveError || savedProjectIssue
+    || !reconnectFileButton.hidden || gesture || placement || textEditor || snapshot() === fileBaseline) return;
+  fileSaveTimer = setTimeout(() => saveProject(false, null, true), 0);
+}
+
+function setProjectFileHandle(handle, { remember = true, needsPermission = false, canRead = false, file = null, baseline = null } = {}) {
+  const wasLocked = fileLocked;
+  fileConnectionRevision++;
+  projectFileHandle = handle;
+  fileObserver?.disconnect();
+  fileObserver = null;
+  if (remember) {
+    clearTimeout(fileSaveTimer);
+    clearFileSaveError();
+    fileStamp = file?.lastModified ?? null;
+    fileBaseline = handle && file ? baseline ?? snapshot() : null;
+    fileLocked = false;
+    fileConflict = false;
+    filePendingStamp = null;
+    fileChangeActions.hidden = true;
+  }
+  const connected = Boolean(handle) && !needsPermission;
+  reconnectFileButton.hidden = !needsPermission;
+  updateFileStatus();
+  if (handle && (connected || canRead) && typeof FileSystemObserver === 'function') {
+    const observer = new FileSystemObserver(() => checkExternalFile());
+    fileObserver = observer;
+    observer.observe(handle).then(() => {
+      if (fileObserver === observer) checkExternalFile();
+    }).catch(() => { observer.disconnect(); if (fileObserver === observer) fileObserver = null; });
+  }
+  if (wasLocked && !fileLocked) {
+    if (savedProjectIssue) showNotice(savedProjectIssue);
+    else notice.hidden = true;
+    render();
+  }
+  if (remember) return rememberFileConnection();
+}
+
+function rememberFileConnection() {
+  const handle = projectFileHandle;
+  const sync = { stamp: fileStamp, baseline: fileBaseline };
+  fileConnectionSave = fileConnectionSave.then(() => storedFileConnection(true, handle, sync))
+    .catch(error => showNotice(`Could not remember the file connection: ${error.message}`));
+  return fileConnectionSave;
+}
+
+function storedFileConnection(write = false, handle = null, sync = null) {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open('mockout-file-connection', 1);
     request.onupgradeneeded = () => request.result.createObjectStore('connection');
@@ -161,7 +242,8 @@ function storedFileConnection(write = false, handle = null) {
         const transaction = database.transaction('connection', write ? 'readwrite' : 'readonly');
         const store = transaction.objectStore('connection');
         const operation = write ? handle ? store.put(handle, 'current') : store.delete('current') : store.get('current');
-        transaction.oncomplete = () => { database.close(); resolve(operation.result); };
+        const metadata = write ? handle ? store.put(sync, 'sync') : store.delete('sync') : store.get('sync');
+        transaction.oncomplete = () => { database.close(); resolve(write ? undefined : { handle: operation.result, sync: metadata.result }); };
         transaction.onabort = () => { database.close(); reject(transaction.error || new Error('Storage was interrupted.')); };
       } catch (error) { database.close(); reject(error); }
     };
@@ -170,11 +252,17 @@ function storedFileConnection(write = false, handle = null) {
 
 async function checkFileConnection(handle, revision, requestPermission = false) {
   try {
-    const permission = requestPermission ? await handle.requestPermission({ mode: 'read' })
-      : await handle.queryPermission({ mode: 'read' });
-    if (permission === 'granted') await handle.getFile();
+    const permission = requestPermission ? await handle.requestPermission({ mode: 'readwrite' })
+      : await handle.queryPermission({ mode: 'readwrite' });
+    const canRead = permission === 'granted' || await handle.queryPermission({ mode: 'read' }) === 'granted';
+    if (canRead) await handle.getFile();
     if (revision !== fileConnectionRevision) return;
-    setProjectFileHandle(handle, { remember: false, needsPermission: permission !== 'granted' });
+    setProjectFileHandle(handle, { remember: false, needsPermission: permission !== 'granted', canRead });
+    if (canRead) {
+      if (requestPermission) clearFileSaveError();
+      await checkExternalFile();
+      queueFileSave();
+    }
   } catch (error) {
     if (revision !== fileConnectionRevision) return;
     if (error.name === 'NotFoundError') setProjectFileHandle(null);
@@ -188,9 +276,11 @@ async function checkFileConnection(handle, revision, requestPermission = false) 
 async function restoreFileConnection() {
   const revision = fileConnectionRevision;
   try {
-    const handle = await storedFileConnection();
+    const { handle, sync } = await storedFileConnection();
     if (revision !== fileConnectionRevision || !handle) return;
     if (firstLoad) { setProjectFileHandle(null); return; }
+    fileStamp = sync?.stamp ?? null;
+    fileBaseline = sync?.baseline ?? null;
     await checkFileConnection(handle, revision);
   } catch (error) {
     if (revision === fileConnectionRevision) showNotice(`Could not restore the file connection: ${error.message}`);
@@ -199,6 +289,116 @@ async function restoreFileConnection() {
 reconnectFileButton.addEventListener('click', () => {
   if (projectFileHandle) checkFileConnection(projectFileHandle, fileConnectionRevision, true);
 });
+
+function showFileUpdate(message) {
+  showNotice(message);
+  notice.classList.add('file-update');
+  reloadFileButton.hidden = !fileConflict;
+  saveOursButton.hidden = filePendingStamp === null;
+}
+
+function clearFileUpdate() {
+  fileChangeActions.hidden = true;
+  if (!notice.classList.contains('file-update')) return;
+  if (savedProjectIssue) showNotice(savedProjectIssue);
+  else notice.hidden = true;
+}
+
+function pauseFileEditing() {
+  if (placement) finishPlacement(false);
+  if (textEditor) textEditor.blur();
+  const before = gesture?.before;
+  gesture = null;
+  lastBoxClick = null;
+  if (before) commit(before);
+  inspectorOpen = false;
+  fileLocked = true;
+}
+
+function checkExternalFile(replace = false) {
+  fileChecks = fileChecks.then(() => loadExternalFile(replace)).catch(error => {
+    showNotice(`Could not check the connected file: ${error.message}`);
+    return true;
+  });
+  return fileChecks;
+}
+
+async function loadExternalFile(replace) {
+  const handle = projectFileHandle;
+  const revision = fileConnectionRevision;
+  if (!handle || fileWriting) return false;
+  let loading = false;
+  try {
+    if (!reconnectFileButton.hidden && await handle.queryPermission({ mode: 'read' }) !== 'granted') return false;
+    if (revision !== fileConnectionRevision) return false;
+    const file = await handle.getFile();
+    if (revision !== fileConnectionRevision) return false;
+    if (!replace && fileStamp === file.lastModified) return false;
+    pauseFileEditing();
+    loading = true;
+    render();
+    const loaded = JSON.parse(await file.text());
+    if (revision !== fileConnectionRevision) return false;
+    if (!validProject(loaded)) throw Error('The file is not a supported Mockout project.');
+    // Older connections have no timestamp yet. Recognise an unchanged exported board.
+    if (!replace && fileStamp === null && JSON.stringify(MockoutProject.forExport(loaded)) === JSON.stringify(MockoutProject.forExport(state))) {
+      fileStamp = file.lastModified;
+      fileBaseline = snapshot();
+      fileConflict = false;
+      filePendingStamp = null;
+      await rememberFileConnection();
+      if (revision === fileConnectionRevision) clearFileUpdate();
+      return false;
+    }
+    filePendingStamp = file.lastModified;
+    fileConflict = !replace && (fileBaseline === null || snapshot() !== fileBaseline);
+    if (fileConflict) {
+      showFileUpdate('The file and your canvas both changed. Reload file to use its version, or Save ours to replace it with your canvas.');
+      return true;
+    }
+    const before = snapshot();
+    state = loaded;
+    selectedIds = new Set([...selectedIds].filter(id => state.boxes.some(box => box.id === id)));
+    selectedId = selectedIds.values().next().value ?? null;
+    isolatedCopyIds = null;
+    commit(before);
+    fileStamp = file.lastModified;
+    fileBaseline = snapshot();
+    filePendingStamp = null;
+    await rememberFileConnection();
+    if (revision !== fileConnectionRevision) return false;
+    clearFileUpdate();
+    return true;
+  } catch (error) {
+    if (revision !== fileConnectionRevision) return false;
+    if (error.name === 'NotFoundError') setProjectFileHandle(null);
+    else if (error.name === 'NotAllowedError') {
+      fileLocked = fileConflict;
+      setProjectFileHandle(handle, { remember: false, needsPermission: true });
+      render();
+    }
+    else {
+      pauseFileEditing();
+      loading = true;
+      fileConflict = true;
+      filePendingStamp = null;
+      showFileUpdate(`Could not load the external change: ${error.message} Current canvas kept.`);
+    }
+    return true;
+  } finally {
+    if (loading && revision === fileConnectionRevision) {
+      fileLocked = fileConflict;
+      render();
+    }
+  }
+}
+
+reloadFileButton.addEventListener('click', () => checkExternalFile(true));
+saveOursButton.addEventListener('click', () => {
+  if (fileConflict && filePendingStamp !== null) saveProject(false, filePendingStamp);
+});
+window.addEventListener('focus', () => checkExternalFile());
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkExternalFile(); });
 let inspectorOpen = false;
 let inspectorKind = 'box';
 let inspectorPoint = { x: 12, y: 12 };
@@ -297,6 +497,7 @@ const minimum = () => 1;
 function persist() {
   try { MockoutProject.persist(localStorage, STORAGE_KEY, state, savedProjectIssue); }
   catch { /* File save remains available. */ }
+  queueFileSave();
 }
 
 function commit(before) {
@@ -324,7 +525,9 @@ function addResizeHandles(element) {
 }
 
 function render() {
-  welcomeButton.disabled = Boolean(state.boxes.length || savedProjectIssue);
+  updateFileStatus();
+  welcomeButton.disabled = Boolean(state.boxes.length || savedProjectIssue || fileLocked);
+  inspector.inert = fileLocked;
   welcomeHint.hidden = !welcomeButton.disabled;
   welcomeHint.textContent = savedProjectIssue ? 'Resolve the saved project issue first.'
     : 'Start a new blank project first to show Welcome.';
@@ -340,6 +543,7 @@ function render() {
   workspace.classList.toggle('tool-box', tool === 'box');
   workspace.classList.toggle('panning', spaceDown || gesture?.kind === 'pan');
   workspace.classList.toggle('alt-move', altDown);
+  workspace.classList.toggle('file-locked', fileLocked);
   canvas.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`;
   canvas.style.setProperty('--screen-pixel', `${1 / view.zoom}px`);
   canvas.style.setProperty('--handle-size', `${9 / view.zoom}px`);
@@ -354,6 +558,9 @@ function render() {
     button.setAttribute('aria-pressed', String(active));
   }
   for (const button of document.querySelectorAll('.corner button:not(#help-button)')) button.disabled = Boolean(placement);
+  if (fileLocked) {
+    for (const button of [...toolButtons, ...gridButtons, document.querySelector('#save-button')]) button.disabled = true;
+  }
   document.querySelector('#placement-hint').hidden = !placement;
 
   canvas.replaceChildren();
@@ -393,12 +600,12 @@ function render() {
     }
     element.append(label);
 
-    if (selectedIds.size === 1 && selectedIds.has(box.id) && tool === 'select' && !textEditor && !placement) {
+    if (selectedIds.size === 1 && selectedIds.has(box.id) && tool === 'select' && !textEditor && !placement && !fileLocked) {
       addResizeHandles(element);
     }
     canvas.append(element);
   }
-  if (selectedIds.size > 1 && tool === 'select' && !textEditor && !placement) {
+  if (selectedIds.size > 1 && tool === 'select' && !textEditor && !placement && !fileLocked) {
     const boxes = selectedBoxes();
     const left = Math.min(...boxes.map(box => box.x));
     const top = Math.min(...boxes.map(box => box.y));
@@ -816,6 +1023,7 @@ function finishPlacement(save) {
     render();
   }
   workspace.focus();
+  queueFileSave();
 }
 
 const containsBox = MockoutSelection.containsBox;
@@ -943,6 +1151,7 @@ function openCanvasInspector(point = null) {
 }
 
 workspace.addEventListener('contextmenu', event => {
+  if (fileLocked) { event.preventDefault(); return; }
   if (placement) { event.preventDefault(); return; }
   const boxElement = event.target.closest('.box');
   event.preventDefault();
@@ -958,6 +1167,7 @@ document.addEventListener('pointermove', event => {
 });
 
 workspace.addEventListener('pointerdown', event => {
+  if (fileLocked && event.button !== 1 && !spaceDown) { event.preventDefault(); return; }
   if (inspector.contains(document.activeElement)) document.activeElement.blur();
   if (placement) {
     event.preventDefault();
@@ -1104,6 +1314,7 @@ function endGesture(event) {
   if (workspace.hasPointerCapture(event.pointerId)) workspace.releasePointerCapture(event.pointerId);
   if (before) commit(before);
   render();
+  queueFileSave();
 }
 workspace.addEventListener('pointerup', endGesture);
 workspace.addEventListener('pointercancel', event => {
@@ -1113,6 +1324,7 @@ workspace.addEventListener('pointercancel', event => {
   lastBoxClick = null;
   if (workspace.hasPointerCapture(event.pointerId)) workspace.releasePointerCapture(event.pointerId);
   render();
+  queueFileSave();
 });
 
 function editText(id) {
@@ -1141,6 +1353,7 @@ function editText(id) {
     textEditor = null;
     if (save) commit(before);
     render();
+    queueFileSave();
   };
   editor.addEventListener('blur', () => finish(true));
   editor.addEventListener('keydown', event => {
@@ -1389,6 +1602,16 @@ document.addEventListener('keydown', event => {
   const digit = /^(?:Digit|Numpad)([0-9])$/.exec(event.code)?.[1];
   const zoomInKey = event.code === 'Equal' || event.code === 'NumpadAdd';
   const zoomOutKey = (event.code === 'Minus' && !event.shiftKey) || event.code === 'NumpadSubtract';
+  if (fileLocked) {
+    const direction = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
+    if (direction) {
+      event.preventDefault(); view.x -= direction[0] * 40; view.y -= direction[1] * 40; render(); return;
+    }
+    const viewing = event.key === 'Escape' || event.code === 'Space' || zoomInKey || zoomOutKey
+      || (ctrl && (['KeyO', 'KeyP', 'KeyC', 'KeyA'].includes(event.code) || digit === '0' || (event.code === 'KeyS' && event.shiftKey)))
+      || (!ctrl && !event.altKey && (event.code === 'KeyT' || (event.shiftKey && ['Slash', 'KeyN'].includes(event.code))));
+    if (!viewing) { event.preventDefault(); return; }
+  }
   if (placement) {
     if (event.key === 'Escape') { event.preventDefault(); finishPlacement(false); return; }
     if (event.key === 'Enter') { event.preventDefault(); finishPlacement(true); return; }
@@ -1839,19 +2062,57 @@ function downloadProject() {
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-async function saveProject(asNew = false) {
+async function saveProject(asNew = false, overwriteStamp = null, automatic = false) {
+  if (fileSaving || (fileLocked && !asNew && overwriteStamp === null)) return;
+  if (automatic && (!projectFileHandle || fileSaveError || savedProjectIssue
+    || !reconnectFileButton.hidden || gesture || placement || textEditor || snapshot() === fileBaseline)) return;
   if (!window.showSaveFilePicker) { downloadProject(); return; }
+  clearTimeout(fileSaveTimer);
+  if (!automatic) clearFileSaveError();
+  fileSaving = true;
+  updateFileStatus();
+  const revision = fileConnectionRevision;
   try {
     const handle = !asNew && projectFileHandle ? projectFileHandle : await window.showSaveFilePicker({
       suggestedName: MockoutProject.suggestedFileName(),
       types: [{ description: 'Mockout project', accept: { 'application/json': ['.json'] } }],
     });
+    if (revision !== fileConnectionRevision) return;
+    if (handle === projectFileHandle && !asNew) {
+      if (!reconnectFileButton.hidden) { showNotice('Reconnect the file before saving.'); return; }
+      if (automatic && await handle.queryPermission({ mode: 'readwrite' }) !== 'granted') {
+        if (revision === fileConnectionRevision) setProjectFileHandle(handle, { remember: false, needsPermission: true, canRead: true });
+        return;
+      }
+      if (revision !== fileConnectionRevision) return;
+      if (overwriteStamp !== null) {
+        const file = await handle.getFile();
+        if (revision !== fileConnectionRevision) return;
+        if (file.lastModified !== overwriteStamp) { await checkExternalFile(); return; }
+      } else if (await checkExternalFile() || fileLocked || revision !== fileConnectionRevision) return;
+    }
+    if (automatic && (gesture || placement || textEditor)) return;
+    const savedState = snapshot();
+    const contents = JSON.stringify(MockoutProject.forExport(state), null, 2);
+    fileWriting = true;
     const writable = await handle.createWritable();
-    await writable.write(JSON.stringify(MockoutProject.forExport(state), null, 2));
+    await writable.write(contents);
     await writable.close();
-    await setProjectFileHandle(handle);
+    const file = await handle.getFile();
+    if (revision === fileConnectionRevision) await setProjectFileHandle(handle, { file, baseline: savedState });
   } catch (error) {
-    if (error.name !== 'AbortError') showNotice(`Could not save project: ${error.message}`);
+    if (revision !== fileConnectionRevision) return;
+    if (error.name === 'NotAllowedError' && projectFileHandle) {
+      setProjectFileHandle(projectFileHandle, { remember: false, needsPermission: true });
+    } else if (error.name !== 'AbortError' || automatic) {
+      fileSaveError = error.message;
+      showNotice(`Could not save project: ${error.message}`);
+    }
+  } finally {
+    fileWriting = false;
+    fileSaving = false;
+    checkExternalFile();
+    queueFileSave();
   }
 }
 document.querySelector('#save-button').addEventListener('click', () => saveProject());
@@ -2000,7 +2261,7 @@ async function openPreview() {
     const html = previewHTML(await response.text());
     tab.location.replace(URL.createObjectURL(new Blob([html], { type: 'text/html' })));
     if (savedProjectIssue) showNotice(savedProjectIssue);
-    else notice.hidden = true;
+    else if (!fileLocked) notice.hidden = true;
   } catch (error) {
     tab.close();
     showNotice(`Could not open preview: ${error.message}`);
@@ -2027,7 +2288,7 @@ async function openProjectFile(file, handle = null) {
     change(() => { state = loaded; selectOnly(null); inspectorOpen = false; focusProject(state.boxes); });
     if (savedProjectIssue) showNotice(savedProjectIssue);
     else notice.hidden = true;
-    await setProjectFileHandle(handle);
+    await setProjectFileHandle(handle, { file });
     undoStack.length = 0;
     redoStack.length = 0;
     render();
