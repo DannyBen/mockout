@@ -27,7 +27,7 @@
       }
     });
   </script>
-  <link id="toolbar-icons-font" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=arrow_selector_tool,crop_square,help,more_horiz&amp;display=block">
+  <link id="toolbar-icons-font" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=arrow_selector_tool,check_circle,crop_square,help,more_horiz,warning_amber&amp;display=block">
 </head>
 <body>
   <main id="workspace" tabindex="-1" aria-label="Mock canvas">
@@ -35,6 +35,8 @@
   </main>
 
   <div class="corner" aria-label="Canvas controls">
+    <span id="file-status" role="status" data-connected="false" aria-label="Local session, no file connected"><span class="file-icon" aria-hidden="true"><span class="toolbar-glyph">warning_amber</span><span class="toolbar-text">△</span></span><span class="file-name">Local session</span></span>
+    <span class="divider"></span>
     <button type="button" tabindex="-1" data-tool="select" aria-label="Select tool"><span class="toolbar-text">Select</span><span class="toolbar-glyph" aria-hidden="true">arrow_selector_tool</span></button>
     <button type="button" tabindex="-1" data-tool="box" aria-label="Box tool"><span class="toolbar-text">Box</span><span class="toolbar-glyph" aria-hidden="true">crop_square</span></button>
     <span class="divider"></span>

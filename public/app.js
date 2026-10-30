@@ -5,6 +5,7 @@ const inspector = document.querySelector('#inspector');
 const notice = document.querySelector('#notice');
 const noticeMessage = document.querySelector('#notice-message');
 const recoveryActions = document.querySelector('#recovery-actions');
+const fileStatus = document.querySelector('#file-status');
 const projectMenu = document.querySelector('#project-menu');
 const projectMenuButton = document.querySelector('#project-menu-button');
 const projectMenuHolder = document.querySelector('#project-menu-holder');
@@ -38,7 +39,7 @@ const validProject = value => MockoutProject.validProject(value);
 async function showToolbarIcons() {
   try {
     const faces = await document.fonts.load('20px "Material Symbols Outlined"',
-      'arrow_selector_tool crop_square help more_horiz');
+      'arrow_selector_tool check_circle crop_square help more_horiz warning_amber');
     if (faces.some(face => face.status === 'loaded')) document.body.classList.add('toolbar-icons-ready');
   } catch { /* Keep the text labels if Google Fonts is unavailable. */ }
 }
@@ -128,6 +129,14 @@ let copiedBoxes = null;
 let isolatedCopyIds = null;
 let textEditor = null;
 let projectFileHandle = null;
+function setProjectFileHandle(handle) {
+  projectFileHandle = handle;
+  fileStatus.dataset.connected = String(Boolean(handle));
+  fileStatus.querySelector('.toolbar-glyph').textContent = handle ? 'check_circle' : 'warning_amber';
+  fileStatus.querySelector('.toolbar-text').textContent = handle ? '✓' : '△';
+  fileStatus.querySelector('.file-name').textContent = handle ? handle.name.replace(/\.json$/i, '') : 'Local session';
+  fileStatus.setAttribute('aria-label', handle ? `Connected file: ${handle.name}` : 'Local session, no file connected');
+}
 let inspectorOpen = false;
 let inspectorKind = 'box';
 let inspectorPoint = { x: 12, y: 12 };
@@ -1778,7 +1787,7 @@ async function saveProject(asNew = false) {
     const writable = await handle.createWritable();
     await writable.write(JSON.stringify(MockoutProject.forExport(state), null, 2));
     await writable.close();
-    projectFileHandle = handle;
+    setProjectFileHandle(handle);
   } catch (error) {
     if (error.name !== 'AbortError') showNotice(`Could not save project: ${error.message}`);
   }
@@ -1789,7 +1798,7 @@ if (window.showSaveFilePicker) saveAsButton.addEventListener('click', () => save
 else saveAsButton.remove();
 function newBlank() {
   closeProjectMenu();
-  projectFileHandle = null;
+  setProjectFileHandle(null);
   change(() => {
     state = freshState();
     selectOnly(null);
@@ -1810,7 +1819,7 @@ async function resetEverything() {
   try { MockoutProject.reset(localStorage, STORAGE_KEY); }
   catch { showNotice('Could not clear saved data. Nothing was reset.'); return; }
   state = loaded;
-  projectFileHandle = null;
+  setProjectFileHandle(null);
   savedProjectIssue = '';
   undoStack.length = 0;
   redoStack.length = 0;
@@ -1954,7 +1963,7 @@ async function openProjectFile(file, handle = null) {
     const loaded = JSON.parse(await file.text());
     if (!validProject(loaded)) throw new Error('This is not a Mockout project.');
     change(() => { state = loaded; selectOnly(null); inspectorOpen = false; focusProject(state.boxes); });
-    projectFileHandle = handle;
+    setProjectFileHandle(handle);
     undoStack.length = 0;
     redoStack.length = 0;
     render();
@@ -1978,13 +1987,25 @@ document.addEventListener('dragover', event => {
   event.dataTransfer.dropEffect = placement ? 'none' : 'copy';
 });
 
-document.addEventListener('drop', event => {
+document.addEventListener('drop', async event => {
   if (!event.dataTransfer?.types.includes('Files')) return;
   event.preventDefault();
   if (placement) return;
-  if (event.dataTransfer.files.length === 1) openProjectFile(event.dataTransfer.files[0]);
-  else {
+  if (event.dataTransfer.files.length !== 1) {
     showNotice('Drop one JSON project file at a time.');
+    return;
+  }
+  const file = event.dataTransfer.files[0];
+  try {
+    const item = [...event.dataTransfer.items].find(item => item.kind === 'file');
+    const handle = await item?.getAsFileSystemHandle?.();
+    if (handle?.kind === 'directory') {
+      showNotice('Drop one JSON project file at a time.');
+      return;
+    }
+    await openProjectFile(file, handle || null);
+  } catch (error) {
+    showNotice(`Could not open project: ${error.message}`);
   }
 });
 

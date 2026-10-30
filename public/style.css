@@ -13,6 +13,8 @@
   --ui-muted: #626d82;
   --ui-subtle: #8992a3;
   --ui-small-label: #69748a;
+  --ui-file-local: #b98016;
+  --ui-file-connected: #2c8c55;
   --ui-faint: #929aac;
   --ui-accent: #ca5e11;
   --ui-on-accent: #fff;
@@ -52,6 +54,8 @@
   --ui-muted: #aeb9cb;
   --ui-subtle: #9da9bd;
   --ui-small-label: #b8c2d3;
+  --ui-file-local: #dba84d;
+  --ui-file-connected: #63c78f;
   --ui-faint: #909db3;
   --ui-accent: #f58220;
   --ui-on-accent: #1c130c;
@@ -217,6 +221,24 @@ button { cursor: pointer; }
 }
 
 .corner > button:focus-visible, .corner > div > button:focus-visible { outline: none; }
+
+#file-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 180px;
+  padding: 0 6px;
+  color: var(--ui-muted);
+  font-size: 14px;
+
+  & .file-icon { display: grid; place-items: center; flex: none; width: 20px; height: 20px; color: var(--ui-file-local); }
+  & .file-icon .toolbar-text { font-size: 20px; line-height: 1; }
+  &[data-connected="true"] {
+    & .file-icon { color: var(--ui-file-connected); }
+    & .file-icon .toolbar-text { width: 17px; height: 17px; border: 1px solid currentColor; border-radius: 50%; font-size: 14px; text-align: center; }
+  }
+  & .file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
 
 body.toolbar-icons-ready .corner {
   & .toolbar-glyph { display: block; }
