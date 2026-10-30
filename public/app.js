@@ -68,8 +68,9 @@ try {
   savedProjectIssue = 'Could not read the saved project. Local data was left untouched; autosave is paused.';
 }
 
-function showNotice(message) {
+function showNotice(message, kind = '') {
   notice.classList.remove('file-update');
+  notice.dataset.kind = kind;
   noticeMessage.textContent = message;
   recoveryActions.hidden = !savedProjectIssue;
   fileChangeActions.hidden = !fileConflict;
@@ -95,6 +96,7 @@ function toggleToolbarMenu(item) {
 }
 function syncThemeButton() {
   themeButton.setAttribute('aria-label', `Switch to ${document.documentElement.dataset.uiTheme === 'dark' ? 'light' : 'dark'} theme`);
+  document.querySelector('meta[name="theme-color"]').content = getComputedStyle(document.documentElement).getPropertyValue('--ui-accent').trim() || '#ca5e11';
 }
 function setTheme(theme) {
   document.documentElement.dataset.theme = theme;
@@ -212,6 +214,10 @@ function setProjectFileHandle(handle, { remember = true, needsPermission = false
   reconnectFileButton.hidden = !needsPermission;
   workLocallyButton.hidden = !needsPermission;
   updateFileStatus();
+  if (!needsPermission && notice.dataset.kind === 'file-connection') {
+    if (savedProjectIssue) showNotice(savedProjectIssue);
+    else notice.hidden = true;
+  }
   if (handle && (connected || canRead) && typeof FileSystemObserver === 'function') {
     const observer = new FileSystemObserver(() => checkExternalFile());
     fileObserver = observer;
@@ -272,7 +278,7 @@ async function checkFileConnection(handle, revision, requestPermission = false) 
     if (error.name === 'NotFoundError') setProjectFileHandle(null);
     else {
       setProjectFileHandle(handle, { remember: false, needsPermission: true });
-      showNotice(`Could not reconnect the file: ${error.message}`);
+      showNotice(`Could not reconnect the file: ${error.message}`, 'file-connection');
     }
   }
 }
@@ -2136,7 +2142,7 @@ async function saveProject(asNew = false, overwriteStamp = null, automatic = fal
     });
     if (revision !== fileConnectionRevision) return;
     if (handle === projectFileHandle && !asNew) {
-      if (!reconnectFileButton.hidden) { showNotice('Reconnect the file before saving.'); return; }
+      if (!reconnectFileButton.hidden) { showNotice('Reconnect the file before saving.', 'file-connection'); return; }
       if (automatic && await handle.queryPermission({ mode: 'readwrite' }) !== 'granted') {
         if (revision === fileConnectionRevision) setProjectFileHandle(handle, { remember: false, needsPermission: true, canRead: true });
         return;

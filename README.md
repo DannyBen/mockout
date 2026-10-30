@@ -1,6 +1,8 @@
 # Mockout
 
-**Sketch freely. Keep it simple.**
+**Think inside the box.**
+
+Rapid UI mockups.
 
 [Open Mockout](https://mockout.sector-seven.com)
 

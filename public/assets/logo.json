@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "grid": 5,
+  "nextId": 6,
+  "swatches": [
+    {
+      "id": "brand",
+      "name": "Brand",
+      "color": "#CA5E11",
+      "mode": "hsb",
+      "dark": {
+        "mode": "custom",
+        "color": "#F58220",
+        "colorMode": "hsb"
+      }
+    },
+    {
+      "id": "brand-mark",
+      "name": "Brand mark",
+      "color": "#ffffff",
+      "mode": "gray",
+      "dark": {
+        "mode": "custom",
+        "color": "#202735",
+        "colorMode": "gray"
+      }
+    }
+  ],
+  "boxes": [
+    {
+      "id": 1,
+      "text": "",
+      "fill": "brand",
+      "textColor": "brand-mark",
+      "alignX": "center",
+      "alignY": "center",
+      "paddingX": 0,
+      "paddingY": 0,
+      "fontFamily": "",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "fontStyle": "normal",
+      "x": 0,
+      "y": 0,
+      "w": 100,
+      "h": 100,
+      "borderColor": null,
+      "borderWidth": 1,
+      "radius": 10
+    },
+    {
+      "id": 2,
+      "text": "",
+      "textColor": "brand-mark",
+      "borderColor": null,
+      "borderWidth": 0,
+      "radius": 0,
+      "alignX": "center",
+      "alignY": "center",
+      "paddingX": 0,
+      "paddingY": 0,
+      "fontFamily": "",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "fontStyle": "normal",
+      "x": 40,
+      "y": 30,
+      "w": 20,
+      "h": 45,
+      "fill": "brand-mark"
+    },
+    {
+      "id": 3,
+      "text": "",
+      "textColor": "brand-mark",
+      "borderColor": null,
+      "borderWidth": 0,
+      "radius": 0,
+      "alignX": "center",
+      "alignY": "center",
+      "paddingX": 0,
+      "paddingY": 0,
+      "fontFamily": "",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "fontStyle": "normal",
+      "x": 15,
+      "y": 15,
+      "w": 70,
+      "h": 15,
+      "fill": "brand-mark"
+    },
+    {
+      "id": 4,
+      "text": "",
+      "textColor": "brand-mark",
+      "borderColor": null,
+      "borderWidth": 0,
+      "radius": 0,
+      "alignX": "center",
+      "alignY": "center",
+      "paddingX": 0,
+      "paddingY": 0,
+      "fontFamily": "",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "fontStyle": "normal",
+      "x": 15,
+      "y": 35,
+      "w": 20,
+      "h": 50,
+      "fill": "brand-mark"
+    },
+    {
+      "id": 5,
+      "text": "",
+      "textColor": "brand-mark",
+      "borderColor": null,
+      "borderWidth": 0,
+      "radius": 0,
+      "alignX": "center",
+      "alignY": "center",
+      "paddingX": 0,
+      "paddingY": 0,
+      "fontFamily": "",
+      "fontSize": 16,
+      "fontWeight": 400,
+      "fontStyle": "normal",
+      "x": 65,
+      "y": 35,
+      "w": 20,
+      "h": 50,
+      "fill": "brand-mark"
+    }
+  ],
+  "lastStyle": {
+    "fill": "brand",
+    "textColor": "brand-mark",
+    "borderColor": null,
+    "borderWidth": 1,
+    "radius": 0,
+    "paddingX": 3,
+    "paddingY": 0,
+    "alignX": "center",
+    "alignY": "center",
+    "fontFamily": "",
+    "fontSize": 13,
+    "fontWeight": 400,
+    "fontStyle": "normal"
+  },
+  "canvasColors": {
+    "background": "#ffffff",
+    "gridMajor": "#d0d0d0",
+    "gridMinor": "#e8e8e8"
+  },
+  "canvasColorModes": {
+    "background": "gray",
+    "gridMajor": "gray",
+    "gridMinor": "gray"
+  }
+}
