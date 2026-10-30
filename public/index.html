@@ -6,14 +6,13 @@
   <title>Mockout</title>
   <script>
     const systemTheme = matchMedia('(prefers-color-scheme: dark)');
-    let chosenTheme = 'auto';
+    let chosenTheme = null;
     try {
       const theme = localStorage.getItem('mockout-ui-theme');
       if (theme === 'light' || theme === 'dark') chosenTheme = theme;
     } catch { /* Use the system theme when storage is unavailable. */ }
-    if (chosenTheme !== 'auto') document.documentElement.dataset.theme = chosenTheme;
-    document.documentElement.dataset.uiTheme = chosenTheme === 'auto'
-      ? systemTheme.matches ? 'dark' : 'light' : chosenTheme;
+    if (chosenTheme) document.documentElement.dataset.theme = chosenTheme;
+    document.documentElement.dataset.uiTheme = chosenTheme || (systemTheme.matches ? 'dark' : 'light');
     const assetVersion = Date.now().toString(36);
     const stylesheet = document.createElement('link');
     stylesheet.rel = 'stylesheet';
@@ -61,20 +60,12 @@
         <button type="button" id="reset-button" class="hold-action"><span>Reset app</span><span class="menu-hint">Hold</span></button>
       </div>
     </div>
-    <div id="theme-menu-holder">
-      <button type="button" tabindex="-1" id="theme-menu-button" data-theme="auto" aria-label="Theme: Auto" aria-haspopup="true" aria-controls="theme-menu" aria-expanded="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <g data-icon="auto"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17Z"/></g>
-          <g data-icon="light"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></g>
-          <g data-icon="dark"><path d="M20.4 15.5A8.5 8.5 0 0 1 8.5 3.6 8.5 8.5 0 1 0 20.4 15.5Z"/></g>
-        </svg>
-      </button>
-      <div id="theme-menu" class="toolbar-menu" hidden aria-label="Theme">
-        <button type="button" data-theme-choice="auto" aria-pressed="true">Auto</button>
-        <button type="button" data-theme-choice="light" aria-pressed="false">Light</button>
-        <button type="button" data-theme-choice="dark" aria-pressed="false">Dark</button>
-      </div>
-    </div>
+    <button type="button" tabindex="-1" id="theme-button" aria-label="Switch theme">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <g data-icon="light"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></g>
+        <g data-icon="dark"><path d="M20.4 15.5A8.5 8.5 0 0 1 8.5 3.6 8.5 8.5 0 1 0 20.4 15.5Z"/></g>
+      </svg>
+    </button>
     <button type="button" tabindex="-1" id="help-button" aria-label="Help" aria-controls="help-panel" aria-expanded="false"><span class="toolbar-text">?</span><span class="toolbar-glyph" aria-hidden="true">help</span></button>
   </div>
 
@@ -144,6 +135,7 @@
         <div><dt>Open JSON</dt><dd><div><kbd>Ctrl</kbd> + <kbd>O</kbd></div><div>Drop JSON file</div></dd></div>
         <div><dt>New blank project</dt><dd><kbd>Shift</kbd> + <kbd>N</kbd></dd></div>
         <div><dt>Preview</dt><dd><kbd>Ctrl</kbd> + <kbd>P</kbd></dd></div>
+        <div><dt>Toggle theme</dt><dd><kbd>T</kbd></dd></div>
         <div><dt>Reset app and load Welcome</dt><dd>Hold Reset app</dd></div>
         <div><dt>Help</dt><dd><kbd>?</kbd></dd></div>
       </dl>

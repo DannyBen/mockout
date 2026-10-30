@@ -215,7 +215,7 @@ body.toolbar-icons-ready .corner {
   & .toolbar-text { display: none; }
 }
 
-#project-menu-holder, #theme-menu-holder { position: relative; }
+#project-menu-holder { position: relative; }
 .toolbar-menu {
   position: absolute;
   top: calc(100% + 8px);
@@ -235,13 +235,11 @@ body.toolbar-icons-ready .corner {
   & hr { margin: 5px 3px; border: 0; border-top: 1px solid var(--ui-border); }
 }
 
-#theme-menu { width: 116px; }
-#theme-menu-button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-#theme-menu-button [data-icon] { display: none; }
-#theme-menu-button[data-theme="auto"] [data-icon="auto"],
-#theme-menu-button[data-theme="light"] [data-icon="light"],
-#theme-menu-button[data-theme="dark"] [data-icon="dark"] { display: initial; }
-#theme-menu-button [data-icon="auto"] path, #theme-menu-button [data-icon="dark"] path { fill: currentColor; stroke: none; }
+#theme-button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+#theme-button [data-icon] { display: none; }
+:root[data-ui-theme="light"] #theme-button [data-icon="light"],
+:root[data-ui-theme="dark"] #theme-button [data-icon="dark"] { display: initial; }
+#theme-button [data-icon="dark"] path { fill: currentColor; stroke: none; }
 
 .hold-action {
   position: relative;

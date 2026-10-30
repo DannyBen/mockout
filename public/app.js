@@ -8,9 +8,7 @@ const recoveryActions = document.querySelector('#recovery-actions');
 const projectMenu = document.querySelector('#project-menu');
 const projectMenuButton = document.querySelector('#project-menu-button');
 const projectMenuHolder = document.querySelector('#project-menu-holder');
-const themeMenu = document.querySelector('#theme-menu');
-const themeMenuButton = document.querySelector('#theme-menu-button');
-const themeMenuHolder = document.querySelector('#theme-menu-holder');
+const themeButton = document.querySelector('#theme-button');
 const themeMedia = matchMedia('(prefers-color-scheme: dark)');
 const helpPanel = document.querySelector('#help-panel');
 const helpButton = document.querySelector('#help-button');
@@ -70,7 +68,6 @@ function showNotice(message) {
 
 const toolbarMenus = [
   { menu: projectMenu, button: projectMenuButton, holder: projectMenuHolder },
-  { menu: themeMenu, button: themeMenuButton, holder: themeMenuHolder },
 ];
 function closeToolbarMenu(item, focusCanvas = false) {
   item.menu.hidden = true;
@@ -86,39 +83,29 @@ function toggleToolbarMenu(item) {
   item.button.setAttribute('aria-expanded', 'true');
   (item.menu.querySelector('[aria-pressed="true"]') || item.menu.querySelector('button:not(:disabled)'))?.focus();
 }
+function syncThemeButton() {
+  themeButton.setAttribute('aria-label', `Switch to ${document.documentElement.dataset.uiTheme === 'dark' ? 'light' : 'dark'} theme`);
+}
 function setTheme(theme) {
-  if (theme === 'auto') delete document.documentElement.dataset.theme;
-  else document.documentElement.dataset.theme = theme;
-  document.documentElement.dataset.uiTheme = theme === 'auto'
-    ? themeMedia.matches ? 'dark' : 'light' : theme;
-  themeMenuButton.dataset.theme = theme;
-  themeMenuButton.setAttribute('aria-label', `Theme: ${theme}`);
-  for (const button of themeMenu.querySelectorAll('[data-theme-choice]')) {
-    button.setAttribute('aria-pressed', String(button.dataset.themeChoice === theme));
-  }
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.dataset.uiTheme = theme;
+  syncThemeButton();
   try { localStorage.setItem('mockout-ui-theme', theme); }
   catch { /* The selected theme still applies for this session. */ }
   render();
 }
+function toggleTheme() {
+  setTheme(document.documentElement.dataset.uiTheme === 'dark' ? 'light' : 'dark');
+}
 themeMedia.addEventListener('change', event => {
   if (!document.documentElement.dataset.theme) {
     document.documentElement.dataset.uiTheme = event.matches ? 'dark' : 'light';
+    syncThemeButton();
     render();
   }
 });
-const initialTheme = document.documentElement.dataset.theme || 'auto';
-themeMenuButton.dataset.theme = initialTheme;
-themeMenuButton.setAttribute('aria-label', `Theme: ${initialTheme}`);
-for (const button of themeMenu.querySelectorAll('[data-theme-choice]')) {
-  button.setAttribute('aria-pressed', String(button.dataset.themeChoice === initialTheme));
-}
-themeMenuButton.addEventListener('click', () => toggleToolbarMenu(toolbarMenus[1]));
-themeMenu.addEventListener('click', event => {
-  const button = event.target.closest('[data-theme-choice]');
-  if (!button) return;
-  setTheme(button.dataset.themeChoice);
-  closeToolbarMenu(toolbarMenus[1], true);
-});
+syncThemeButton();
+themeButton.addEventListener('click', toggleTheme);
 projectMenuButton.addEventListener('click', () => toggleToolbarMenu(toolbarMenus[0]));
 projectMenu.addEventListener('click', event => {
   if (!event.target.closest('.hold-action')) closeToolbarMenu(toolbarMenus[0], true);
@@ -1378,6 +1365,11 @@ document.addEventListener('keydown', event => {
   }
   if (inspector.contains(document.activeElement) || textEditor
     || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  if (!ctrl && !event.altKey && !event.shiftKey && event.code === 'KeyT') {
+    event.preventDefault();
+    if (!event.repeat) toggleTheme();
+    return;
+  }
   if (event.shiftKey && !ctrl && !event.altKey && event.code === 'KeyN') {
     event.preventDefault();
     newBlank();
