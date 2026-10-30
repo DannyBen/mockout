@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "grid": 5,
+  "nextId": 1,
+  "swatches": [
+    {
+      "id": "surface",
+      "name": "Surface",
+      "color": "#ffffff",
+      "mode": "gray",
+      "dark": {
+        "mode": "custom",
+        "color": "#202735",
+        "colorMode": "gray"
+      }
+    },
+    {
+      "id": "ink",
+      "name": "Text",
+      "color": "#253047",
+      "mode": "gray",
+      "dark": {
+        "mode": "custom",
+        "color": "#e6eaf3",
+        "colorMode": "gray"
+      }
+    },
+    {
+      "id": "border",
+      "name": "Border",
+      "color": "#cbd1de",
+      "mode": "gray",
+      "dark": {
+        "mode": "custom",
+        "color": "#536078",
+        "colorMode": "gray"
+      }
+    },
+    {
+      "id": "accent",
+      "name": "Button",
+      "color": "#6746b7",
+      "mode": "hsb",
+      "dark": {
+        "mode": "custom",
+        "color": "#b9a1ff",
+        "colorMode": "hsb"
+      }
+    },
+    {
+      "id": "muted",
+      "name": "Muted text",
+      "color": "#626d82",
+      "mode": "gray",
+      "dark": {
+        "mode": "custom",
+        "color": "#aeb9cb",
+        "colorMode": "gray"
+      }
+    }
+  ],
+  "boxes": [],
+  "lastStyle": {
+    "fill": null,
+    "textColor": "ink",
+    "borderColor": null,
+    "borderWidth": 1,
+    "radius": 0,
+    "paddingX": 5,
+    "paddingY": 5,
+    "alignX": "left",
+    "alignY": "center",
+    "fontFamily": "",
+    "fontSize": 14,
+    "fontWeight": 400,
+    "fontStyle": "normal"
+  },
+  "canvasColors": {
+    "background": "#f6f7fa",
+    "gridMajor": "#d0d0d0",
+    "gridMinor": "#e8e8e8"
+  },
+  "canvasColorModes": {
+    "background": "gray",
+    "gridMajor": "gray",
+    "gridMinor": "gray"
+  },
+  "canvasDark": {
+    "background": {
+      "mode": "custom",
+      "color": "#11151e",
+      "colorMode": "gray"
+    },
+    "gridMajor": {
+      "mode": "custom",
+      "color": "#303b52",
+      "colorMode": "gray"
+    },
+    "gridMinor": {
+      "mode": "custom",
+      "color": "#20293b",
+      "colorMode": "gray"
+    }
+  }
+}

@@ -1,0 +1,389 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Mockout project, version 1",
+  "type": "object",
+  "required": [
+    "version",
+    "grid",
+    "nextId",
+    "swatches",
+    "boxes",
+    "canvasColors"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "grid": {
+      "enum": [
+        0,
+        5,
+        10,
+        20,
+        40
+      ]
+    },
+    "nextId": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "swatches": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/swatch"
+      }
+    },
+    "boxes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/box"
+      }
+    },
+    "canvasColors": {
+      "type": "object",
+      "required": [
+        "background",
+        "gridMajor",
+        "gridMinor"
+      ],
+      "properties": {
+        "background": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "gridMajor": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "gridMinor": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        }
+      }
+    },
+    "canvasColorModes": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "enum": [
+            "hsb",
+            "rgb",
+            "gray"
+          ]
+        },
+        "gridMajor": {
+          "enum": [
+            "hsb",
+            "rgb",
+            "gray"
+          ]
+        },
+        "gridMinor": {
+          "enum": [
+            "hsb",
+            "rgb",
+            "gray"
+          ]
+        }
+      }
+    },
+    "canvasDark": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "$ref": "#/$defs/dark"
+        },
+        "gridMajor": {
+          "$ref": "#/$defs/dark"
+        },
+        "gridMinor": {
+          "$ref": "#/$defs/dark"
+        }
+      }
+    },
+    "lastStyle": {
+      "$ref": "#/$defs/style"
+    }
+  },
+  "$defs": {
+    "dark": {
+      "type": "object",
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "invert",
+            "same",
+            "custom"
+          ]
+        },
+        "color": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^#[0-9a-fA-F]{6}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "colorMode": {
+          "enum": [
+            "hsb",
+            "rgb",
+            "gray"
+          ]
+        }
+      },
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "custom"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "color"
+        ],
+        "properties": {
+          "color": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          }
+        }
+      }
+    },
+    "swatch": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "color"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        },
+        "mode": {
+          "enum": [
+            "hsb",
+            "rgb",
+            "gray"
+          ]
+        },
+        "dark": {
+          "$ref": "#/$defs/dark"
+        }
+      }
+    },
+    "style": {
+      "type": "object",
+      "required": [
+        "fill",
+        "textColor",
+        "borderColor",
+        "borderWidth",
+        "radius",
+        "paddingX",
+        "paddingY",
+        "alignX",
+        "alignY"
+      ],
+      "properties": {
+        "fill": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "textColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "borderColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "borderWidth": {
+          "type": "number",
+          "minimum": 0
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "paddingX": {
+          "type": "number",
+          "minimum": 0
+        },
+        "paddingY": {
+          "type": "number",
+          "minimum": 0
+        },
+        "alignX": {
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "alignY": {
+          "enum": [
+            "top",
+            "center",
+            "bottom"
+          ]
+        },
+        "fontFamily": {
+          "type": "string",
+          "maxLength": 80,
+          "not": {
+            "pattern": "[:;\"\\\\\\u0000-\\u001f\\u007f]|^\\s|\\s$"
+          }
+        },
+        "fontSize": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "fontWeight": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 900,
+          "multipleOf": 100
+        },
+        "fontStyle": {
+          "enum": [
+            "normal",
+            "italic"
+          ]
+        }
+      }
+    },
+    "box": {
+      "type": "object",
+      "required": [
+        "id",
+        "x",
+        "y",
+        "w",
+        "h",
+        "text",
+        "fill",
+        "textColor",
+        "borderColor",
+        "borderWidth",
+        "radius",
+        "alignX",
+        "alignY"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "w": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "h": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "text": {
+          "type": "string"
+        },
+        "fill": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "textColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "borderColor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "borderWidth": {
+          "type": "number",
+          "minimum": 0
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "paddingX": {
+          "type": "number",
+          "minimum": 0
+        },
+        "paddingY": {
+          "type": "number",
+          "minimum": 0
+        },
+        "alignX": {
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "alignY": {
+          "enum": [
+            "top",
+            "center",
+            "bottom"
+          ]
+        },
+        "fontFamily": {
+          "type": "string",
+          "maxLength": 80,
+          "not": {
+            "pattern": "[:;\"\\\\\\u0000-\\u001f\\u007f]|^\\s|\\s$"
+          }
+        },
+        "fontSize": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "fontWeight": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 900,
+          "multipleOf": 100
+        },
+        "fontStyle": {
+          "enum": [
+            "normal",
+            "italic"
+          ]
+        }
+      }
+    }
+  }
+}

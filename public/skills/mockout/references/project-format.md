@@ -1,0 +1,127 @@
+# Mockout project format, version 1
+
+The [JSON Schema](project.schema.json) defines field types and required fields.
+The [starter](../examples/starter.json) is a complete blank document. Read the
+existing document before editing it; never substitute an example for live work.
+
+## Document
+
+| Field | Meaning |
+| --- | --- |
+| `version` | Always `1`. |
+| `grid` | Snap size: `5`, `10`, `20`, or `40`; `0` disables snapping. Use `5` for new mockups by default. |
+| `nextId` | Next available integer used by the editor to allocate box IDs and new swatch IDs of the form `sN`. Advance it when allocating IDs. |
+| `swatches` | Named color roles with a light color and optional dark behavior. |
+| `boxes` | Flat array of elements, ordered from back to front. |
+| `canvasColors` | Required light colors for `background`, `gridMajor`, and `gridMinor`. |
+| `canvasColorModes` | Optional color-picker modes for the three canvas colors. |
+| `canvasDark` | Optional dark behavior for each canvas color. |
+| `lastStyle` | Optional complete style used when drawing the next box. Keep it valid when changing swatches. |
+
+Numbers are finite JSON numbers. New box IDs must be unique integers. Allocate
+from `nextId`, skipping occupied IDs, and increment it. Keep it above existing
+box IDs and the numeric suffixes of any swatch IDs named `sN`.
+Swatch IDs must also be unique; use stable IDs and preserve existing ones.
+
+## Boxes
+
+Every box needs these fields:
+
+| Fields | Meaning |
+| --- | --- |
+| `id` | Unique integer ID. |
+| `x`, `y` | Absolute canvas coordinates in pixels; negative positions are allowed. |
+| `w`, `h` | Width and height in pixels, both greater than zero. |
+| `text` | String, including `""` for an empty box. Use `\n` for line breaks. |
+| `fill`, `textColor`, `borderColor` | Swatch ID, or `null` for transparent. Never put a hex color here. |
+| `borderWidth`, `radius` | Stroke width and corner radius in pixels. Author nonnegative values. |
+| `alignX` | `left`, `center`, or `right`. |
+| `alignY` | `top`, `center`, or `bottom`. |
+
+Optional fields:
+
+| Fields | Meaning |
+| --- | --- |
+| `paddingX`, `paddingY` | Nonnegative text padding. Omitted values render as `3`. |
+| `fontFamily` | `""` for system font, a Google Fonts family, or a supported Material icon family. Maximum 80 characters; no leading/trailing whitespace, control characters, `:`, `;`, `"`, or backslash. |
+| `fontSize` | Positive pixels; omitted means `13`. |
+| `fontWeight` | `100`, `200`, …, `900`; omitted means `400`. |
+| `fontStyle` | `normal` or `italic`; omitted means `normal`. |
+
+Draw order follows the array: earlier boxes are behind later ones. Put a panel
+before the labels and controls inside it. Containment is geometric; child
+coordinates remain absolute. There are no parent pointers, nested boxes, lock
+flags, or interactive button behaviors. A label is a box with transparent fill
+and border. A button is a styled box with text.
+
+Changing `grid` does not snap existing geometry. Align new or changed geometry
+deliberately. Browser saves normalize exported positions so the top-left box
+starts at `(0, 0)`; reread before every agent edit and do not rely on a cached origin.
+
+## Swatches and dual colors
+
+A swatch has `id`, `name`, and `color`; light colors use six-digit `#RRGGBB`.
+Optional `mode` (`hsb`, `rgb`, or `gray`) controls the picker, not rendering.
+All three box color references resolve through the same swatch list.
+
+Example role swatch:
+
+```json
+{
+  "id": "surface",
+  "name": "Surface",
+  "color": "#ffffff",
+  "mode": "gray",
+  "dark": { "mode": "custom", "color": "#202735", "colorMode": "hsb" }
+}
+```
+
+`dark` is optional on a swatch. The same dark object can be assigned to each
+property in `canvasDark`:
+
+| Dark behavior | Object |
+| --- | --- |
+| Invert, the default when omitted | `{ "mode": "invert" }` |
+| Use the light color unchanged | `{ "mode": "same" }` |
+| Explicit dark color | `{ "mode": "custom", "color": "#202735" }` |
+
+For `invert` and `same`, an unused `color` may be omitted or `null`; the editor
+can save either representation. `custom` requires a six-digit hex color.
+Optional `colorMode` is a picker mode: `hsb`, `rgb`, or `gray`.
+These colors belong in `swatches` or canvas settings, not directly on boxes.
+Do not duplicate light/dark boxes or create separate light/dark layouts.
+
+Removing a swatch requires updating all matching references, including
+`lastStyle.fill`, `lastStyle.textColor`, and `lastStyle.borderColor` if present.
+Prefer reusing or editing existing roles rather than deleting them.
+
+## Last style and icons
+
+`lastStyle` uses the box style fields without `id`, geometry, or `text`.
+When present, it requires `fill`, `textColor`, `borderColor`, `borderWidth`,
+`radius`, **both** padding fields, `alignX`, and `alignY`. Font fields are optional.
+
+Supported icon font families are `Material Symbols Outlined`,
+`Material Symbols Rounded`, `Material Symbols Sharp`, `Material Icons`, and
+`Material Icons Two Tone`. Put the icon's ligature name, such as `search`, in
+`text`. Use normal style; use weight `400` for classic Material Icons and at most
+`700` for Material Symbols. Use separate boxes for an icon and a normal text label.
+The bundled [email client](../examples/email-client.json) demonstrates real icon
+boxes using `Material Symbols Outlined` and `Material Icons`, alongside
+normal text in `Assistant`. Inspect its box font fields and swatch references
+when adding icons. The larger [Welcome project](../examples/welcome.json) uses
+text glyphs and demonstrates more detailed layouts with paired light/dark colors.
+
+## Checks beyond JSON Schema
+
+Before publishing each box, check:
+
+- Unique box IDs and unique swatch IDs; `nextId` remains free and advances.
+- Every non-null color reference, including `lastStyle`, names an existing swatch.
+- New geometry follows the chosen grid and all boxes have positive dimensions.
+- Backgrounds precede their contents, and no unwanted box covers existing work.
+- Unrelated fields, user content, and existing layout are preserved.
+
+JSON Schema checks structure; it cannot enforce references to IDs elsewhere in
+the document or the intended appearance. If the Mockout source is locally
+available, its `public/project.js` exports `validProject` for an additional check.

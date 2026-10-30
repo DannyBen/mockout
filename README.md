@@ -42,3 +42,16 @@ file** to use the file's version, or **Save ours** to replace it with your canva
 
 To explore the Welcome project again, choose **New blank**, then
 **Show Welcome example** in Help.
+
+## Work with AI
+
+The [Mockout skill](public/skills/mockout/SKILL.md) guides an agent through sharing
+a local project file, then builds the mockup box by box with live updates.
+The agent needs read/write access to the same file connected in your browser.
+
+For repeated use, ask your agent to install the
+[skill folder from GitHub](https://github.com/dannyben/mockout/tree/master/public/skills/mockout).
+For one session, ask it to read and follow the
+[hosted instructions](https://mockout.sector-seven.com/skills/mockout/SKILL.md).
+The folder includes the schema, a blank starter, an email-client example, and the
+complete Welcome project with icons and light/dark colors.
