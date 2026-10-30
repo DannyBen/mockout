@@ -58,6 +58,25 @@ Changing `grid` does not snap existing geometry. Align new or changed geometry
 deliberately. Browser saves normalize exported positions so the top-left box
 starts at `(0, 0)`; reread before every agent edit and do not rely on a cached origin.
 
+### Text fitting
+
+Mockout uses a line height of `1.35 × fontSize`. Allow for all visible and wrapped
+lines, padding on both sides, and borders when sizing a text box. An approximate
+minimum height is:
+
+```text
+line count × fontSize × 1.35 + 2 × paddingY + 2 × borderWidth
+```
+
+For example, two lines at 20px need 54px for text. With 10px vertical padding and
+a 1px border, they need 76px total: use at least 80px on a 5px grid. A transparent
+border still occupies space when `borderWidth` is nonzero. Available text width
+also excludes horizontal padding and borders, so allow for additional wrapping.
+
+Each box applies one font size and weight to all its text. Use separate boxes for
+a heading and a smaller subtitle. Estimates depend on the font and line wrapping;
+leave room when rendering is unavailable and inspect the actual layout when you can.
+
 ## Swatches and dual colors
 
 A swatch has `id`, `name`, and `color`; light colors use six-digit `#RRGGBB`.

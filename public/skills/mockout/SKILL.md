@@ -83,6 +83,25 @@ Do not claim that a browser is connected or a change is visible unless you can
 observe it or the user confirms it. If an external edit has not appeared, ask the
 user to return to the Mockout tab; browsers without file observation check on focus.
 
+## Inspect the result when supported
+
+Include visual inspection in the workflow when you have browser or screenshot
+tools. Choose when to check based on layout complexity, uncertainty, and the cost
+of rendering. There is no fixed frequency; keep saving box by box regardless of
+how often you inspect the result.
+
+Open [live Mockout](https://mockout.sector-seven.com/) in a separate browser
+context. Load the current JSON through its normal file input (`#open-file` for
+browser automation), wait for
+fonts and layout, and inspect the result.
+Keep this inspection separate from the user's active canvas and file connection.
+Look for clipped text, unintended overlaps, missing icons, and poor contrast.
+DOM scroll-size measurements can flag possible text overflow for closer inspection.
+
+If visual tools are unavailable, continue using the format checks and
+[text-fitting guidance](references/project-format.md#text-fitting). State that
+the result has not been visually inspected; do not claim a rendered check.
+
 ## Design conventions
 
 - Default new mockups to a 5px grid. Align box coordinates and dimensions to that
