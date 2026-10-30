@@ -7,85 +7,158 @@
       "id": "s1",
       "name": "Paper",
       "color": "#ffffff",
-      "mode": "hsb"
+      "mode": "gray",
+      "dark": {
+        "mode": "custom",
+        "color": "#252c43",
+        "colorMode": "hsb"
+      }
     },
     {
       "id": "s2",
       "name": "Ink",
       "color": "#202741",
-      "mode": "hsb"
+      "mode": "hsb",
+      "dark": {
+        "mode": "custom",
+        "color": "#f1f3ff",
+        "colorMode": "hsb"
+      }
     },
     {
       "id": "s3",
       "name": "Line",
       "color": "#dfe2eb",
-      "mode": "hsb"
+      "mode": "hsb",
+      "dark": {
+        "mode": "custom",
+        "color": "#49536b",
+        "colorMode": "hsb"
+      }
     },
     {
       "id": "s4",
       "name": "Night",
       "color": "#19213d",
-      "mode": "hsb"
+      "mode": "hsb",
+      "dark": {
+        "mode": "same"
+      }
     },
     {
       "id": "s5",
       "name": "Violet",
       "color": "#7255d5",
-      "mode": "hsb"
+      "mode": "hsb",
+      "dark": {
+        "mode": "custom",
+        "color": "#b39aff",
+        "colorMode": "hsb"
+      }
     },
     {
       "id": "s6",
       "name": "Lavender",
       "color": "#eee9ff",
-      "mode": "hsb"
+      "mode": "hsb",
+      "dark": {
+        "mode": "custom",
+        "color": "#3a3459",
+        "colorMode": "hsb"
+      }
     },
     {
       "id": "s7",
       "name": "Muted",
       "color": "#737d94",
-      "mode": "hsb"
+      "mode": "hsb",
+      "dark": {
+        "mode": "custom",
+        "color": "#aab4c9",
+        "colorMode": "hsb"
+      }
     },
     {
       "id": "s8",
       "name": "Mint",
       "color": "#bcebd8",
-      "mode": "hsb"
+      "mode": "hsb",
+      "dark": {
+        "mode": "custom",
+        "color": "#24564e",
+        "colorMode": "hsb"
+      }
     },
     {
       "id": "s9",
       "name": "Peach",
       "color": "#ffb298",
-      "mode": "hsb"
+      "mode": "hsb",
+      "dark": {
+        "mode": "same"
+      }
     },
     {
       "id": "s10",
       "name": "Mist",
       "color": "#f6f7fb",
-      "mode": "hsb"
+      "mode": "hsb",
+      "dark": {
+        "mode": "custom",
+        "color": "#252d43",
+        "colorMode": "hsb"
+      }
     },
     {
       "id": "s11",
       "name": "Light text",
       "color": "#cbd2e9",
-      "mode": "hsb"
+      "mode": "hsb",
+      "dark": {
+        "mode": "same"
+      }
     },
     {
       "id": "s12",
       "name": "Soft violet",
       "color": "#a993f6",
-      "mode": "hsb"
+      "mode": "hsb",
+      "dark": {
+        "mode": "custom",
+        "color": "#c0adff",
+        "colorMode": "hsb"
+      }
     },
     {
       "id": "s13",
       "name": "Blue",
       "color": "#6f9fdf",
-      "mode": "hsb"
+      "mode": "hsb",
+      "dark": {
+        "mode": "custom",
+        "color": "#90bfff",
+        "colorMode": "hsb"
+      }
     },
     {
       "id": "s14",
       "name": "Pale blue",
       "color": "#eaf2ff",
-      "mode": "hsb"
+      "mode": "hsb",
+      "dark": {
+        "mode": "custom",
+        "color": "#2d405f",
+        "colorMode": "hsb"
+      }
+    },
+    {
+      "id": "s15",
+      "name": "Hero text",
+      "color": "#ffffff",
+      "mode": "gray",
+      "dark": {
+        "mode": "same"
+      }
     }
   ],
   "boxes": [
@@ -580,7 +653,7 @@
       "h": 45,
       "text": "Sketch freely. Keep it simple.",
       "fill": null,
-      "textColor": "s1",
+      "textColor": "s15",
       "borderColor": null,
       "borderWidth": 0,
       "radius": 0,
@@ -1376,7 +1449,7 @@
       "y": 395,
       "w": 245,
       "h": 45,
-      "text": "Every color uses a named swatch.\nEdit it once; linked boxes update.",
+      "text": "The palette adapts to light and dark.\nEdit a swatch once; linked boxes update.",
       "fill": null,
       "textColor": "s7",
       "borderColor": null,
@@ -1997,12 +2070,29 @@
   },
   "canvasColors": {
     "background": "#f0f1f6",
-    "gridMajor": "#d0d2d9",
-    "gridMinor": "#e6e8f0"
+    "gridMajor": "#c9cedb",
+    "gridMinor": "#e0e4ed"
   },
   "canvasColorModes": {
-    "background": "rgb",
-    "gridMajor": "rgb",
-    "gridMinor": "rgb"
+    "background": "hsb",
+    "gridMajor": "hsb",
+    "gridMinor": "hsb"
+  },
+  "canvasDark": {
+    "background": {
+      "mode": "custom",
+      "color": "#141a29",
+      "colorMode": "hsb"
+    },
+    "gridMajor": {
+      "mode": "custom",
+      "color": "#303b52",
+      "colorMode": "hsb"
+    },
+    "gridMinor": {
+      "mode": "custom",
+      "color": "#20293b",
+      "colorMode": "hsb"
+    }
   }
 }
