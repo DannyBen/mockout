@@ -20,8 +20,8 @@
       "color": "#ffffff",
       "mode": "gray",
       "dark": {
-        "mode": "custom",
-        "color": "#202735",
+        "mode": "same",
+        "color": "#ffffff",
         "colorMode": "gray"
       }
     }
