@@ -135,7 +135,9 @@ let selectedId = null;
 let selectedIds = new Set();
 let gesture = null;
 let lastBoxClick = null;
+let pointerPosition = null;
 let placement = null;
+let copiedBoxes = null;
 let isolatedCopyIds = null;
 let textEditor = null;
 let projectFileHandle = null;
@@ -666,16 +668,14 @@ function dragTargets(box, solo, resizing) {
   return state.boxes.filter(item => ids.has(item.id)).map(item => ({ ...item }));
 }
 
-function startDuplicatePlacement() {
-  const source = selectedBoxes();
-  if (!source.length || gesture) return;
+function startCopyPlacement(originals, cursor) {
+  if (!originals?.length || gesture) return;
   closeProjectMenu();
-  const originals = dragTargets(source[0], false, false);
   const previous = {
     before: snapshot(), selectedIds: new Set(selectedIds), selectedId,
     inspectorOpen, tool, isolatedCopyIds,
   };
-  const { x: dx, y: dy } = MockoutPlacement.duplicateOffset(source[0], null, state.grid);
+  const { x: dx, y: dy } = MockoutPlacement.duplicateOffset(originals[0], cursor, state.grid);
   const copies = originals.map(box => ({
     ...box, id: state.nextId++, x: box.x + dx, y: box.y + dy,
   }));
@@ -692,6 +692,21 @@ function startDuplicatePlacement() {
   lastBoxClick = null;
   workspace.focus();
   render();
+}
+
+function startDuplicatePlacement() {
+  const source = selectedBoxes();
+  if (source.length) startCopyPlacement(dragTargets(source[0], false, false), null);
+}
+
+function copySelection() {
+  const source = selectedBoxes();
+  if (source.length) copiedBoxes = dragTargets(source[0], false, false);
+}
+
+function startPastePlacement() {
+  const cursor = pointerPosition && point({ clientX: pointerPosition.x, clientY: pointerPosition.y });
+  startCopyPlacement(copiedBoxes, cursor);
 }
 
 function shiftPlacement(dx, dy) {
@@ -858,6 +873,13 @@ workspace.addEventListener('contextmenu', event => {
   event.preventDefault();
   if (boxElement) openInspector(Number(boxElement.dataset.id));
   else openCanvasInspector({ x: event.clientX, y: event.clientY });
+});
+
+document.addEventListener('pointerdown', event => {
+  pointerPosition = { x: event.clientX, y: event.clientY };
+});
+document.addEventListener('pointermove', event => {
+  pointerPosition = { x: event.clientX, y: event.clientY };
 });
 
 workspace.addEventListener('pointerdown', event => {
@@ -1323,6 +1345,19 @@ document.addEventListener('keydown', event => {
     if (!textEditor) {
       if (inspector.contains(document.activeElement)) document.activeElement.blur();
       if (selectedIds.size) startDuplicatePlacement();
+    }
+    return;
+  }
+  if (ctrl && !event.altKey && !event.shiftKey && (event.code === 'KeyC' || event.code === 'KeyV')) {
+    const focus = document.activeElement;
+    if (textEditor || focus.isContentEditable || /INPUT|SELECT|TEXTAREA/.test(focus.tagName)) return;
+    if (event.code === 'KeyC' && selectedIds.size) {
+      event.preventDefault();
+      copySelection();
+    } else if (event.code === 'KeyV' && copiedBoxes?.length) {
+      event.preventDefault();
+      if (inspector.contains(focus)) focus.blur();
+      startPastePlacement();
     }
     return;
   }
