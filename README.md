@@ -45,6 +45,9 @@ To explore the Welcome project again, choose **New blank**, then
 
 ## Work with AI
 
+Choose the **AI** sparkle button next to Help to copy a skill setup prompt or a
+quick-run prompt into your AI app.
+
 The [Mockout skill](public/skills/mockout/SKILL.md) guides an agent through sharing
 a local project file, then builds the mockup box by box with live updates.
 The agent needs read/write access to the same file connected in your browser.

@@ -17,6 +17,8 @@ const themeButton = document.querySelector('#theme-button');
 const themeMedia = matchMedia('(prefers-color-scheme: dark)');
 const helpPanel = document.querySelector('#help-panel');
 const helpButton = document.querySelector('#help-button');
+const aiDialog = document.querySelector('#ai-dialog');
+const aiCopyStatus = document.querySelector('#ai-copy-status');
 const welcomeButton = document.querySelector('#welcome-button');
 const welcomeHint = document.querySelector('#welcome-hint');
 const toolButtons = [...document.querySelectorAll('[data-tool]')];
@@ -43,7 +45,7 @@ const validProject = value => MockoutProject.validProject(value);
 async function showToolbarIcons() {
   try {
     const faces = await document.fonts.load('20px "Material Symbols Outlined"',
-      'arrow_selector_tool check_circle crop_square error help link_off more_horiz warning_amber web_asset');
+      'arrow_selector_tool auto_awesome check_circle crop_square error help link_off more_horiz warning_amber web_asset');
     if (faces.some(face => face.status === 'loaded')) document.body.classList.add('toolbar-icons-ready');
   } catch { /* Keep the text labels if Google Fonts is unavailable. */ }
 }
@@ -1070,6 +1072,50 @@ function toggleHelp() {
 
 helpButton.addEventListener('click', toggleHelp);
 document.querySelector('#close-help').addEventListener('click', toggleHelp);
+
+const aiPrompts = {
+  install: 'Install or update the Mockout skill from https://github.com/DannyBen/mockout/tree/master/public/skills/mockout. Then help me connect a shared project file so we can create or edit a mockup together.',
+  quick: 'Read and follow https://mockout.sector-seven.com/skills/mockout/SKILL.md for this conversation. Then help me connect a shared project file so we can create or edit a mockup together.',
+};
+let aiCopyTimer = null;
+document.querySelector('#ai-button').addEventListener('click', () => {
+  closeProjectMenu();
+  clearTimeout(aiCopyTimer);
+  aiCopyStatus.textContent = '';
+  aiDialog.showModal();
+});
+document.querySelector('#close-ai-dialog').addEventListener('click', () => aiDialog.close());
+aiDialog.addEventListener('close', () => {
+  clearTimeout(aiCopyTimer);
+  aiCopyStatus.textContent = '';
+  workspace.focus();
+});
+aiDialog.addEventListener('keydown', event => {
+  if (event.key !== 'Tab') return;
+  const buttons = [...aiDialog.querySelectorAll('button:not(:disabled)')];
+  const first = buttons[0], last = buttons.at(-1);
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault(); last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault(); first.focus();
+  }
+});
+for (const button of aiDialog.querySelectorAll('[data-ai-prompt]')) {
+  button.addEventListener('click', async () => {
+    clearTimeout(aiCopyTimer);
+    try {
+      await navigator.clipboard.writeText(aiPrompts[button.dataset.aiPrompt]);
+      if (!aiDialog.open) return;
+      aiCopyStatus.textContent = 'Copied. Paste it into your AI app.';
+      aiCopyTimer = setTimeout(() => { aiCopyStatus.textContent = ''; }, 2500);
+    } catch {
+      aiCopyStatus.textContent = window.isSecureContext
+        ? 'Could not copy. Allow clipboard access and try again.'
+        : 'Clipboard access needs HTTPS. Open https://mockout.sector-seven.com/.';
+    }
+  });
+}
+
 async function fetchWelcomeProject() {
   const response = await fetch('welcome.json', { cache: 'no-store' });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -1549,6 +1595,7 @@ inspector.addEventListener('wheel', event => {
 }, { passive: false });
 
 document.addEventListener('wheel', event => {
+  if (aiDialog.open) return;
   if (!event.ctrlKey && !event.metaKey) return;
   event.preventDefault();
   if (textEditor || placement) return;
@@ -1573,6 +1620,10 @@ window.addEventListener('blur', () => {
 });
 
 document.addEventListener('keydown', event => {
+  if (aiDialog.open) {
+    if ((event.ctrlKey || event.metaKey) && ['KeyS', 'KeyO', 'KeyP', 'KeyD'].includes(event.code)) event.preventDefault();
+    return;
+  }
   const openMenu = toolbarMenus.find(item => !item.menu.hidden);
   if (openMenu && openMenu.holder.contains(document.activeElement)) {
     if (event.key === 'Escape' || event.key === 'Tab') {
@@ -2307,13 +2358,13 @@ document.querySelector('#open-file').addEventListener('change', async event => {
 document.addEventListener('dragover', event => {
   if (!event.dataTransfer?.types.includes('Files')) return;
   event.preventDefault();
-  event.dataTransfer.dropEffect = placement ? 'none' : 'copy';
+  event.dataTransfer.dropEffect = placement || aiDialog.open ? 'none' : 'copy';
 });
 
 document.addEventListener('drop', async event => {
   if (!event.dataTransfer?.types.includes('Files')) return;
   event.preventDefault();
-  if (placement) return;
+  if (placement || aiDialog.open) return;
   if (event.dataTransfer.files.length !== 1) {
     showNotice('Drop one JSON project file at a time.');
     return;

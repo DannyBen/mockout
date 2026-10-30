@@ -27,7 +27,7 @@
       }
     });
   </script>
-  <link id="toolbar-icons-font" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=arrow_selector_tool,check_circle,crop_square,error,help,link_off,more_horiz,warning_amber,web_asset&amp;display=block">
+  <link id="toolbar-icons-font" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=arrow_selector_tool,auto_awesome,check_circle,crop_square,error,help,link_off,more_horiz,warning_amber,web_asset&amp;display=block">
 </head>
 <body>
   <main id="workspace" tabindex="-1" aria-label="Mock canvas">
@@ -66,6 +66,7 @@
         <g data-icon="dark"><path d="M20.4 15.5A8.5 8.5 0 0 1 8.5 3.6 8.5 8.5 0 1 0 20.4 15.5Z"/></g>
       </svg>
     </button>
+    <button type="button" tabindex="-1" id="ai-button" aria-label="Work with AI" aria-haspopup="dialog" aria-controls="ai-dialog"><span class="toolbar-text">AI</span><span class="toolbar-glyph" aria-hidden="true">auto_awesome</span></button>
     <button type="button" tabindex="-1" id="help-button" aria-label="Help" aria-controls="help-panel" aria-expanded="false"><span class="toolbar-text">?</span><span class="toolbar-glyph" aria-hidden="true">help</span></button>
   </div>
 
@@ -145,6 +146,25 @@
     <p id="welcome-hint" hidden></p>
     <footer>Mockout · <a href="https://github.com/dannyben/mockout" target="_blank" rel="noopener noreferrer">GitHub</a></footer>
   </aside>
+
+  <dialog id="ai-dialog" aria-labelledby="ai-heading" aria-describedby="ai-description">
+    <header>
+      <h2 id="ai-heading">Work with AI</h2>
+      <button type="button" id="close-ai-dialog" aria-label="Close AI dialog">×</button>
+    </header>
+    <p id="ai-description">Create and edit mockups together with an AI app that can edit files on your computer. Copy a prompt into your AI app, and it will guide you through connecting a shared file.</p>
+    <section>
+      <h3>Install the skill <span class="recommendation">Recommended</span></h3>
+      <p>Add Mockout to your AI app for this and future conversations.</p>
+      <button type="button" data-ai-prompt="install">Copy skill setup prompt</button>
+    </section>
+    <section>
+      <h3>Quick run</h3>
+      <p>Get started for this conversation without installation.</p>
+      <button type="button" data-ai-prompt="quick">Copy quick-run prompt</button>
+    </section>
+    <p id="ai-copy-status" role="status" aria-atomic="true"></p>
+  </dialog>
 
   <aside id="inspector" class="mini-dialog" hidden aria-label="Inspector">
     <header id="inspector-header" class="dialog-header">

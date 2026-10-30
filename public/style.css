@@ -188,7 +188,7 @@ button { cursor: pointer; }
 .handle[data-handle="sw"] { left: 0; bottom: 0; cursor: nesw-resize; }
 .handle[data-handle="w"] { left: 0; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
 
-.corner, .mini-dialog, #help-panel, #placement-hint {
+.corner, .mini-dialog, #help-panel, #placement-hint, #ai-dialog {
   background: var(--ui-panel);
   border: 1px solid var(--ui-panel-border);
   box-shadow: 0 6px 24px var(--ui-shadow);
@@ -340,6 +340,30 @@ body.toolbar-icons-ready :is(.corner, #file-status) {
   padding: 7px 10px;
   border-radius: 5px;
   pointer-events: none;
+}
+
+#ai-dialog {
+  width: 440px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 24px);
+  padding: 18px;
+  color: var(--ui-text);
+  background: var(--ui-surface);
+  border-radius: 7px;
+
+  &::backdrop { background: #0005; }
+  & header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  & h2 { margin: 0; font-size: 18px; }
+  & header button { padding: 0 4px; border: 0; background: transparent; font-size: 22px; line-height: 1; }
+  & > p { margin: 0 0 16px; color: var(--ui-muted); }
+  & section { padding: 12px; border: 1px solid var(--ui-rule); border-radius: 5px; }
+  & section + section { margin-top: 12px; }
+  & h3 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 6px; font-size: 14px; }
+  & .recommendation { color: var(--ui-accent); font-size: 11px; font-weight: 400; }
+  & section p { margin: 0 0 12px; color: var(--ui-muted); }
+  & [data-ai-prompt] { width: 100%; min-height: 32px; }
+  & [data-ai-prompt="install"] { color: var(--ui-on-accent); background: var(--ui-accent); border-color: var(--ui-accent); }
+  & #ai-copy-status { min-height: 1.35em; margin: 12px 0 0; font-size: 12px; }
 }
 
 button, select, input {
