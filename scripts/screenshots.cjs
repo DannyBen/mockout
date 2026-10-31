@@ -89,12 +89,13 @@ async function main() {
     const ready = await page('Runtime.evaluate', {
       expression: `(async () => {
         const deadline = Date.now() + 30000;
-        while (!document.querySelector('.box') || !document.body.classList.contains('toolbar-icons-ready')) {
+        while (!document.querySelector('.box') || [...document.querySelectorAll('link[data-mockout-font]')].some(link => !link.sheet)) {
           if (Date.now() > deadline) throw Error('Welcome project or Google Fonts did not load.');
           await new Promise(resolve => setTimeout(resolve, 100));
         }
+        const faces = await document.fonts.load('24px "Material Symbols Outlined"');
+        if (!faces.length) throw Error('Welcome project icon font did not load.');
         await document.fonts.ready;
-        if (!document.fonts.check('24px "Material Symbols Outlined"')) throw Error('Icon font did not load.');
       })()`,
       awaitPromise: true,
     });

@@ -28,6 +28,7 @@ const boxColorButtons = [...document.querySelectorAll('[data-color-property]')];
 const canvasColorButtons = [...document.querySelectorAll('[data-canvas-color-property]')];
 const alignButtons = [...document.querySelectorAll('[data-align-axis]')];
 const inspectorPath = document.querySelector('#inspector-path');
+const inspectorNav = document.querySelector('#inspector-nav');
 const swatchChoiceTemplate = document.querySelector('#swatch-choice-template');
 const propertySections = [
   { id: 'shape', label: 'Shape', element: document.querySelector('#shape-properties') },
@@ -35,23 +36,12 @@ const propertySections = [
   { id: 'text', label: 'Text', element: document.querySelector('#text-properties') },
   { id: 'font', label: 'Font', element: document.querySelector('#font-properties') },
 ];
-const toolbarIconsFont = document.querySelector('#toolbar-icons-font');
 const channels = [1, 2, 3].map(n => document.querySelector(`#channel-${n}`));
 const channelValues = [1, 2, 3].map(n => document.querySelector(`#channel-${n}-value`));
 const { initialStyle } = MockoutProject;
 const fonts = MockoutFonts;
 const freshState = () => MockoutProject.freshState();
 const validProject = value => MockoutProject.validProject(value);
-
-async function showToolbarIcons() {
-  try {
-    const faces = await document.fonts.load('20px "Material Symbols Outlined"',
-      'arrow_selector_tool auto_awesome check_circle crop_square error help link_off more_horiz warning_amber web_asset');
-    if (faces.some(face => face.status === 'loaded')) document.body.classList.add('toolbar-icons-ready');
-  } catch { /* Keep the text labels if Google Fonts is unavailable. */ }
-}
-toolbarIconsFont.addEventListener('load', showToolbarIcons);
-if (toolbarIconsFont.sheet) showToolbarIcons();
 
 let state = freshState();
 let savedProjectIssue = '';
@@ -159,12 +149,12 @@ function updateFileStatus() {
   const status = !handle ? 'local' : fileConflict ? filePendingStamp === null ? 'error' : 'conflict'
     : !reconnectFileButton.hidden ? 'reconnect'
     : fileSaveError ? 'error' : 'connected';
-  const [icon, fallback, label] = {
-    local: ['web_asset', '▣', ''],
-    connected: ['check_circle', '✓', ''],
-    reconnect: ['link_off', '↛', ''],
-    conflict: ['warning_amber', '△', 'Conflict'],
-    error: ['error', '!', fileSaveError ? 'Save failed' : 'File error'],
+  const [icon, label] = {
+    local: ['web_asset', ''],
+    connected: ['check_circle', ''],
+    reconnect: ['link_off', ''],
+    conflict: ['warning', 'Conflict'],
+    error: ['error', fileSaveError ? 'Save failed' : 'File error'],
   }[status];
   const description = handle ? `${handle.name}: ${label || (status === 'reconnect' ? 'Reconnect' : 'Connected')}`
     : 'Local session, saved in this browser';
@@ -173,8 +163,7 @@ function updateFileStatus() {
     && fileStatus.dataset.connected === connected) return;
   fileStatus.dataset.state = status;
   fileStatus.dataset.connected = connected;
-  fileStatus.querySelector('.toolbar-glyph').textContent = icon;
-  fileStatus.querySelector('.toolbar-text').textContent = fallback;
+  fileStatus.querySelector('use').setAttribute('href', `assets/material-symbols/sprite.svg#${icon}`);
   fileStatus.querySelector('.file-name').textContent = handle ? handle.name.replace(/\.json$/i, '') : 'Local session';
   fileStatus.querySelector('.file-detail').textContent = label;
   fileStatus.setAttribute('aria-label', description);
@@ -417,6 +406,8 @@ let inspectorOpen = false;
 let inspectorKind = 'box';
 let inspectorPoint = { x: 12, y: 12 };
 let inspectorView = 'properties';
+// Nested screens return to this inspector; selecting another box keeps its root open.
+const inspectorHistory = [];
 let activePropertySection = 'shape';
 const lastPropertyFocus = new Map();
 let tool = 'select';
@@ -670,6 +661,13 @@ function renderInspector() {
   inspector.hidden = !visible;
   if (!visible) return;
   document.querySelector('#box-properties').hidden = inspectorView !== 'properties' || inspectorKind !== 'box';
+  document.querySelector('#section-selection').hidden = inspectorView !== 'sections';
+  for (const button of document.querySelectorAll('[data-property-section]')) {
+    const section = button.dataset.propertySection;
+    button.hidden = (section === 'canvas') !== (inspectorKind === 'canvas');
+    if (section === (inspectorKind === 'canvas' ? 'canvas' : activePropertySection)) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  }
   document.querySelector('#canvas-properties').hidden = inspectorView !== 'properties' || inspectorKind !== 'canvas';
   document.querySelector('#swatch-chooser').hidden = inspectorView !== 'choose';
   document.querySelector('#swatch-manager').hidden = inspectorView !== 'manage';
@@ -792,30 +790,55 @@ function renderBoxColorButton(button, boxes) {
   button.replaceChildren(chip, document.createTextNode(mixed ? 'Mixed' : item?.name || 'Transparent'));
 }
 
-function showInspectorParent(viewName) {
-  const previousView = inspectorView;
+function resetInspectorView() {
+  inspectorHistory.length = 0;
+  inspectorView = 'properties';
+  pickerOnAccept = null;
+  colorTarget = null;
+}
+
+function pushInspectorView(viewName, restoreFocus) {
+  inspectorHistory.push({ view: inspectorView, restoreFocus });
   inspectorView = viewName;
-  if (previousView === 'picker') pickerOnAccept = null;
+}
+
+function showInspectorParent(viewName = inspectorHistory.at(-1)?.view) {
+  const index = inspectorHistory.findLastIndex(entry => entry.view === viewName);
+  if (index < 0) return;
+  const parent = inspectorHistory[index];
+  inspectorHistory.length = index;
+  inspectorView = parent.view;
+  pickerOnAccept = null;
   render();
-  if (viewName === 'edit') document.querySelector(`[data-editor-side="${editorSide}"]`).focus();
-  else if (viewName === 'manage') focusSwatchEditorOpener();
-  else if (inspectorKind === 'box') {
-    if (previousView === 'choose') focusColorField();
-    else document.querySelector('#manage-swatches').focus();
-  }
-  else focusColorField();
+  parent.restoreFocus();
+}
+
+function openSectionSelection() {
+  pushInspectorView('sections', () => inspectorNav.focus());
+  renderInspector();
+  revealInspector();
+  focusSectionSelection();
+}
+
+function focusSectionSelection() {
+  document.querySelector('#section-selection [aria-current="page"]').focus();
 }
 
 function renderInspectorHeader() {
   const properties = inspectorView === 'properties';
+  const hasParent = inspectorHistory.length > 0;
+  const menuTitle = inspectorKind === 'canvas' ? 'Canvas Properties' : 'Properties';
+  inspectorNav.dataset.action = hasParent ? 'back' : 'sections';
+  inspectorNav.setAttribute('aria-label', hasParent ? 'Back' : menuTitle);
+  document.querySelector('#section-selection').setAttribute('aria-label', menuTitle);
   const sectionIndex = propertySectionIndex();
   document.querySelector('#delete-swatch').hidden = inspectorView !== 'edit' || !colorTarget?.editId
     || state.swatches.length <= 1 || state.boxes.some(item =>
       ['fill', 'textColor', 'borderColor'].some(property => item[property] === colorTarget.editId));
-  const parts = properties
-    ? [{ label: inspectorKind === 'canvas' ? 'Canvas' : propertySections[sectionIndex].label }]
+  const parts = inspectorView === 'sections' ? [{ label: menuTitle }] : properties
+    ? [{ label: inspectorKind === 'canvas' ? 'Colors' : propertySections[sectionIndex].label }]
     : inspectorKind === 'canvas'
-      ? [{ label: 'Canvas', view: 'properties' },
+      ? [{ label: 'Colors', view: 'properties' },
         { label: colorLabel(colorTarget.property), ...(inspectorView === 'picker' ? { view: 'edit' } : {}) },
         ...(inspectorView === 'picker' ? [{ label: editorSide === 'light' ? 'Light' : 'Dark' }] : [])]
       : inspectorView === 'choose'
@@ -845,6 +868,7 @@ function renderInspectorHeader() {
     item.textContent = part.label;
     if (part.view) {
       item.type = 'button';
+      item.tabIndex = -1;
       item.addEventListener('click', () => showInspectorParent(part.view));
     } else item.setAttribute('aria-current', 'page');
     inspectorPath.append(item);
@@ -890,7 +914,7 @@ for (const list of document.querySelectorAll('.dialog-choice-list')) {
     const direction = { ArrowDown: 1, ArrowUp: -1, Home: 'first', End: 'last' }[event.key];
     if (!direction) return;
     event.preventDefault();
-    const buttons = [...list.querySelectorAll('button')];
+    const buttons = [...list.querySelectorAll('button')].filter(button => !button.hidden && !button.disabled);
     const index = buttons.indexOf(document.activeElement);
     const next = direction === 'first' ? 0 : direction === 'last' ? buttons.length - 1
       : (index + direction + buttons.length) % buttons.length;
@@ -1164,10 +1188,24 @@ function focusPropertySection() {
   if (field?.isConnected && !field.closest('[hidden]')) field.focus();
   else propertySections[propertySectionIndex()].element.querySelector('input, select, button')?.focus();
 }
-document.querySelector('#close-inspector').addEventListener('click', () => {
+function closeInspector() {
   inspectorOpen = false;
+  resetInspectorView();
   workspace.focus();
   render();
+}
+document.querySelector('#close-inspector').addEventListener('click', closeInspector);
+inspectorNav.addEventListener('click', () => {
+  if (inspectorHistory.length) showInspectorParent();
+  else if (inspectorView !== 'sections') openSectionSelection();
+});
+for (const button of document.querySelectorAll('[data-property-section]')) button.addEventListener('click', () => {
+  if (button.dataset.propertySection !== 'canvas') activePropertySection = button.dataset.propertySection;
+  resetInspectorView();
+  renderInspector();
+  revealInspector();
+  if (inspectorKind === 'box') focusPropertySection();
+  else document.querySelector('#canvas-properties button').focus();
 });
 
 inspector.addEventListener('keydown', event => {
@@ -1180,24 +1218,27 @@ inspector.addEventListener('keydown', event => {
   fields[event.shiftKey ? fields.length - 1 : 0].focus();
 });
 
-function openInspector(id = selectedId) {
+function openInspector(id = selectedId, showSections = !inspectorOpen || inspectorView === 'sections') {
   if (id === null) return;
   if (inspector.contains(document.activeElement)) document.activeElement.blur();
   if (selectedIds.has(id)) selectedId = id;
   else selectOnly(id);
   inspectorOpen = true;
   inspectorKind = 'box';
-  inspectorView = 'properties';
+  resetInspectorView();
+  if (showSections) inspectorView = 'sections';
   render();
   revealInspector();
-  focusPropertySection();
+  if (showSections) focusSectionSelection();
+  else focusPropertySection();
 }
 
-function openCanvasInspector(point = null) {
+function openCanvasInspector(point = null, showSections = !inspectorOpen || inspectorView === 'sections') {
   selectOnly(null);
   inspectorOpen = true;
   inspectorKind = 'canvas';
-  inspectorView = 'properties';
+  resetInspectorView();
+  if (showSections) inspectorView = 'sections';
   inspectorPoint = point || { x: 12, y: 12 };
   render();
   if (!point) {
@@ -1205,7 +1246,8 @@ function openCanvasInspector(point = null) {
       y: (window.innerHeight - inspector.offsetHeight) / 2 };
     positionInspector();
   }
-  document.querySelector('#canvas-properties button').focus();
+  if (showSections) focusSectionSelection();
+  else document.querySelector('#canvas-properties button').focus();
 }
 
 workspace.addEventListener('contextmenu', event => {
@@ -1263,7 +1305,9 @@ workspace.addEventListener('pointerdown', event => {
         ? MockoutSelection.nearestContainer(state.boxes, hit) ?? hit : hit;
       if (!selectedIds.has(box.id)) {
         selectOnly(box.id);
-        inspectorView = 'properties';
+        const choosingSection = inspectorView === 'sections';
+        resetInspectorView();
+        if (choosingSection) inspectorView = 'sections';
       }
       gesture = {
         kind: resizing ? 'resize' : 'move',
@@ -1692,11 +1736,11 @@ document.addEventListener('keydown', event => {
     event.preventDefault();
     activePropertySection = propertySections[Number(digit) - 1].id;
     if (inspectorOpen && inspectorKind === 'box') {
-      inspectorView = 'properties';
+      resetInspectorView();
       renderInspector();
       focusPropertySection();
     } else {
-      openInspector(selectedId);
+      openInspector(selectedId, false);
     }
     return;
   }
@@ -1730,13 +1774,11 @@ document.addEventListener('keydown', event => {
       workspace.clientWidth / 2, workspace.clientHeight / 2);
     return;
   }
-  if (inspectorOpen && event.key === 'Escape' && inspector.contains(document.activeElement)) {
+  if (inspectorOpen && event.key === 'Escape') {
     event.preventDefault();
-    if (inspectorView === 'properties') {
-      inspectorOpen = false;
-      workspace.focus();
-      render();
-    } else returnFromColorView();
+    if (event.repeat) return;
+    if (event.shiftKey || !inspectorHistory.length) closeInspector();
+    else showInspectorParent();
     return;
   }
   if (inspector.contains(document.activeElement) || textEditor
@@ -1787,7 +1829,7 @@ document.addEventListener('keydown', event => {
   if (!ctrl && !event.altKey && event.code === 'KeyB') { event.preventDefault(); setTool('box'); return; }
   if (!ctrl && !event.altKey && event.code === 'KeyP') {
     event.preventDefault();
-    if (inspectorOpen) { inspectorOpen = false; render(); }
+    if (inspectorOpen) closeInspector();
     else if (selectedIds.size) openInspector(selectedId);
     else if (!selectedIds.size) openCanvasInspector();
     return;
@@ -1795,8 +1837,7 @@ document.addEventListener('keydown', event => {
   if ((event.key === 'Delete' || event.key === 'Backspace') && selectedIds.size) { event.preventDefault(); deleteSelected(); return; }
   if (event.key === 'Escape') {
     event.preventDefault();
-    if (inspectorOpen) { inspectorOpen = false; workspace.focus(); }
-    else selectOnly(null);
+    selectOnly(null);
     render();
     return;
   }
@@ -1888,7 +1929,7 @@ function openColorPicker(color, mode, onAccept) {
   editorColor = color;
   colorMode = mode;
   pickerOnAccept = onAccept;
-  inspectorView = 'picker';
+  pushInspectorView('picker', () => document.querySelector(`[data-editor-side="${editorSide}"]`).focus());
   document.querySelector('#color-mode').value = colorMode;
   showColor();
   revealInspector();
@@ -1897,7 +1938,7 @@ function openColorPicker(color, mode, onAccept) {
 
 function openManageSwatches() {
   colorTarget = { editId: null };
-  inspectorView = 'manage';
+  pushInspectorView('manage', () => document.querySelector('#manage-swatches').focus());
   renderInspector();
   revealInspector();
   (document.querySelector('#swatch-list .dialog-choice') || document.querySelector('#new-swatch')).focus();
@@ -1905,7 +1946,7 @@ function openManageSwatches() {
 
 function openColor(property) {
   colorTarget = { property };
-  inspectorView = 'choose';
+  pushInspectorView('choose', focusColorField);
   renderInspector();
   revealInspector();
   document.querySelector('#choice-swatch-list .dialog-choice[tabindex="0"]')?.focus();
@@ -1917,9 +1958,7 @@ function assignColor(id) {
     MockoutSelection.applyProperty(state.boxes, selectedIds, colorTarget.property, id);
     rememberStyle(selectedBox());
   });
-  inspectorView = 'properties';
-  renderInspector();
-  focusColorField();
+  showInspectorParent('properties');
 }
 
 function openCanvasColorEditor(property) {
@@ -1929,7 +1968,7 @@ function openCanvasColorEditor(property) {
   editorDark = { mode: 'invert', color: null, colorMode: editorLight.mode,
     ...state.canvasDark?.[property] };
   editorSide = 'light';
-  inspectorView = 'edit';
+  pushInspectorView('edit', focusColorField);
   renderInspector();
   revealInspector();
   document.querySelector('#swatch-light').focus();
@@ -1948,11 +1987,6 @@ function focusSwatchEditorOpener() {
   (edit || document.querySelector('#new-swatch')).focus();
 }
 
-function returnFromColorView() {
-  showInspectorParent(inspectorView === 'picker' ? 'edit'
-    : colorTarget?.direct ? 'properties' : 'manage');
-}
-
 function openSwatchEditor(id = null) {
   colorTarget.editId = id;
   const item = swatch(id);
@@ -1962,7 +1996,7 @@ function openSwatchEditor(id = null) {
   editorSide = 'light';
   document.querySelector('#swatch-name').value = item?.name || '';
   document.querySelector('#swatch-error').hidden = true;
-  inspectorView = 'edit';
+  pushInspectorView('edit', focusSwatchEditorOpener);
   renderInspector();
   revealInspector();
   document.querySelector('#swatch-name').focus();
@@ -2008,10 +2042,8 @@ document.querySelector('#delete-swatch').addEventListener('click', () => {
       }
     }
   });
-  inspectorView = 'manage';
   colorTarget.editId = null;
-  renderInspector();
-  document.querySelector('#new-swatch').focus();
+  showInspectorParent('manage');
 });
 document.querySelector('#color-mode').addEventListener('change', event => {
   colorMode = event.target.value;
@@ -2071,9 +2103,7 @@ document.querySelector('#use-color').addEventListener('click', () => {
   if (!pickerOnAccept || !readHex()) return;
   pickerOnAccept(editorColor, colorMode);
   pickerOnAccept = null;
-  inspectorView = 'edit';
-  render();
-  document.querySelector(`[data-editor-side="${editorSide}"]`).focus();
+  showInspectorParent('edit');
 });
 
 document.querySelector('#save-color').addEventListener('click', () => {
@@ -2084,9 +2114,7 @@ document.querySelector('#save-color').addEventListener('click', () => {
       state.canvasColorModes = { ...state.canvasColorModes, [colorTarget.property]: editorLight.mode };
       state.canvasDark = { ...state.canvasDark, [colorTarget.property]: { ...editorDark } };
     });
-    inspectorView = 'properties';
-    renderInspector();
-    focusColorField();
+    showInspectorParent('properties');
     return;
   }
   const name = document.querySelector('#swatch-name').value.trim();
@@ -2103,17 +2131,14 @@ document.querySelector('#save-color').addEventListener('click', () => {
   if (colorTarget.editId) {
     change(() => { Object.assign(swatch(colorTarget.editId),
       { name, color: editorLight.color, mode: editorLight.mode, dark }); });
-    inspectorView = 'manage';
   } else {
     change(() => {
       const id = `s${state.nextId++}`;
       state.swatches.push({ id, name, color: editorLight.color, mode: editorLight.mode, dark });
       colorTarget.editId = id;
     });
-    inspectorView = 'manage';
   }
-  renderInspector();
-  focusSwatchEditorOpener();
+  showInspectorParent('manage');
 });
 
 function downloadProject() {
