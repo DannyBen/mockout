@@ -2379,7 +2379,7 @@ async function chooseProjectFile() {
     const [handle] = await window.showOpenFilePicker({
       types: [{ description: 'Mockout project', accept: { 'application/json': ['.json'] } }],
     });
-    if (handle) await openProjectFile(await handle.getFile(), handle);
+    if (handle) await openProjectFile(null, handle);
   } catch (error) {
     if (error.name !== 'AbortError') showNotice(`Could not open project: ${error.message}`);
   }
@@ -2388,12 +2388,21 @@ document.querySelector('#open-button').addEventListener('click', chooseProjectFi
 async function openProjectFile(file, handle = null) {
   if (placement) return;
   try {
+    let permission = null;
+    if (handle) {
+      // Ask while the drop or Load still has user activation, before reading the project.
+      try { permission = await handle.requestPermission({ mode: 'readwrite' }); }
+      catch (error) {
+        if (error.name !== 'SecurityError' && error.name !== 'NotAllowedError') throw error;
+      }
+    }
+    if (!file) file = await handle.getFile();
     const loaded = JSON.parse(await file.text());
     if (!validProject(loaded)) throw new Error('This is not a Mockout project.');
     change(() => { state = loaded; selectOnly(null); inspectorOpen = false; focusProject(state.boxes); });
     if (savedProjectIssue) showNotice(savedProjectIssue);
     else notice.hidden = true;
-    await setProjectFileHandle(handle, { file });
+    await setProjectFileHandle(handle, { file, needsPermission: Boolean(handle) && permission !== 'granted', canRead: Boolean(handle) });
     undoStack.length = 0;
     redoStack.length = 0;
     render();
