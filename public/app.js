@@ -34,7 +34,7 @@ const inspectorPath = document.querySelector('#inspector-path');
 const inspectorNav = document.querySelector('#inspector-nav');
 const swatchChoiceTemplate = document.querySelector('#swatch-choice-template');
 const propertySections = [
-  { id: 'shape', label: 'Shape', element: document.querySelector('#shape-properties') },
+  { id: 'box', label: 'Box', element: document.querySelector('#box-appearance-properties') },
   { id: 'colors', label: 'Colors', element: document.querySelector('#color-properties') },
   { id: 'text', label: 'Text', element: document.querySelector('#text-properties') },
   { id: 'font', label: 'Font', element: document.querySelector('#font-properties') },
@@ -126,6 +126,7 @@ document.addEventListener('pointerdown', event => {
 let selectedId = null;
 let selectedIds = new Set();
 let gesture = null;
+let opacityBefore = null;
 let lastBoxClick = null;
 let pointerPosition = null;
 let placement = null;
@@ -184,7 +185,7 @@ function queueFileSave() {
   clearTimeout(fileSaveTimer);
   updateFileStatus();
   if (!projectFileHandle || fileLocked || fileSaving || fileSaveError || savedProjectIssue
-    || !reconnectFileButton.hidden || gesture || placement || textEditor || snapshot() === fileBaseline) return;
+    || !reconnectFileButton.hidden || gesture || opacityBefore !== null || placement || textEditor || snapshot() === fileBaseline) return;
   fileSaveTimer = setTimeout(() => saveProject(false, null, true), 0);
 }
 
@@ -315,6 +316,7 @@ function clearFileUpdate() {
 function pauseFileEditing() {
   if (placement) finishPlacement(false);
   if (textEditor) textEditor.blur();
+  finishOpacityEdit();
   const before = gesture?.before;
   gesture = null;
   lastBoxClick = null;
@@ -413,7 +415,7 @@ let inspectorPoint = { x: 12, y: 12 };
 let inspectorView = 'properties';
 // Nested screens return to this inspector; selecting another box keeps its root open.
 const inspectorHistory = [];
-let activePropertySection = 'shape';
+let activePropertySection = 'box';
 const lastPropertyFocus = new Map();
 let tool = 'select';
 let spaceDown = false;
@@ -460,7 +462,7 @@ const paddingX = box => box.paddingX ?? 3;
 const paddingY = box => box.paddingY ?? 3;
 const styleOf = box => ({
   fill: box.fill, textColor: box.textColor, borderColor: box.borderColor,
-  borderWidth: box.borderWidth, radius: box.radius,
+  borderWidth: box.borderWidth, radius: box.radius, opacity: box.opacity ?? 1,
   paddingX: paddingX(box), paddingY: paddingY(box), alignX: box.alignX, alignY: box.alignY,
   fontFamily: fonts.familyOf(box), fontSize: fonts.sizeOf(box),
   fontWeight: fonts.weightOf(box), fontStyle: fonts.styleOf(box),
@@ -587,14 +589,19 @@ function render() {
     element.dataset.id = box.id;
     Object.assign(element.style, {
       left: `${box.x}px`, top: `${box.y}px`, width: `${box.w}px`, height: `${box.h}px`,
+      borderRadius: `${box.radius}px`,
+    });
+    element.style.setProperty('--box-opacity', box.opacity ?? 1);
+    const content = document.createElement('div');
+    content.className = 'box-content';
+    Object.assign(content.style, {
       backgroundColor: boxColor(box, 'fill'), color: boxColor(box, 'textColor'),
       borderColor: boxColor(box, 'borderColor'),
       borderWidth: box.h === 1 ? `${borderWidth}px 0 0 0` : box.w === 1 ? `0 0 0 ${borderWidth}px` : `${borderWidth}px`,
-      borderRadius: `${box.radius}px`, padding: `${insetY}px ${insetX}px`,
+      padding: `${insetY}px ${insetX}px`,
       justifyContent: { left: 'flex-start', center: 'center', right: 'flex-end' }[box.alignX],
       alignItems: { top: 'flex-start', center: 'center', bottom: 'flex-end' }[box.alignY],
     });
-    element.style.setProperty('--box-border-width', `${borderWidth}px`);
     const label = document.createElement('span');
     label.className = 'box-label';
     label.textContent = box.text;
@@ -608,7 +615,8 @@ function render() {
       label.style.fontFeatureSettings = '"liga"';
       label.style.whiteSpace = 'nowrap';
     }
-    element.append(label);
+    content.append(label);
+    element.append(content);
 
     if (selectedIds.size === 1 && selectedIds.has(box.id) && tool === 'select' && !textEditor && !placement && !fileLocked) {
       addResizeHandles(element);
@@ -691,12 +699,13 @@ function renderInspector() {
       'box-text': item => item.text, 'box-width': item => item.w, 'box-height': item => item.h,
       'box-radius': item => item.radius, 'box-border-width': item => item.borderWidth,
       'box-padding-x': paddingX, 'box-padding-y': paddingY,
+      'box-opacity': item => Math.round((item.opacity ?? 1) * 100),
     })) {
       const input = document.getElementById(field);
       const value = MockoutSelection.commonValue(boxes, getValue);
       const mixed = value === undefined;
       if (document.activeElement !== input) input.value = mixed ? '' : value;
-      input.parentElement.classList.toggle('mixed', mixed);
+      input.closest('.field, .slider-field').classList.toggle('mixed', mixed);
       if (mixed) input.setAttribute('aria-description', 'Mixed values');
       else input.removeAttribute('aria-description');
       if (field === 'box-text') {
@@ -705,6 +714,10 @@ function renderInspector() {
           ? 'Icon name, e.g. arrow_forward' : 'Optional text';
       }
     }
+    const opacityRange = document.querySelector('#box-opacity-range');
+    const opacity = MockoutSelection.commonValue(boxes, item => item.opacity ?? 1);
+    if (document.activeElement !== opacityRange) opacityRange.value = opacity === undefined ? 50 : Math.round(opacity * 100);
+    opacityRange.setAttribute('aria-valuetext', opacity === undefined ? 'Mixed values' : `${Math.round(opacity * 100)}%`);
     const family = MockoutSelection.commonValue(boxes, fonts.familyOf);
     const familyChoice = MockoutSelection.commonValue(boxes, item => fonts.categoryOf(fonts.familyOf(item))) ?? 'mixed';
     const familySelect = document.querySelector('#box-font-family');
@@ -1474,6 +1487,7 @@ for (const [id, key, transform] of [
   ['box-border-width', 'borderWidth', value => Math.max(0, Number(value) || 0)],
   ['box-padding-x', 'paddingX', value => Math.max(0, Number(value) || 0)],
   ['box-padding-y', 'paddingY', value => Math.max(0, Number(value) || 0)],
+  ['box-opacity', 'opacity', value => Math.round(Math.max(0, Math.min(100, Number(value) || 0))) / 100],
   ['box-font-size', 'fontSize', value => Math.max(1, Number(value) || 1)],
   ['box-font-weight', 'fontWeight', Number],
   ['box-font-style', 'fontStyle', value => value],
@@ -1485,8 +1499,25 @@ for (const [id, key, transform] of [
       MockoutSelection.applyProperty(state.boxes, selectedIds, key, transform(event.target.value));
       rememberStyle(selectedBox());
     });
+    if (key === 'opacity') input.value = Math.round((selectedBox().opacity ?? 1) * 100);
   });
 }
+const opacityRange = document.querySelector('#box-opacity-range');
+opacityRange.addEventListener('input', () => {
+  if (!selectedIds.size) return;
+  opacityBefore ??= snapshot();
+  MockoutSelection.applyProperty(state.boxes, selectedIds, 'opacity', Number(opacityRange.value) / 100);
+  rememberStyle(selectedBox());
+  render();
+});
+function finishOpacityEdit() {
+  if (opacityBefore === null) return;
+  const before = opacityBefore;
+  opacityBefore = null;
+  commit(before);
+}
+opacityRange.addEventListener('change', finishOpacityEdit);
+opacityRange.addEventListener('blur', finishOpacityEdit);
 const fontFamilySelect = document.querySelector('#box-font-family');
 const googleFontInput = document.querySelector('#box-google-font');
 const materialStyleSelect = document.querySelector('#box-material-style');
@@ -1928,7 +1959,7 @@ function showColor() {
   const values = gray ? [grayValue(editorColor)]
     : rgb ? hexToRgb(editorColor) : rgbToHsb(...hexToRgb(editorColor));
   channels.forEach((input, i) => {
-    input.closest('.color-channel').hidden = gray && i > 0;
+    input.closest('.slider-field').hidden = gray && i > 0;
     const label = (gray ? ['Gray', '', ''] : rgb ? ['Red', 'Green', 'Blue'] : ['Hue', 'Saturation', 'Brightness'])[i];
     const max = rgb || gray ? 255 : [360, 100, 100][i];
     input.max = max;
@@ -2258,7 +2289,7 @@ async function resetEverything() {
   redoStack.length = 0;
   selectOnly(null);
   inspectorOpen = false;
-  activePropertySection = 'shape';
+  activePropertySection = 'box';
   lastPropertyFocus.clear();
   isolatedCopyIds = null;
   placement = null;

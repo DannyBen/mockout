@@ -235,6 +235,12 @@
           "type": "number",
           "minimum": 0
         },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1
+        },
         "alignX": {
           "enum": [
             "left",
@@ -345,6 +351,12 @@
         "paddingY": {
           "type": "number",
           "minimum": 0
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1
         },
         "alignX": {
           "enum": [

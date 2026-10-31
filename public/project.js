@@ -13,7 +13,7 @@ const MockoutProject = (() => {
     fill: swatches[0]?.id ?? null,
     textColor: swatches[1]?.id ?? swatches[0]?.id ?? null,
     borderColor: swatches[2]?.id ?? swatches[0]?.id ?? null,
-    borderWidth: 1, radius: 0, paddingX: 3, paddingY: 0,
+    borderWidth: 1, radius: 0, paddingX: 3, paddingY: 0, opacity: 1,
     alignX: 'center', alignY: 'center',
     fontFamily: '', fontSize: 13, fontWeight: 400, fontStyle: 'normal',
   });
@@ -23,6 +23,8 @@ const MockoutProject = (() => {
     && (item.fontWeight === undefined || (Number.isInteger(item.fontWeight)
       && item.fontWeight >= 100 && item.fontWeight <= 900 && item.fontWeight % 100 === 0))
     && (item.fontStyle === undefined || ['normal', 'italic'].includes(item.fontStyle));
+  const validOpacity = item => item.opacity === undefined
+    || (Number.isFinite(item.opacity) && item.opacity >= 0 && item.opacity <= 1);
 
   return {
     storageKey: 'mockout-project',
@@ -96,7 +98,7 @@ const MockoutProject = (() => {
         && ['borderWidth', 'radius', 'paddingX', 'paddingY'].every(key => Number.isFinite(style[key]) && style[key] >= 0)
         && ['left', 'center', 'right'].includes(style.alignX)
         && ['top', 'center', 'bottom'].includes(style.alignY)
-        && validFont(style);
+        && validFont(style) && validOpacity(style);
     },
 
     validProject(value) {
@@ -120,7 +122,7 @@ const MockoutProject = (() => {
           && ['paddingX', 'paddingY'].every(k => b[k] === undefined || (Number.isFinite(b[k]) && b[k] >= 0))
           && ['fill', 'textColor', 'borderColor'].every(k => b[k] === null || value.swatches.some(s => s.id === b[k]))
           && ['left', 'center', 'right'].includes(b.alignX) && ['top', 'center', 'bottom'].includes(b.alignY)
-          && validFont(b));
+          && validFont(b) && validOpacity(b));
     },
 
     persist(storage, key, state, issue) {

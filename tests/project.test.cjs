@@ -31,6 +31,33 @@ test('version 1 projects remain valid; unsupported versions and broken boxes are
   assert.equal(project.validProject({ ...valid(), boxes: [{ ...valid().boxes[0], fontFamily: 'No; font' }] }), false);
 });
 
+test('whole-box opacity is optional in version 1 and survives saving without changing older data', () => {
+  const old = valid();
+  const original = JSON.stringify(old);
+  assert.ok(project.validProject(old));
+  assert.equal(JSON.stringify(old), original);
+  assert.equal(project.initialStyle(old.swatches).opacity, 1);
+  for (const opacity of [0, 0.35, 1]) {
+    const value = { ...old, boxes: [{ ...old.boxes[0], opacity }],
+      lastStyle: { ...project.initialStyle(old.swatches), opacity } };
+    const stored = new Map();
+    project.persist({ setItem: (key, data) => stored.set(key, data) }, key, value, '');
+    const loaded = JSON.parse(stored.get(key));
+    assert.ok(project.validProject(loaded));
+    assert.equal(loaded.boxes[0].opacity, opacity);
+    assert.equal(loaded.lastStyle.opacity, opacity);
+    assert.equal(project.forExport(loaded).boxes[0].opacity, opacity);
+    assert.equal(loaded.version, 1);
+  }
+  const style = project.initialStyle(old.swatches);
+  delete style.opacity;
+  assert.ok(project.validProject({ ...old, lastStyle: style }));
+  for (const opacity of [-0.1, 1.1, null, '0.5', NaN, Infinity]) {
+    assert.equal(project.validProject({ ...old, boxes: [{ ...old.boxes[0], opacity }] }), false);
+    assert.equal(project.validProject({ ...old, lastStyle: { ...style, opacity } }), false);
+  }
+});
+
 test('color editing modes are optional in older projects and validated when saved', () => {
   assert.ok(project.validProject(valid()));
   assert.ok(project.validProject({ ...valid(),

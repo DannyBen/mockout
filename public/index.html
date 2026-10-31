@@ -216,14 +216,14 @@
       <button type="button" id="close-inspector" tabindex="-1" aria-label="Close dialog" aria-keyshortcuts="Shift+Escape" class="icon-button"><svg class="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#close"></use></svg></button>
     </header>
     <section id="section-selection" class="dialog-choice-list" hidden aria-label="Properties">
-      <button type="button" class="dialog-choice" data-property-section="shape"><span>Shape</span><span class="menu-hint">Alt+1</span></button>
+      <button type="button" class="dialog-choice" data-property-section="box"><span>Box</span><span class="menu-hint">Alt+1</span></button>
       <button type="button" class="dialog-choice" data-property-section="colors"><span>Colors</span><span class="menu-hint">Alt+2</span></button>
       <button type="button" class="dialog-choice" data-property-section="text"><span>Text</span><span class="menu-hint">Alt+3</span></button>
       <button type="button" class="dialog-choice" data-property-section="font"><span>Font</span><span class="menu-hint">Alt+4</span></button>
       <button type="button" class="dialog-choice" data-property-section="canvas"><span>Colors</span></button>
     </section>
     <section id="box-properties">
-      <div id="shape-properties" class="section-content">
+      <div id="box-appearance-properties" class="section-content">
         <div class="two-fields">
           <label class="field">Width <input id="box-width" type="number" min="1" step="1"></label>
           <label class="field">Height <input id="box-height" type="number" min="1" step="1"></label>
@@ -235,6 +235,11 @@
         <div class="two-fields">
           <label class="field">Padding X <input id="box-padding-x" type="number" min="0" step="1"></label>
           <label class="field">Padding Y <input id="box-padding-y" type="number" min="0" step="1"></label>
+        </div>
+        <div class="slider-field">
+          <label class="field" for="box-opacity-range">Opacity</label>
+          <input id="box-opacity-range" type="range" min="0" max="100" step="1">
+          <input id="box-opacity" type="number" min="0" max="100" step="1" aria-label="Opacity percentage">
         </div>
       </div>
       <div id="color-properties" class="section-content" hidden>
@@ -337,9 +342,9 @@
     <section id="color-picker" hidden aria-label="Color picker">
       <div class="field"><label for="color-hex">Hex</label><input id="color-hex" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="RRGGBB"></div>
       <div class="field"><label for="color-mode">Mode</label><select id="color-mode"><option value="hsb">HSB</option><option value="rgb">RGB</option><option value="gray">Grayscale</option></select></div>
-      <div class="color-channel"><label for="channel-1" id="channel-1-label">H</label><input id="channel-1" type="range" min="0" max="360"><input id="channel-1-value" type="number" min="0" max="360" aria-label="Hue value"></div>
-      <div class="color-channel"><label for="channel-2" id="channel-2-label">S</label><input id="channel-2" type="range" min="0" max="100"><input id="channel-2-value" type="number" min="0" max="100" aria-label="Saturation value"></div>
-      <div class="color-channel"><label for="channel-3" id="channel-3-label">B</label><input id="channel-3" type="range" min="0" max="100"><input id="channel-3-value" type="number" min="0" max="100" aria-label="Brightness value"></div>
+      <div class="slider-field"><label for="channel-1" id="channel-1-label">H</label><input id="channel-1" type="range" min="0" max="360"><input id="channel-1-value" type="number" min="0" max="360" aria-label="Hue value"></div>
+      <div class="slider-field"><label for="channel-2" id="channel-2-label">S</label><input id="channel-2" type="range" min="0" max="100"><input id="channel-2-value" type="number" min="0" max="100" aria-label="Saturation value"></div>
+      <div class="slider-field"><label for="channel-3" id="channel-3-label">B</label><input id="channel-3" type="range" min="0" max="100"><input id="channel-3-value" type="number" min="0" max="100" aria-label="Brightness value"></div>
       <div id="color-preview" aria-label="Color preview"></div>
       <p id="color-error" role="alert" hidden></p>
       <footer class="dialog-footer">

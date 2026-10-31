@@ -43,6 +43,7 @@ Optional fields:
 | Fields | Meaning |
 | --- | --- |
 | `paddingX`, `paddingY` | Nonnegative text padding. Omitted values render as `3`. |
+| `opacity` | Whole-box opacity from `0` (invisible) to `1` (fully opaque, the default). Applies to fill, border, and text together. Contained boxes are independent. |
 | `fontFamily` | `""` for system font, a Google Fonts family, or a supported Material icon family. Maximum 80 characters; no leading/trailing whitespace, control characters, `:`, `;`, `"`, or backslash. |
 | `fontSize` | Positive pixels; omitted means `13`. |
 | `fontWeight` | `100`, `200`, …, `900`; omitted means `400`. |
@@ -118,7 +119,7 @@ Prefer reusing or editing existing roles rather than deleting them.
 
 `lastStyle` uses the box style fields without `id`, geometry, or `text`.
 When present, it requires `fill`, `textColor`, `borderColor`, `borderWidth`,
-`radius`, **both** padding fields, `alignX`, and `alignY`. Font fields are optional.
+`radius`, **both** padding fields, `alignX`, and `alignY`. Opacity and font fields are optional.
 
 ## Icons
 
