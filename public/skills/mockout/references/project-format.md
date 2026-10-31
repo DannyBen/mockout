@@ -45,6 +45,7 @@ Optional fields:
 | Fields | Meaning |
 | --- | --- |
 | `paddingX`, `paddingY` | Nonnegative text padding. Omitted values render as `3`. |
+| `paddingSides` | Four nonnegative padding values in top, right, bottom, left order. Overrides `paddingX` and `paddingY`. |
 | `opacity` | Whole-box opacity from `0` (invisible) to `1` (fully opaque, the default). Applies to fill, border, and text together. Contained boxes are independent. |
 | `borderWidths` | Four nonnegative widths in top, right, bottom, left order. Overrides `borderWidth`. |
 | `borderColors` | Four swatch IDs or `null`, in top, right, bottom, left order. Overrides `borderColor`. |
@@ -68,6 +69,13 @@ opposing widths exceed a box's size, rendering scales them to fit that axis
 without changing saved values or box geometry. Individual corners follow CSS
 radius scaling when they do not fit.
 
+With `paddingSides`, editing Padding X changes left and right while preserving
+top and bottom; Padding Y changes top and bottom while preserving left and
+right. Mixed pairs show Mixed in the editor. When both pairs become uniform,
+the editor stores the values as `paddingX`/`paddingY` and removes `paddingSides`.
+Padding is scaled to fit the space left inside the rendered borders; saved
+values and box geometry remain unchanged.
+
 Changing grid settings does not snap existing geometry. When changing `gridBase`,
 keep the active multiplier by scaling `grid` by the new base divided by the old
 base; keep `0` unchanged. Major lines are spaced `grid × gridDivisions` pixels apart.
@@ -86,6 +94,7 @@ line count × fontSize × 1.35 + 2 × paddingY + 2 × borderWidth
 ```
 
 With per-side widths, replace `2 × borderWidth` with the top and bottom widths.
+With per-side padding, replace `2 × paddingY` with the top and bottom padding.
 
 For example, two lines at 20px need 54px for text. With 10px vertical padding and
 a 1px border, they need 76px total: use at least 80px on a 5px grid. A transparent
@@ -138,7 +147,7 @@ Prefer reusing or editing existing roles rather than deleting them.
 `lastStyle` uses the box style fields without `id`, geometry, or `text`.
 When present, it requires `fill`, `textColor`, `borderColor`, `borderWidth`,
 `radius`, **both** padding fields, `alignX`, and `alignY`. Opacity, font fields,
-and the three per-side arrays are optional. Preserve per-side swatch references
+and the four per-side arrays are optional. Preserve per-side swatch references
 in `lastStyle` when removing a swatch.
 
 ## Icons

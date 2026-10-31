@@ -1,5 +1,5 @@
 const MockoutBoxStyle = (() => {
-  const overrides = { borderWidth: 'borderWidths', borderColor: 'borderColors', radius: 'cornerRadii' };
+  const overrides = { borderWidth: 'borderWidths', borderColor: 'borderColors', radius: 'cornerRadii', padding: 'paddingSides' };
   const targets = [
     { id: 'tl', name: 'Top left', corner: true, index: 0, x: 0, y: 0 },
     { id: 'top', name: 'Top', index: 0, x: .5, y: 0 },
@@ -10,7 +10,22 @@ const MockoutBoxStyle = (() => {
     { id: 'bl', name: 'Bottom left', corner: true, index: 3, x: 0, y: 1 },
     { id: 'left', name: 'Left', index: 3, x: 0, y: .5 },
   ];
-  const values = (box, property) => box[overrides[property]] ?? Array(4).fill(box[property]);
+  const values = (box, property) => {
+    if (property === 'paddingX' || property === 'paddingY') {
+      const items = values(box, 'padding');
+      return (property === 'paddingX' ? [1, 3] : [0, 2]).map(index => items[index]);
+    }
+    return box[overrides[property]] ?? (property === 'padding'
+      ? [box.paddingY ?? 3, box.paddingX ?? 3, box.paddingY ?? 3, box.paddingX ?? 3] : Array(4).fill(box[property]));
+  };
+  const fitSides = (items, width, height) => {
+    const result = [...items];
+    for (const [first, second, size] of [[0, 2, height], [1, 3, width]]) {
+      const total = result[first] + result[second];
+      if (total > size) { result[first] *= size / total; result[second] *= size / total; }
+    }
+    return result;
+  };
   const numeric = value => Number.isFinite(value) && value >= 0;
   const color = (value, swatches) => value === null || swatches.some(item => item.id === value);
   return {
@@ -21,8 +36,21 @@ const MockoutBoxStyle = (() => {
       return index === undefined ? items.every(item => item === items[0]) ? items[0] : undefined : items[index];
     },
     set(box, property, value, index) {
-      if (index === undefined) {
+      if (property === 'paddingX' || property === 'paddingY') {
         box[property] = value;
+        if (box.paddingSides) {
+          const items = [...box.paddingSides];
+          for (const side of property === 'paddingX' ? [1, 3] : [0, 2]) items[side] = value;
+          if (items[0] === items[2] && items[1] === items[3]) {
+            box.paddingX = items[1]; box.paddingY = items[0];
+            delete box.paddingSides;
+          } else box.paddingSides = items;
+        }
+        return;
+      }
+      if (index === undefined) {
+        if (property === 'padding') box.paddingX = box.paddingY = value;
+        else box[property] = value;
         delete box[overrides[property]];
       } else {
         const items = [...values(box, property)];
@@ -52,12 +80,11 @@ const MockoutBoxStyle = (() => {
         const width = Math.max(0, box.w === 1 || box.h === 1 ? box.borderWidth : Math.min(box.borderWidth, box.w / 2, box.h / 2));
         return box.h === 1 ? [width, 0, 0, 0] : box.w === 1 ? [0, 0, 0, width] : Array(4).fill(width);
       }
-      const result = [...box.borderWidths];
-      for (const [first, second, size] of [[0, 2, box.h], [1, 3, box.w]]) {
-        const total = result[first] + result[second];
-        if (total > size) { result[first] *= size / total; result[second] *= size / total; }
-      }
-      return result;
+      return fitSides(box.borderWidths, box.w, box.h);
+    },
+    paddings(box, widths = this.widths(box)) {
+      return fitSides(values(box, 'padding'), Math.max(0, box.w - widths[1] - widths[3]),
+        Math.max(0, box.h - widths[0] - widths[2]));
     },
     markerFrame(rect) {
       const width = Math.max(80, rect.width + 28);

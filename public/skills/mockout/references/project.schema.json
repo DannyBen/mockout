@@ -318,6 +318,16 @@
             "minimum": 0
           },
           "description": "Top-left, top-right, bottom-right, bottom-left."
+        },
+        "paddingSides": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": 0
+          },
+          "description": "Top, right, bottom, left. Overrides paddingX and paddingY."
         }
       }
     },
@@ -467,6 +477,16 @@
             "minimum": 0
           },
           "description": "Top-left, top-right, bottom-right, bottom-left."
+        },
+        "paddingSides": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": 0
+          },
+          "description": "Top, right, bottom, left. Overrides paddingX and paddingY."
         }
       }
     }

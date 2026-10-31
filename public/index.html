@@ -55,8 +55,8 @@
 <body>
   <main id="workspace" tabindex="-1" aria-label="Mock canvas">
     <div id="canvas" aria-label="Boxes"></div>
-    <svg id="border-guides" aria-hidden="true" hidden></svg>
-    <div id="border-markers" role="group" aria-label="Border targets" hidden></div>
+    <svg id="style-guides" aria-hidden="true" hidden></svg>
+    <div id="style-markers" role="group" aria-label="Box style targets" hidden></div>
   </main>
 
   <div class="corner" aria-label="Canvas controls">
@@ -116,7 +116,8 @@
       <dl>
         <div><dt>Box or canvas properties</dt><dd><div><kbd>/</kbd></div><div>Right click</div></dd></div>
         <div><dt>Edit box borders</dt><dd><kbd>O</kbd></dd></div>
-        <div><dt>Previous / next border target</dt><dd><kbd>Alt</kbd> + <kbd>←</kbd> / <kbd>→</kbd></dd></div>
+        <div><dt>Edit box padding</dt><dd><kbd>P</kbd></dd></div>
+        <div><dt>Previous / next editor point</dt><dd><kbd>Alt</kbd> + <kbd>←</kbd> / <kbd>→</kbd></dd></div>
         <div><dt>Open box properties section</dt><dd><kbd>Alt</kbd> + <kbd>1</kbd>–<kbd>4</kbd></dd></div>
         <div><dt>Back / close at root</dt><dd><kbd>Esc</kbd></dd></div>
         <div><dt>Close inspector</dt><dd><kbd>Shift</kbd> + <kbd>Esc</kbd></dd></div>
@@ -225,6 +226,7 @@
       <button type="button" class="dialog-choice" data-property-section="text"><span>Text</span><span class="menu-hint">Alt+3</span></button>
       <button type="button" class="dialog-choice" data-property-section="font"><span>Font</span><span class="menu-hint">Alt+4</span></button>
       <button type="button" class="dialog-choice" data-property-section="border"><span>Border editor</span><span class="menu-hint">O</span></button>
+      <button type="button" class="dialog-choice" data-property-section="padding"><span>Padding editor</span><span class="menu-hint">P</span></button>
       <button type="button" class="dialog-choice" data-property-section="canvas"><span>Colors</span></button>
       <button type="button" class="dialog-choice" data-property-section="grid"><span>Grid</span></button>
     </section>
@@ -252,6 +254,9 @@
         <div class="field" id="border-width-field"><label for="border-width">Width</label><input id="border-width" type="number" min="0" max="10000" step="1"></div>
         <div class="field" id="border-color-field"><label for="border-side-color">Color</label><button type="button" id="border-side-color" data-color-property="borderColor" data-border-side></button></div>
         <div class="field" id="border-radius-field"><label for="border-radius">Radius</label><input id="border-radius" type="number" min="0" max="10000" step="1"></div>
+      </div>
+      <div id="padding-properties" class="section-content" hidden>
+        <div class="field"><label for="side-padding">Padding</label><input id="side-padding" type="number" min="0" max="10000" step="1"></div>
       </div>
       <div id="color-properties" class="section-content" hidden>
         <div class="field"><label for="fill-color">Fill</label><button type="button" id="fill-color" data-color-property="fill"></button></div>

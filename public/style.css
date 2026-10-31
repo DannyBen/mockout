@@ -134,7 +134,7 @@ button { cursor: pointer; }
   cursor: move;
   user-select: none;
 
-  &.selected:not(.editing-border) {
+  &.selected:not(.editing-style) {
     &::after {
       content: '';
       position: absolute;
@@ -187,8 +187,8 @@ button { cursor: pointer; }
   border-radius: 2px;
 }
 
-#border-guides { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
-#border-guides line {
+#style-guides { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
+#style-guides line {
   stroke: var(--ui-subtle);
   stroke-width: 1;
   opacity: .6;
@@ -196,8 +196,8 @@ button { cursor: pointer; }
   &.active { stroke: var(--ui-accent); opacity: 1; }
 }
 
-#border-markers { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
-.border-marker {
+#style-markers { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.style-marker {
   position: absolute;
   display: grid;
   place-items: center;

@@ -88,3 +88,64 @@ test('screen-space marker frames keep hit areas separate on small and zoomed box
     assert.equal(frame.left + frame.width / 2, 100 + width / 2);
   }
 });
+
+test('padding defaults preserve older projects and side edits preserve the other edges', () => {
+  const value = box();
+  const before = JSON.stringify(value);
+  assert.deepEqual(style.values(value, 'padding'), [0, 3, 0, 3]);
+  assert.equal(style.value(value, 'paddingX'), 3);
+  assert.deepEqual(style.values({}, 'padding'), [3, 3, 3, 3]);
+  assert.equal(JSON.stringify(value), before);
+  style.set(value, 'padding', 24, 3);
+  assert.deepEqual(value.paddingSides, [0, 3, 0, 24]);
+  assert.equal(style.value(value, 'paddingX'), undefined);
+  assert.equal(style.value(value, 'paddingY'), 0);
+  const remembered = style.copy(value);
+  style.set(value, 'padding', 12, 0);
+  assert.deepEqual(remembered.paddingSides, [0, 3, 0, 24]);
+  assert.deepEqual(value.paddingSides, [12, 3, 0, 24]);
+});
+
+test('axis padding edits unify their own pair while preserving the other axis and border styles', () => {
+  const value = { ...box(), paddingSides: [12, 3, 0, 24], borderWidths: [1, 2, 3, 4] };
+  style.set(value, 'paddingX', 8);
+  assert.deepEqual(value.paddingSides, [12, 8, 0, 8]);
+  assert.equal(style.value(value, 'paddingX'), 8);
+  assert.equal(style.value(value, 'paddingY'), undefined);
+  style.set(value, 'paddingY', 6);
+  assert.equal(value.paddingSides, undefined);
+  assert.deepEqual([value.paddingX, value.paddingY], [8, 6]);
+  assert.deepEqual(style.values(value, 'padding'), [6, 8, 6, 8]);
+  assert.deepEqual(value.borderWidths, [1, 2, 3, 4]);
+  const vertical = { ...box(), paddingSides: [10, 4, 20, 30] };
+  style.set(vertical, 'paddingY', 7);
+  assert.deepEqual(vertical.paddingSides, [7, 4, 7, 30]);
+});
+
+test('padding fits the remaining interior without changing authored values or geometry', () => {
+  const value = { ...box(), w: 100, h: 40, borderWidths: [5, 10, 5, 10], paddingSides: [100, 0, 0, 100] };
+  const before = structuredClone(value);
+  assert.deepEqual(style.paddings(value), [30, 0, 0, 80]);
+  assert.deepEqual(value, before);
+  assert.deepEqual(style.paddings({ ...box(), w: 5, h: 5 }), [0, 1.5, 0, 1.5]);
+});
+
+test('per-side padding saves in version 1 and invalid padding leaves stored data untouched', () => {
+  const value = project.freshState();
+  value.boxes = [{ ...box(), paddingSides: [4, 8, 12, 24] }];
+  value.lastStyle = { ...value.lastStyle, ...style.copy(value.boxes[0]) };
+  const loaded = JSON.parse(JSON.stringify(value));
+  assert.ok(project.validProject(loaded));
+  assert.deepEqual(loaded.lastStyle.paddingSides, [4, 8, 12, 24]);
+  assert.deepEqual(project.forExport(loaded).boxes[0].paddingSides, [4, 8, 12, 24]);
+  assert.equal(loaded.version, 1);
+  for (const paddingSides of [[], [1, 2, 3], [0, 0, 0, -1], [0, 0, null, 1], [0, 0, 0, '3'], [0, 0, 0, Infinity], null]) {
+    for (const invalid of [{ ...value, boxes: [{ ...box(), paddingSides }] },
+      { ...value, lastStyle: { ...value.lastStyle, paddingSides } }]) {
+      assert.equal(project.validProject(invalid), false);
+      const stored = new Map([['project', 'unsupported saved data']]);
+      project.persist({ setItem: (key, data) => stored.set(key, data) }, 'project', invalid, 'Unsupported');
+      assert.equal(stored.get('project'), 'unsupported saved data');
+    }
+  }
+});
