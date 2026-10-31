@@ -566,11 +566,49 @@ input, select { width: 100%; padding: 5px 6px; }
 .dialog-choice:is([aria-selected="true"], [aria-current="page"]) { background: var(--ui-active); border-color: var(--ui-accent); }
 #color-hex { font-family: ui-monospace, monospace; letter-spacing: .06em; }
 #color-preview { height: 36px; margin: 9px 0; border: 1px solid var(--ui-subtle); border-radius: 4px; background: var(--preview-color); }
-.color-channel { display: grid; grid-template-columns: 14px minmax(0, 1fr) 52px; align-items: center; gap: 6px; margin: 8px 0; }
-#color-picker.gray-mode .color-channel { grid-template-columns: 30px minmax(0, 1fr) 52px; }
-.color-channel label { color: var(--ui-muted); font-size: 11px; }
-.color-channel input[type="range"] { padding: 0; accent-color: var(--ui-accent); }
-.color-channel input[type="number"] { text-align: right; }
+.color-channel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 1px 8px;
+  margin: 8px 0;
+
+  & label { grid-area: 1 / 1; color: var(--ui-muted); font-size: 11px; font-weight: 500; }
+  & input[type="number"] { grid-area: 1 / 2; height: 23px; padding: 1px 5px; text-align: right; font-variant-numeric: tabular-nums; }
+  & input[type="range"] {
+    appearance: none;
+    grid-area: 2 / 1 / auto / -1;
+    height: 18px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+
+    &::-webkit-slider-runnable-track { box-sizing: border-box; height: 10px; border: 1px solid var(--ui-border); border-radius: 5px; background: var(--channel-gradient); }
+    &::-moz-range-track { box-sizing: border-box; height: 10px; border: 1px solid var(--ui-border); border-radius: 5px; background: var(--channel-gradient); }
+    &::-webkit-slider-thumb {
+      appearance: none;
+      box-sizing: border-box;
+      width: 14px;
+      height: 14px;
+      margin-top: -3px;
+      border: 2px solid #253047;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 0 1px #fff8;
+    }
+    &::-moz-range-thumb {
+      box-sizing: border-box;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #253047;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 0 1px #fff8;
+    }
+  }
+}
 #color-error, #swatch-error { margin: 8px 0 0; color: var(--ui-danger); font-size: 11px; }
 
 #notice {

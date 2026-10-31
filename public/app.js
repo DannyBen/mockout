@@ -1902,15 +1902,33 @@ function hsbToRgb(h, s, v) {
   return parts.map(n => Math.round((n + m) * 255));
 }
 
+function updateChannelGradients() {
+  const values = channels.map(input => Number(input.value));
+  let stops;
+  if (colorMode === 'gray') stops = [['#000000', '#ffffff']];
+  else if (colorMode === 'rgb') {
+    stops = values.map((_, channel) => [0, 255].map(value =>
+      rgbToHex(...values.map((current, i) => i === channel ? value : current))));
+  } else {
+    const [hue, saturation, brightness] = values;
+    stops = [
+      ['#ff0000', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#ff00ff', '#ff0000'],
+      [rgbToHex(...hsbToRgb(hue, 0, brightness)), rgbToHex(...hsbToRgb(hue, 100, brightness))],
+      ['#000000', rgbToHex(...hsbToRgb(hue, saturation, 100))],
+    ];
+  }
+  channels.forEach((input, i) => input.style.setProperty('--channel-gradient',
+    stops[i] ? `linear-gradient(to right, ${stops[i].join(', ')})` : 'none'));
+}
+
 function showColor() {
   const rgb = colorMode === 'rgb';
   const gray = colorMode === 'gray';
-  document.querySelector('#color-picker').classList.toggle('gray-mode', gray);
   const values = gray ? [grayValue(editorColor)]
     : rgb ? hexToRgb(editorColor) : rgbToHsb(...hexToRgb(editorColor));
   channels.forEach((input, i) => {
     input.closest('.color-channel').hidden = gray && i > 0;
-    const label = (gray ? ['Gray', '', ''] : rgb ? ['R', 'G', 'B'] : ['H', 'S', 'B'])[i];
+    const label = (gray ? ['Gray', '', ''] : rgb ? ['Red', 'Green', 'Blue'] : ['Hue', 'Saturation', 'Brightness'])[i];
     const max = rgb || gray ? 255 : [360, 100, 100][i];
     input.max = max;
     channelValues[i].max = max;
@@ -1919,6 +1937,7 @@ function showColor() {
     input.value = values[i] ?? 0;
     channelValues[i].value = values[i] ?? 0;
   });
+  updateChannelGradients();
   document.querySelector('#color-preview').style.setProperty('--preview-color', editorColor);
   document.querySelector('#color-hex').value = editorColor.slice(1).toUpperCase();
   document.querySelector('#color-error').hidden = true;
@@ -2062,6 +2081,7 @@ function updateFromChannels(source, index) {
   const values = channels.map(input => Number(input.value));
   editorColor = rgbToHex(...(colorMode === 'gray' ? [value, value, value]
     : colorMode === 'hsb' ? hsbToRgb(...values) : values));
+  updateChannelGradients();
   document.querySelector('#color-preview').style.setProperty('--preview-color', editorColor);
   document.querySelector('#color-hex').value = editorColor.slice(1).toUpperCase();
   document.querySelector('#color-error').hidden = true;

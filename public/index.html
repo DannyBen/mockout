@@ -319,11 +319,11 @@
     </section>
     <section id="color-picker" hidden aria-label="Color picker">
       <div class="field"><label for="color-hex">Hex</label><input id="color-hex" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="RRGGBB"></div>
-      <div id="color-preview" aria-label="Color preview"></div>
       <div class="field"><label for="color-mode">Mode</label><select id="color-mode"><option value="hsb">HSB</option><option value="rgb">RGB</option><option value="gray">Grayscale</option></select></div>
       <div class="color-channel"><label for="channel-1" id="channel-1-label">H</label><input id="channel-1" type="range" min="0" max="360"><input id="channel-1-value" type="number" min="0" max="360" aria-label="Hue value"></div>
       <div class="color-channel"><label for="channel-2" id="channel-2-label">S</label><input id="channel-2" type="range" min="0" max="100"><input id="channel-2-value" type="number" min="0" max="100" aria-label="Saturation value"></div>
       <div class="color-channel"><label for="channel-3" id="channel-3-label">B</label><input id="channel-3" type="range" min="0" max="100"><input id="channel-3-value" type="number" min="0" max="100" aria-label="Brightness value"></div>
+      <div id="color-preview" aria-label="Color preview"></div>
       <p id="color-error" role="alert" hidden></p>
       <footer class="dialog-footer">
         <button type="button" data-inspector-back>Cancel</button>
