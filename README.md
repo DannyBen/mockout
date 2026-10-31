@@ -18,8 +18,8 @@
 </p>
 
 Mockout is a small browser tool for sketching interfaces and other 2D layouts.
-Draw boxes, add text, and arrange them into an idea you can see and change
-quickly. The editable Welcome project shows what you can make.
+Draw boxes, add text, and arrange your ideas—by hand or together with your own
+AI assistant. The editable Welcome project shows what you can make.
 
 ## Start sketching
 
@@ -43,6 +43,25 @@ Every box color uses a named swatch. Change a swatch once to update all boxes
 that use it. Swatches and canvas colors support light and dark appearances;
 dark colors default to Invert, with Same and Custom options. You can also choose
 fonts and Material icons in box properties.
+
+## Work with AI
+
+Use your own AI assistant to create and refine mockups while you watch. Connect
+a shared project file, describe what you want, and see changes appear on the
+canvas. Your assistant needs access to files on your computer.
+
+Choose the **AI** sparkle button next to Help to copy a skill setup prompt or a
+quick-run prompt into your AI app.
+
+The [Mockout skill](public/skills/mockout/SKILL.md) guides an agent through sharing
+a local project file, then builds the mockup box by box with live updates.
+
+For repeated use, ask your agent to install the
+[skill folder from GitHub](https://github.com/dannyben/mockout/tree/master/public/skills/mockout).
+For one session, ask it to read and follow the
+[hosted instructions](https://mockout.sector-seven.com/skills/mockout/SKILL.md).
+The folder includes the schema, a blank starter, an email-client example, and the
+complete Welcome project with icons and light/dark colors.
 
 ## Keep your work
 
@@ -76,22 +95,6 @@ file** to use the file's version, or **Save ours** to replace it with your canva
 
 To explore the Welcome project again, choose **New blank**, then
 **Show Welcome example** in Help.
-
-## Work with AI
-
-Choose the **AI** sparkle button next to Help to copy a skill setup prompt or a
-quick-run prompt into your AI app.
-
-The [Mockout skill](public/skills/mockout/SKILL.md) guides an agent through sharing
-a local project file, then builds the mockup box by box with live updates.
-The agent needs read/write access to the same file connected in your browser.
-
-For repeated use, ask your agent to install the
-[skill folder from GitHub](https://github.com/dannyben/mockout/tree/master/public/skills/mockout).
-For one session, ask it to read and follow the
-[hosted instructions](https://mockout.sector-seven.com/skills/mockout/SKILL.md).
-The folder includes the schema, a blank starter, an email-client example, and the
-complete Welcome project with icons and light/dark colors.
 
 ## Run locally
 
