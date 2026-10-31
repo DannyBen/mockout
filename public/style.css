@@ -408,7 +408,7 @@ button { cursor: pointer; }
   }
 }
 
-#open-project-unavailable { margin: 12px 0 0; font-size: 12px; }
+#open-project-unavailable, #save-project-unavailable { margin: 12px 0 0; font-size: 12px; }
 
 #ai-dialog {
   & [data-ai-prompt] { width: 100%; min-height: 32px; }
@@ -665,7 +665,7 @@ input, select { width: 100%; padding: 5px 6px; }
 }
 #box-opacity-range { --channel-gradient: linear-gradient(to right, transparent, var(--ui-text)); }
 
-#color-error, #swatch-error { margin: 8px 0 0; color: var(--ui-danger); font-size: 11px; }
+#color-error, #swatch-error, #save-project-error { margin: 8px 0 0; color: var(--ui-danger); font-size: 11px; }
 
 #notice {
   max-width: min(360px, 100%);

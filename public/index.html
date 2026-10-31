@@ -202,13 +202,31 @@
     <p id="open-project-description">Choose how to open <strong id="open-project-name"></strong>.</p>
     <button type="button" id="open-local-copy" class="dialog-option" autofocus>
       <strong>Open a local copy</strong>
-      <span>Explore and edit without changing the original file. Your work stays in Local Session; Ctrl+S saves a new file.</span>
+      <span>Explore and edit without changing the original file. Your work stays in Local Session; Ctrl+S lets you choose how to save.</span>
     </button>
     <button type="button" id="open-connected-file" class="dialog-option">
       <strong>Open connected file</strong>
       <span>Automatically save changes to this file and load changes made by other tools, including AI.</span>
     </button>
     <p id="open-project-unavailable" hidden>This browser cannot connect this file. You can still open a local copy.</p>
+  </dialog>
+
+  <dialog id="save-project-dialog" class="modal-dialog" aria-labelledby="save-project-heading" aria-describedby="save-project-description">
+    <header>
+      <h2 id="save-project-heading">Save mockup</h2>
+      <button type="button" id="close-save-project" aria-label="Cancel saving mockup" class="icon-button"><svg class="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#close"></use></svg></button>
+    </header>
+    <p id="save-project-description">Choose how to save your mockup.</p>
+    <button type="button" id="save-once" class="dialog-option" autofocus>
+      <strong>Save once</strong>
+      <span>Save a JSON file and continue editing in Local Session. The file stays unchanged as you work.</span>
+    </button>
+    <button type="button" id="save-connected-file" class="dialog-option">
+      <strong>Save and connect</strong>
+      <span>Save a JSON file, then automatically save changes and load edits made by other tools, including AI.</span>
+    </button>
+    <p id="save-project-unavailable" hidden>This browser cannot connect files. You can still save once.</p>
+    <p id="save-project-error" role="alert" hidden></p>
   </dialog>
 
   <aside id="inspector" class="mini-dialog" hidden aria-label="Inspector">

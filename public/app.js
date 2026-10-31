@@ -23,6 +23,13 @@ const helpButton = document.querySelector('#help-button');
 const aiDialog = document.querySelector('#ai-dialog');
 const aiCopyStatus = document.querySelector('#ai-copy-status');
 const openProjectDialog = document.querySelector('#open-project-dialog');
+const saveProjectDialog = document.querySelector('#save-project-dialog');
+const saveOnceButton = document.querySelector('#save-once');
+const saveConnectedButton = document.querySelector('#save-connected-file');
+const closeSaveButton = document.querySelector('#close-save-project');
+const saveDialogError = document.querySelector('#save-project-error');
+const modalDialogs = [aiDialog, openProjectDialog, saveProjectDialog];
+const modalOpen = () => modalDialogs.some(dialog => dialog.open);
 const openLocalCopyButton = document.querySelector('#open-local-copy');
 const openConnectedFileButton = document.querySelector('#open-connected-file');
 const welcomeButton = document.querySelector('#welcome-button');
@@ -195,7 +202,7 @@ function queueFileSave() {
   clearTimeout(fileSaveTimer);
   updateFileStatus();
   if (!projectFileHandle || fileLocked || fileSaving || fileSaveError || savedProjectIssue
-    || !reconnectFileButton.hidden || gesture || opacityBefore !== null || styleBefore !== null || placement || textEditor || snapshot() === fileBaseline) return;
+    || saveProjectDialog.open || !reconnectFileButton.hidden || gesture || opacityBefore !== null || styleBefore !== null || placement || textEditor || snapshot() === fileBaseline) return;
   fileSaveTimer = setTimeout(() => saveProject(false, null, true), 0);
 }
 
@@ -347,19 +354,21 @@ function checkExternalFile(replace = false) {
 async function loadExternalFile(replace) {
   const handle = projectFileHandle;
   const revision = fileConnectionRevision;
-  if (!handle || fileWriting) return false;
+  if (!handle || fileWriting || saveProjectDialog.open) return false;
   let loading = false;
   try {
     if (!reconnectFileButton.hidden && await handle.queryPermission({ mode: 'read' }) !== 'granted') return false;
     if (revision !== fileConnectionRevision) return false;
     const file = await handle.getFile();
     if (revision !== fileConnectionRevision) return false;
+    if (saveProjectDialog.open) return false;
     if (!replace && fileStamp === file.lastModified) return false;
     pauseFileEditing();
     loading = true;
     render();
     const loaded = JSON.parse(await file.text());
     if (revision !== fileConnectionRevision) return false;
+    if (saveProjectDialog.open) return false;
     if (!validProject(loaded)) throw Error('The file is not a supported Mockout project.');
     // Older connections have no timestamp yet. Recognise an unchanged exported board.
     if (!replace && fileStamp === null && JSON.stringify(MockoutProject.forExport(loaded)) === JSON.stringify(MockoutProject.forExport(state))) {
@@ -1216,7 +1225,7 @@ aiDialog.addEventListener('close', () => {
   aiCopyStatus.textContent = '';
   workspace.focus();
 });
-for (const dialog of [aiDialog, openProjectDialog]) dialog.addEventListener('keydown', event => {
+for (const dialog of modalDialogs) dialog.addEventListener('keydown', event => {
   if (event.key !== 'Tab') return;
   const buttons = [...dialog.querySelectorAll('button:not(:disabled)')];
   const first = buttons[0], last = buttons.at(-1);
@@ -1837,7 +1846,7 @@ inspector.addEventListener('wheel', event => {
 }, { passive: false });
 
 document.addEventListener('wheel', event => {
-  if (aiDialog.open || openProjectDialog.open) return;
+  if (modalOpen()) return;
   if (!event.ctrlKey && !event.metaKey) return;
   event.preventDefault();
   if (textEditor || placement) return;
@@ -1862,7 +1871,7 @@ window.addEventListener('blur', () => {
 });
 
 document.addEventListener('keydown', event => {
-  if (aiDialog.open || openProjectDialog.open) {
+  if (modalOpen()) {
     if ((event.ctrlKey || event.metaKey) && ['KeyS', 'KeyO', 'KeyP', 'KeyD'].includes(event.code)) event.preventDefault();
     return;
   }
@@ -2373,22 +2382,50 @@ function downloadProject() {
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-async function saveProject(asNew = false, overwriteStamp = null, automatic = false) {
+async function saveProject(asNew = false, overwriteStamp = null, automatic = false, connect = null) {
   if (fileSaving || (fileLocked && !asNew && overwriteStamp === null)) return;
-  if (automatic && (!projectFileHandle || fileSaveError || savedProjectIssue
+  if (!automatic && overwriteStamp === null && connect === null && (!projectFileHandle || asNew)) {
+    if (modalOpen()) return;
+    closeProjectMenu();
+    clearTimeout(fileSaveTimer);
+    saveDialogError.hidden = true;
+    saveOnceButton.disabled = false;
+    saveConnectedButton.disabled = !window.showSaveFilePicker;
+    closeSaveButton.disabled = false;
+    document.querySelector('#save-project-unavailable').hidden = Boolean(window.showSaveFilePicker);
+    saveProjectDialog.showModal();
+    saveOnceButton.focus();
+    return;
+  }
+  const choosing = connect !== null;
+  if (choosing && !saveProjectDialog.open) return;
+  if (automatic && (saveProjectDialog.open || !projectFileHandle || fileSaveError || savedProjectIssue
     || !reconnectFileButton.hidden || gesture || styleBefore !== null || placement || textEditor || snapshot() === fileBaseline)) return;
-  if (!window.showSaveFilePicker) { downloadProject(); return; }
   clearTimeout(fileSaveTimer);
-  if (!automatic) clearFileSaveError();
+  if (!automatic && !choosing) clearFileSaveError();
   fileSaving = true;
+  if (choosing) {
+    saveDialogError.hidden = true;
+    saveOnceButton.disabled = saveConnectedButton.disabled = closeSaveButton.disabled = true;
+  }
   updateFileStatus();
   const revision = fileConnectionRevision;
   try {
+    if (!window.showSaveFilePicker) {
+      if (connect === true) return;
+      downloadProject();
+      if (choosing) {
+        await setProjectFileHandle(null);
+        saveProjectDialog.close();
+      }
+      return;
+    }
     const handle = !asNew && projectFileHandle ? projectFileHandle : await window.showSaveFilePicker({
       suggestedName: MockoutProject.suggestedFileName(),
       types: [{ description: 'Mockout project', accept: { 'application/json': ['.json'] } }],
     });
     if (revision !== fileConnectionRevision) return;
+    if (choosing && !saveProjectDialog.open) return;
     if (handle === projectFileHandle && !asNew) {
       if (!reconnectFileButton.hidden) { showNotice('Reconnect the file before saving.', 'file-connection'); return; }
       if (automatic && await handle.queryPermission({ mode: 'readwrite' }) !== 'granted') {
@@ -2410,10 +2447,18 @@ async function saveProject(asNew = false, overwriteStamp = null, automatic = fal
     await writable.write(contents);
     await writable.close();
     const file = await handle.getFile();
-    if (revision === fileConnectionRevision) await setProjectFileHandle(handle, { file, baseline: savedState });
+    if (revision === fileConnectionRevision) {
+      await setProjectFileHandle(connect === false ? null : handle, { file, baseline: savedState });
+      if (choosing) saveProjectDialog.close();
+    }
   } catch (error) {
     if (revision !== fileConnectionRevision) return;
-    if (error.name === 'NotAllowedError' && projectFileHandle) {
+    if (choosing) {
+      if (error.name !== 'AbortError') {
+        saveDialogError.textContent = `Could not save project: ${error.message}`;
+        saveDialogError.hidden = false;
+      }
+    } else if (error.name === 'NotAllowedError' && projectFileHandle) {
       setProjectFileHandle(projectFileHandle, { remember: false, needsPermission: true });
     } else if (error.name !== 'AbortError' || automatic) {
       fileSaveError = error.message;
@@ -2422,10 +2467,24 @@ async function saveProject(asNew = false, overwriteStamp = null, automatic = fal
   } finally {
     fileWriting = false;
     fileSaving = false;
+    if (choosing && saveProjectDialog.open) {
+      saveOnceButton.disabled = closeSaveButton.disabled = false;
+      saveConnectedButton.disabled = !window.showSaveFilePicker;
+      (connect ? saveConnectedButton : saveOnceButton).focus();
+    }
     checkExternalFile();
     queueFileSave();
   }
 }
+saveOnceButton.addEventListener('click', () => saveProject(true, null, false, false));
+saveConnectedButton.addEventListener('click', () => saveProject(true, null, false, true));
+closeSaveButton.addEventListener('click', () => saveProjectDialog.close());
+saveProjectDialog.addEventListener('cancel', event => { if (fileSaving) event.preventDefault(); });
+saveProjectDialog.addEventListener('close', () => {
+  workspace.focus();
+  checkExternalFile();
+  queueFileSave();
+});
 document.querySelector('#save-button').addEventListener('click', () => saveProject());
 const saveAsButton = document.querySelector('#save-as-button');
 if (window.showSaveFilePicker) saveAsButton.addEventListener('click', () => saveProject(true));
@@ -2581,7 +2640,7 @@ async function openPreview() {
 }
 document.querySelector('#preview-button').addEventListener('click', openPreview);
 async function chooseProjectFile() {
-  if (fileOpenBusy || openProjectDialog.open || aiDialog.open) return;
+  if (fileOpenBusy || modalOpen()) return;
   if (!window.showOpenFilePicker) { document.querySelector('#open-file').click(); return; }
   try {
     const [handle] = await window.showOpenFilePicker({
@@ -2594,7 +2653,7 @@ async function chooseProjectFile() {
 }
 document.querySelector('#open-button').addEventListener('click', chooseProjectFile);
 async function openProjectFile(file, handle = null) {
-  if (placement || fileOpenBusy || openProjectDialog.open || aiDialog.open) return;
+  if (placement || fileOpenBusy || modalOpen()) return;
   fileOpenBusy = true;
   try {
     if (!file) file = await handle.getFile();
@@ -2664,13 +2723,13 @@ document.querySelector('#open-file').addEventListener('change', async event => {
 document.addEventListener('dragover', event => {
   if (!event.dataTransfer?.types.includes('Files')) return;
   event.preventDefault();
-  event.dataTransfer.dropEffect = placement || aiDialog.open || openProjectDialog.open || fileOpenBusy ? 'none' : 'copy';
+  event.dataTransfer.dropEffect = placement || modalOpen() || fileOpenBusy ? 'none' : 'copy';
 });
 
 document.addEventListener('drop', async event => {
   if (!event.dataTransfer?.types.includes('Files')) return;
   event.preventDefault();
-  if (placement || aiDialog.open || openProjectDialog.open || fileOpenBusy) return;
+  if (placement || modalOpen() || fileOpenBusy) return;
   if (event.dataTransfer.files.length !== 1) {
     showNotice('Drop one JSON project file at a time.');
     return;

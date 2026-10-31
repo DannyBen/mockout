@@ -47,13 +47,16 @@ fonts and Material icons in box properties.
 ## Keep your work
 
 Your current project is saved automatically in this browser. Use **Save JSON**
-to keep a portable copy, and **Load JSON** to reopen it. **Preview** opens your
-mock without the editor controls or grid.
+to keep a portable copy, and **Load JSON** to reopen it. When saving from Local
+Session, choose **Save once** to write a file and keep working locally, or
+**Save and connect** to automatically save edits and load external changes.
+**Preview** opens your mock without the editor controls or grid.
 
 When loading or dropping a project, choose **Open a local copy** to explore it
-without changing the original. Edits stay in Local Session; **Ctrl+S** opens
-Save As. Choose **Open connected file** to enable automatic saving and loading
-of external changes. If you decline file permission, it opens as a local copy.
+without changing the original. Edits stay in Local Session; **Ctrl+S** lets you
+choose how to save. Choose **Open connected file** to enable automatic saving
+and loading of external changes. If you decline file permission, it opens as a
+local copy.
 
 The bottom-left status shows **Local session** or the connected filename.
 Connected files save automatically after edits, including undo and redo. A check
@@ -61,6 +64,10 @@ shows the file connection; routine saves stay quiet. Mockout remembers it across
 reloads; choose **Reconnect** if the browser needs read/write permission again.
 Choose **Work locally** beside it to forget the connection and keep the current
 canvas in browser storage.
+
+While connected, **Ctrl+S** saves directly. **Save as…** offers both save choices
+again. Choosing **Save once** returns to Local Session after the file is saved;
+cancelling keeps your existing connection.
 
 On supported browsers, external file edits appear live; Mockout also checks when
 you return to the tab. Valid changes reload silently if your canvas has no unsaved
