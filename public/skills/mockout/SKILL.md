@@ -22,8 +22,9 @@ The browser saves the user's edits automatically and reloads valid external edit
   [starter.json](examples/starter.json). Ask them to open it with **… → Load JSON**
   or drag it into Mockout. Preserve existing files unless replacement was requested.
 - Before the first edit in a session, have the user confirm that the bottom-left
-  status shows the intended filename with a circled check. **Local session** only
-  saves in the browser. **Reconnect** renews file permission; ask them to grant
+  status shows the intended filename **without `.json`**, alongside a circled
+  check: `dialogs.json` appears as **dialogs**. **Local session** only saves in
+  the browser. **Reconnect** renews file permission; ask them to grant
   read/write access. A download alone does not establish a file connection.
 - Reuse an already confirmed connection during the conversation. Do not repeat
   setup for each request. On a later session, confirm it again; permission may
