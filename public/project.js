@@ -1,5 +1,6 @@
 const MockoutProject = (() => {
   const fonts = typeof module !== 'undefined' ? require('./fonts.js') : MockoutFonts;
+  const boxStyle = typeof module !== 'undefined' ? require('./box-style.js') : MockoutBoxStyle;
   const defaultCanvasColors = { background: '#ffffff', gridMajor: '#d0d0d0', gridMinor: '#e8e8e8' };
   const colorModeValues = ['hsb', 'rgb', 'gray'];
   const hexColor = value => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
@@ -103,7 +104,7 @@ const MockoutProject = (() => {
         && ['borderWidth', 'radius', 'paddingX', 'paddingY'].every(key => Number.isFinite(style[key]) && style[key] >= 0)
         && ['left', 'center', 'right'].includes(style.alignX)
         && ['top', 'center', 'bottom'].includes(style.alignY)
-        && validFont(style) && validOpacity(style);
+        && validFont(style) && validOpacity(style) && boxStyle.valid(style, swatches);
     },
 
     validProject(value) {
@@ -129,7 +130,7 @@ const MockoutProject = (() => {
           && ['paddingX', 'paddingY'].every(k => b[k] === undefined || (Number.isFinite(b[k]) && b[k] >= 0))
           && ['fill', 'textColor', 'borderColor'].every(k => b[k] === null || value.swatches.some(s => s.id === b[k]))
           && ['left', 'center', 'right'].includes(b.alignX) && ['top', 'center', 'bottom'].includes(b.alignY)
-          && validFont(b) && validOpacity(b));
+          && validFont(b) && validOpacity(b) && boxStyle.valid(b, value.swatches));
     },
 
     persist(storage, key, state, issue) {

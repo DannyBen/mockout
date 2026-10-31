@@ -134,7 +134,7 @@ button { cursor: pointer; }
   cursor: move;
   user-select: none;
 
-  &.selected {
+  &.selected:not(.editing-border) {
     &::after {
       content: '';
       position: absolute;
@@ -185,6 +185,36 @@ button { cursor: pointer; }
   background: var(--ui-surface);
   border: 1px solid var(--ui-accent);
   border-radius: 2px;
+}
+
+#border-guides { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
+#border-guides line {
+  stroke: var(--ui-subtle);
+  stroke-width: 1;
+  opacity: .6;
+
+  &.active { stroke: var(--ui-accent); opacity: 1; }
+}
+
+#border-markers { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.border-marker {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+
+  &::after { content: ''; width: 14px; height: 6px; border: 1px solid var(--ui-accent); border-radius: 2px; background: var(--ui-surface); box-shadow: 0 1px 3px var(--ui-shadow); }
+  &[data-axis="vertical"]::after { width: 6px; height: 14px; }
+  &[data-kind="corner"]::after { width: 9px; height: 9px; border-radius: 50%; }
+  &:hover::after { border-color: var(--ui-accent); background: var(--ui-hover); }
+  &[aria-pressed="true"]::after { border-color: var(--ui-accent); background: var(--ui-accent); box-shadow: 0 0 0 3px var(--ui-hold-fill); }
+  &:focus-visible { outline: 1px solid var(--ui-focus); outline-offset: -1px; border-radius: 5px; }
 }
 
 .handle[data-handle="nw"] { left: 0; top: 0; cursor: nwse-resize; }

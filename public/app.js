@@ -1,6 +1,8 @@
 const STORAGE_KEY = MockoutProject.storageKey;
 const workspace = document.querySelector('#workspace');
 const canvas = document.querySelector('#canvas');
+const borderMarkers = document.querySelector('#border-markers');
+const borderGuides = document.querySelector('#border-guides');
 const inspector = document.querySelector('#inspector');
 const notice = document.querySelector('#notice');
 const noticeMessage = document.querySelector('#notice-message');
@@ -38,6 +40,7 @@ const propertySections = [
   { id: 'colors', label: 'Colors', element: document.querySelector('#color-properties') },
   { id: 'text', label: 'Text', element: document.querySelector('#text-properties') },
   { id: 'font', label: 'Font', element: document.querySelector('#font-properties') },
+  { id: 'border', label: 'Border', element: document.querySelector('#border-properties') },
 ];
 const canvasSections = [
   { id: 'canvas', label: 'Colors', element: document.querySelector('#canvas-properties') },
@@ -46,6 +49,7 @@ const canvasSections = [
 const channels = [1, 2, 3].map(n => document.querySelector(`#channel-${n}`));
 const channelValues = [1, 2, 3].map(n => document.querySelector(`#channel-${n}-value`));
 const { initialStyle } = MockoutProject;
+const boxStyle = MockoutBoxStyle;
 const fonts = MockoutFonts;
 const freshState = () => MockoutProject.freshState();
 const validProject = value => MockoutProject.validProject(value);
@@ -131,6 +135,7 @@ let selectedId = null;
 let selectedIds = new Set();
 let gesture = null;
 let opacityBefore = null;
+let borderBefore = null;
 let lastBoxClick = null;
 let pointerPosition = null;
 let placement = null;
@@ -189,7 +194,7 @@ function queueFileSave() {
   clearTimeout(fileSaveTimer);
   updateFileStatus();
   if (!projectFileHandle || fileLocked || fileSaving || fileSaveError || savedProjectIssue
-    || !reconnectFileButton.hidden || gesture || opacityBefore !== null || placement || textEditor || snapshot() === fileBaseline) return;
+    || !reconnectFileButton.hidden || gesture || opacityBefore !== null || borderBefore !== null || placement || textEditor || snapshot() === fileBaseline) return;
   fileSaveTimer = setTimeout(() => saveProject(false, null, true), 0);
 }
 
@@ -321,6 +326,7 @@ function pauseFileEditing() {
   if (placement) finishPlacement(false);
   if (textEditor) textEditor.blur();
   finishOpacityEdit();
+  finishBorderEdit();
   const before = gesture?.before;
   gesture = null;
   lastBoxClick = null;
@@ -421,6 +427,7 @@ let inspectorView = 'properties';
 const inspectorHistory = [];
 let activePropertySection = 'box';
 let activeCanvasSection = 'canvas';
+let borderTarget = boxStyle.targets[1];
 const lastPropertyFocus = new Map();
 let tool = 'select';
 let spaceDown = false;
@@ -465,12 +472,17 @@ const selectedBoxes = () => state.boxes.filter(b => selectedIds.has(b.id));
 const propertySectionIndex = () => propertySections.findIndex(section => section.id === activePropertySection);
 const paddingX = box => box.paddingX ?? 3;
 const paddingY = box => box.paddingY ?? 3;
+const boxProperty = (box, property, side) => ['borderWidth', 'borderColor', 'radius'].includes(property)
+  ? boxStyle.value(box, property, side) : box[property];
+const borderEditing = () => inspectorOpen && inspectorKind === 'box' && activePropertySection === 'border'
+  && inspectorView !== 'sections' && !textEditor && !placement && !fileLocked;
 const styleOf = box => ({
   fill: box.fill, textColor: box.textColor, borderColor: box.borderColor,
   borderWidth: box.borderWidth, radius: box.radius, opacity: box.opacity ?? 1,
   paddingX: paddingX(box), paddingY: paddingY(box), alignX: box.alignX, alignY: box.alignY,
   fontFamily: fonts.familyOf(box), fontSize: fonts.sizeOf(box),
   fontWeight: fonts.weightOf(box), fontStyle: fonts.styleOf(box),
+  ...boxStyle.copy(box),
 });
 function rememberStyle(box) { state.lastStyle = styleOf(box); }
 function selectOnly(id) {
@@ -500,13 +512,14 @@ function canvasColor(property) {
     && colorTarget.property === property) return draftColor();
   return resolvedColor(state.canvasColors[property], state.canvasDark?.[property]);
 }
-function boxColor(box, property) {
+function boxColor(box, property, side) {
+  const value = boxProperty(box, property, side);
   if (inspectorOpen && ['edit', 'picker'].includes(inspectorView) && colorTarget) {
-    if (colorTarget.editId && box[property] === colorTarget.editId) return draftColor();
+    if (colorTarget.editId && value === colorTarget.editId) return draftColor();
     if (inspectorKind === 'box' && !colorTarget.editId && selectedIds.has(box.id)
-      && property === colorTarget.property) return draftColor();
+      && property === colorTarget.property && (colorTarget.side === undefined || side === colorTarget.side)) return draftColor();
   }
-  return colorOf(box[property]);
+  return colorOf(value);
 }
 const snap = n => MockoutPlacement.snap(n, state.grid);
 const minimum = () => 1;
@@ -538,6 +551,30 @@ function addResizeHandles(element) {
     handle.className = 'handle';
     handle.dataset.handle = direction;
     element.append(handle);
+  }
+}
+
+function renderBorderMarkers() {
+  const box = inspectedBox();
+  const visible = borderEditing() && !!box;
+  borderMarkers.hidden = !visible;
+  borderGuides.toggleAttribute('hidden', !visible);
+  if (!visible) return;
+  const rect = canvas.querySelector(`.box[data-id="${box.id}"]`).getBoundingClientRect();
+  const frame = boxStyle.markerFrame(rect);
+  const origin = workspace.getBoundingClientRect();
+  borderGuides.replaceChildren();
+  for (const target of boxStyle.targets) {
+    const x = frame.left + target.x * frame.width - origin.left;
+    const y = frame.top + target.y * frame.height - origin.top;
+    const marker = borderMarkers.querySelector(`[data-border-target="${target.id}"]`);
+    Object.assign(marker.style, { left: `${x}px`, top: `${y}px` });
+    marker.setAttribute('aria-pressed', String(target === borderTarget));
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    for (const [name, value] of Object.entries({ x1: rect.left + target.x * rect.width - origin.left,
+      y1: rect.top + target.y * rect.height - origin.top, x2: x, y2: y })) line.setAttribute(name, value);
+    line.classList.toggle('active', target === borderTarget);
+    borderGuides.append(line);
   }
 }
 
@@ -587,27 +624,27 @@ function render() {
 
   canvas.replaceChildren();
   for (const box of state.boxes) {
-    const thinLine = box.w === 1 || box.h === 1;
-    const borderWidth = thinLine ? box.borderWidth : Math.min(box.borderWidth, box.w / 2, box.h / 2);
-    const insetX = Math.min(paddingX(box), Math.max(0, (box.w - borderWidth * 2) / 2));
-    const insetY = Math.min(paddingY(box), Math.max(0, (box.h - borderWidth * 2) / 2));
+    const widths = boxStyle.widths(box);
+    const insetX = Math.min(paddingX(box), Math.max(0, (box.w - widths[1] - widths[3]) / 2));
+    const insetY = Math.min(paddingY(box), Math.max(0, (box.h - widths[0] - widths[2]) / 2));
     const element = document.createElement('div');
     element.className = 'box';
     if (selectedIds.has(box.id)) element.classList.add('selected');
+    if (borderEditing() && box.id === selectedId) element.classList.add('editing-border');
     if (gesture?.kind === 'draw' && gesture.id === box.id) element.classList.add('drawing');
     if (placement?.ids.has(box.id)) element.classList.add('placing');
     element.dataset.id = box.id;
     Object.assign(element.style, {
       left: `${box.x}px`, top: `${box.y}px`, width: `${box.w}px`, height: `${box.h}px`,
-      borderRadius: `${box.radius}px`,
+      borderRadius: boxStyle.values(box, 'radius').map(value => `${value}px`).join(' '),
     });
     element.style.setProperty('--box-opacity', box.opacity ?? 1);
     const content = document.createElement('div');
     content.className = 'box-content';
     Object.assign(content.style, {
       backgroundColor: boxColor(box, 'fill'), color: boxColor(box, 'textColor'),
-      borderColor: boxColor(box, 'borderColor'),
-      borderWidth: box.h === 1 ? `${borderWidth}px 0 0 0` : box.w === 1 ? `0 0 0 ${borderWidth}px` : `${borderWidth}px`,
+      borderColor: [0, 1, 2, 3].map(side => boxColor(box, 'borderColor', side)).join(' '),
+      borderWidth: widths.map(value => `${value}px`).join(' '),
       padding: `${insetY}px ${insetX}px`,
       justifyContent: { left: 'flex-start', center: 'center', right: 'flex-end' }[box.alignX],
       alignItems: { top: 'flex-start', center: 'center', bottom: 'flex-end' }[box.alignY],
@@ -628,12 +665,12 @@ function render() {
     content.append(label);
     element.append(content);
 
-    if (selectedIds.size === 1 && selectedIds.has(box.id) && tool === 'select' && !textEditor && !placement && !fileLocked) {
+    if (selectedIds.size === 1 && selectedIds.has(box.id) && tool === 'select' && !textEditor && !placement && !fileLocked && !borderEditing()) {
       addResizeHandles(element);
     }
     canvas.append(element);
   }
-  if (selectedIds.size > 1 && tool === 'select' && !textEditor && !placement && !fileLocked) {
+  if (selectedIds.size > 1 && tool === 'select' && !textEditor && !placement && !fileLocked && !borderEditing()) {
     const boxes = selectedBoxes();
     const left = Math.min(...boxes.map(box => box.x));
     const top = Math.min(...boxes.map(box => box.y));
@@ -659,6 +696,7 @@ function render() {
     canvas.append(marquee);
   }
   renderInspector();
+  renderBorderMarkers();
 }
 
 function syncFontStylesheets() {
@@ -712,7 +750,9 @@ function renderInspector() {
   if (box) {
     for (const [field, getValue] of Object.entries({
       'box-text': item => item.text, 'box-width': item => item.w, 'box-height': item => item.h,
-      'box-radius': item => item.radius, 'box-border-width': item => item.borderWidth,
+      'box-radius': item => boxProperty(item, 'radius'), 'box-border-width': item => boxProperty(item, 'borderWidth'),
+      'border-width': item => boxProperty(item, 'borderWidth', borderTarget.index),
+      'border-radius': item => boxProperty(item, 'radius', borderTarget.index),
       'box-padding-x': paddingX, 'box-padding-y': paddingY,
       'box-opacity': item => Math.round((item.opacity ?? 1) * 100),
     })) {
@@ -723,6 +763,7 @@ function renderInspector() {
       input.closest('.field, .slider-field').classList.toggle('mixed', mixed);
       if (mixed) input.setAttribute('aria-description', 'Mixed values');
       else input.removeAttribute('aria-description');
+      if (input.type === 'number') input.placeholder = mixed ? 'Mixed' : '';
       if (field === 'box-text') {
         const family = MockoutSelection.commonValue(boxes, fonts.familyOf);
         input.placeholder = mixed ? 'Mixed values' : boxes.every(item => fonts.isMaterial(fonts.familyOf(item)))
@@ -778,6 +819,9 @@ function renderInspector() {
       button.setAttribute('aria-pressed', String(active));
     }
   }
+  document.querySelector('#border-width-field').hidden = !!borderTarget.corner;
+  document.querySelector('#border-color-field').hidden = !!borderTarget.corner;
+  document.querySelector('#border-radius-field').hidden = !borderTarget.corner;
   if (inspectorKind === 'box') for (const button of boxColorButtons) renderBoxColorButton(button, boxes);
   if (inspectorKind === 'canvas') for (const button of canvasColorButtons) {
     const canvasProperty = button.dataset.canvasColorProperty;
@@ -810,7 +854,8 @@ function renderColorEditorPreview() {
 }
 
 function renderBoxColorButton(button, boxes) {
-  const value = MockoutSelection.commonValue(boxes, box => box[button.dataset.colorProperty]);
+  const side = button.hasAttribute('data-border-side') ? borderTarget.index : undefined;
+  const value = MockoutSelection.commonValue(boxes, box => boxProperty(box, button.dataset.colorProperty, side));
   const mixed = value === undefined;
   const item = swatch(value);
   const chip = colorChip(item ? resolvedColor(item.color, item.dark) : null);
@@ -847,7 +892,7 @@ function showInspectorParent(viewName = inspectorHistory.at(-1)?.view) {
 
 function openSectionSelection() {
   pushInspectorView('sections', () => inspectorNav.focus());
-  renderInspector();
+  render();
   revealInspector();
   focusSectionSelection();
 }
@@ -867,16 +912,17 @@ function renderInspectorHeader() {
     ? canvasSections.find(item => item.id === activeCanvasSection)
     : propertySections[propertySectionIndex()];
   document.querySelector('#delete-swatch').hidden = inspectorView !== 'edit' || !colorTarget?.editId
-    || state.swatches.length <= 1 || state.boxes.some(item =>
-      ['fill', 'textColor', 'borderColor'].some(property => item[property] === colorTarget.editId));
+    || state.swatches.length <= 1 || state.boxes.some(item => boxStyle.usesColor(item, colorTarget.editId));
   const parts = inspectorView === 'sections' ? [{ label: menuTitle }] : properties
-    ? [{ label: section.label }]
+    ? [{ label: section.label }, ...(section.id === 'border' ? [{ label: borderTarget.name }] : [])]
     : inspectorKind === 'canvas'
       ? [{ label: 'Colors', view: 'properties' },
         { label: colorLabel(colorTarget.property), ...(inspectorView === 'picker' ? { view: 'edit' } : {}) },
         ...(inspectorView === 'picker' ? [{ label: editorSide === 'light' ? 'Light' : 'Dark' }] : [])]
       : inspectorView === 'choose'
-        ? [{ label: 'Colors', view: 'properties' }, { label: colorLabel(colorTarget.property) }]
+        ? [{ label: activePropertySection === 'border' ? 'Border' : 'Colors', view: 'properties' },
+          ...(colorTarget.side !== undefined ? [{ label: borderTarget.name }] : []),
+          { label: colorTarget.side !== undefined ? 'Color' : colorLabel(colorTarget.property) }]
         : inspectorView === 'manage'
           ? [{ label: 'Colors', view: 'properties' }, { label: 'Swatches' }]
           : inspectorView === 'edit'
@@ -914,7 +960,7 @@ function renderSwatchList() {
   const list = document.querySelector(choosing ? '#choice-swatch-list' : '#swatch-list');
   const focused = list.contains(document.activeElement) ? document.activeElement : null;
   const focusedId = focused?.dataset.swatchId;
-  const selected = choosing ? MockoutSelection.commonValue(selectedBoxes(), box => box[colorTarget.property]) : null;
+  const selected = choosing ? MockoutSelection.commonValue(selectedBoxes(), box => boxProperty(box, colorTarget.property, colorTarget.side)) : null;
   const items = choosing && colorTarget.property !== 'textColor'
     ? [{ id: null, name: 'Transparent' }, ...state.swatches] : state.swatches;
   list.replaceChildren();
@@ -964,7 +1010,8 @@ function positionInspector() {
   if (!box) return;
   const boxRect = [...canvas.querySelectorAll('.box')].find(element => Number(element.dataset.id) === box.id)?.getBoundingClientRect();
   if (!boxRect) return;
-  const position = MockoutSelection.inspectorPosition(boxRect);
+  const frame = borderEditing() ? boxStyle.markerFrame(boxRect) : null;
+  const position = frame ? { left: frame.right + 20, top: frame.top } : MockoutSelection.inspectorPosition(boxRect);
   inspector.style.left = `${position.left}px`;
   inspector.style.top = `${position.top}px`;
 }
@@ -998,7 +1045,7 @@ function newBox(x, y) {
   const style = state.lastStyle ?? (state.boxes.length ? styleOf(state.boxes.at(-1)) : initialStyle(state.swatches));
   return {
     id: state.nextId++, x, y, w: minimum(), h: minimum(), text: '',
-    ...style,
+    ...style, ...boxStyle.copy(style),
   };
 }
 
@@ -1123,6 +1170,10 @@ function arrangeStack(movingIds = []) {
 }
 
 function setTool(next) {
+  if (inspectorOpen && inspectorKind === 'box' && activePropertySection === 'border') {
+    inspectorOpen = false;
+    resetInspectorView();
+  }
   tool = next;
   lastBoxClick = null;
   render();
@@ -1218,6 +1269,12 @@ function focusPropertySection() {
     canvasSections.find(section => section.id === activeCanvasSection).element.querySelector('input, button')?.focus();
     return;
   }
+  if (activePropertySection === 'border') {
+    const input = document.querySelector(borderTarget.corner ? '#border-radius' : '#border-width');
+    input.focus();
+    input.select();
+    return;
+  }
   const field = lastPropertyFocus.get(activePropertySection);
   if (field?.isConnected && !field.closest('[hidden]')) field.focus();
   else propertySections[propertySectionIndex()].element.querySelector('input, select, button')?.focus();
@@ -1236,12 +1293,38 @@ inspectorNav.addEventListener('click', () => {
 for (const button of document.querySelectorAll('[data-inspector-back]')) button.addEventListener('click', () => showInspectorParent());
 for (const button of document.querySelectorAll('[data-property-section]')) button.addEventListener('click', () => {
   if (inspectorKind === 'canvas') activeCanvasSection = button.dataset.propertySection;
-  else activePropertySection = button.dataset.propertySection;
+  else {
+    activePropertySection = button.dataset.propertySection;
+    if (activePropertySection === 'border') tool = 'select';
+  }
   resetInspectorView();
-  renderInspector();
+  render();
   revealInspector();
   focusPropertySection();
 });
+
+function selectBorderTarget(target) {
+  if (inspector.contains(document.activeElement)) document.activeElement.blur();
+  borderTarget = target;
+  resetInspectorView();
+  render();
+  focusPropertySection();
+}
+for (const target of boxStyle.targets) {
+  const marker = document.createElement('button');
+  marker.type = 'button';
+  marker.className = 'border-marker';
+  marker.dataset.borderTarget = target.id;
+  marker.dataset.kind = target.corner ? 'corner' : 'edge';
+  marker.dataset.axis = target.x === .5 ? 'horizontal' : 'vertical';
+  marker.setAttribute('aria-label', `${target.name} ${target.corner ? 'corner' : 'border'}`);
+  marker.setAttribute('aria-controls', 'inspector');
+  marker.addEventListener('pointerdown', event => {
+    if (event.button === 0 && !spaceDown) event.stopPropagation();
+  });
+  marker.addEventListener('click', () => { if (!spaceDown) selectBorderTarget(target); });
+  borderMarkers.append(marker);
+}
 
 inspector.addEventListener('keydown', event => {
   if (event.key !== 'Tab' || event.ctrlKey || event.altKey || event.metaKey) return;
@@ -1517,11 +1600,38 @@ for (const [id, key, transform] of [
   input.addEventListener('change', event => {
     if (!selectedIds.size || (input.type === 'number' && event.target.value === '')) return;
     change(() => {
-      MockoutSelection.applyProperty(state.boxes, selectedIds, key, transform(event.target.value));
+      if (['borderWidth', 'radius'].includes(key)) {
+        for (const box of selectedBoxes()) boxStyle.set(box, key, transform(event.target.value));
+      } else MockoutSelection.applyProperty(state.boxes, selectedIds, key, transform(event.target.value));
       rememberStyle(selectedBox());
     });
     if (key === 'opacity') input.value = Math.round((selectedBox().opacity ?? 1) * 100);
   });
+}
+for (const [id, property] of [['border-width', 'borderWidth'], ['border-radius', 'radius']]) {
+  const input = document.getElementById(id);
+  const update = () => {
+    if (!selectedIds.size || fileLocked || input.value === '') return;
+    borderBefore ??= snapshot();
+    const value = Math.max(0, Math.min(10000, input.valueAsNumber));
+    for (const box of selectedBoxes()) boxStyle.set(box, property, value, borderTarget.index);
+    rememberStyle(selectedBox());
+    render();
+  };
+  input.addEventListener('input', update);
+  input.addEventListener('change', () => {
+    update();
+    finishBorderEdit();
+    const value = MockoutSelection.commonValue(selectedBoxes(), box => boxProperty(box, property, borderTarget.index));
+    input.value = value ?? '';
+  });
+  input.addEventListener('blur', finishBorderEdit);
+}
+function finishBorderEdit() {
+  if (borderBefore === null) return;
+  const before = borderBefore;
+  borderBefore = null;
+  commit(before);
 }
 const opacityRange = document.querySelector('#box-opacity-range');
 opacityRange.addEventListener('input', () => {
@@ -1802,7 +1912,7 @@ document.addEventListener('keydown', event => {
     activePropertySection = propertySections[Number(digit) - 1].id;
     if (inspectorOpen && inspectorKind === 'box') {
       resetInspectorView();
-      renderInspector();
+      render();
       focusPropertySection();
     } else {
       openInspector(selectedId, false);
@@ -1844,6 +1954,22 @@ document.addEventListener('keydown', event => {
     if (event.repeat) return;
     if (event.shiftKey || !inspectorHistory.length) closeInspector();
     else showInspectorParent();
+    return;
+  }
+  if (borderEditing() && inspectorView === 'properties' && event.altKey && !ctrl && !event.shiftKey
+    && ['ArrowLeft', 'ArrowRight'].includes(event.key)) {
+    event.preventDefault();
+    const index = boxStyle.targets.indexOf(borderTarget);
+    selectBorderTarget(boxStyle.targets[(index + (event.key === 'ArrowRight' ? 1 : 7)) % 8]);
+    return;
+  }
+  const focus = document.activeElement;
+  if (!ctrl && !event.altKey && !event.shiftKey && event.code === 'KeyO' && selectedIds.size
+    && !textEditor && !focus.isContentEditable && !/INPUT|SELECT|TEXTAREA/.test(focus.tagName)
+    && (!inspector.contains(focus) || inspectorView === 'sections')) {
+    event.preventDefault();
+    if (borderEditing()) closeInspector();
+    else { activePropertySection = 'border'; tool = 'select'; openInspector(selectedId, false); }
     return;
   }
   if (inspector.contains(document.activeElement) || textEditor
@@ -1892,7 +2018,7 @@ document.addEventListener('keydown', event => {
   }
   if (!ctrl && !event.altKey && event.code === 'KeyV') { event.preventDefault(); setTool('select'); return; }
   if (!ctrl && !event.altKey && event.code === 'KeyB') { event.preventDefault(); setTool('box'); return; }
-  if (!ctrl && !event.altKey && event.code === 'KeyP') {
+  if (!ctrl && !event.altKey && !event.shiftKey && event.code === 'Slash') {
     event.preventDefault();
     if (inspectorOpen) closeInspector();
     else if (selectedIds.size) openInspector(selectedId);
@@ -2028,8 +2154,8 @@ function openManageSwatches() {
   (document.querySelector('#swatch-list .dialog-choice') || document.querySelector('#new-swatch')).focus();
 }
 
-function openColor(property) {
-  colorTarget = { property };
+function openColor(property, side) {
+  colorTarget = { property, side };
   pushInspectorView('choose', focusColorField);
   renderInspector();
   revealInspector();
@@ -2040,7 +2166,9 @@ function openColor(property) {
 function assignColor(id) {
   if (!selectedIds.size || !colorTarget) return;
   change(() => {
-    MockoutSelection.applyProperty(state.boxes, selectedIds, colorTarget.property, id);
+    if (colorTarget.property === 'borderColor') {
+      for (const box of selectedBoxes()) boxStyle.set(box, 'borderColor', id, colorTarget.side);
+    } else MockoutSelection.applyProperty(state.boxes, selectedIds, colorTarget.property, id);
     rememberStyle(selectedBox());
   });
   showInspectorParent('properties');
@@ -2061,7 +2189,7 @@ function openCanvasColorEditor(property) {
 
 function focusColorField() {
   const selector = inspectorKind === 'box'
-    ? `[data-color-property="${colorTarget.property}"]`
+    ? colorTarget.side !== undefined ? '#border-side-color' : `[data-color-property="${colorTarget.property}"]:not([data-border-side])`
     : `[data-canvas-color-property="${colorTarget.property}"]`;
   document.querySelector(selector).focus();
 }
@@ -2100,7 +2228,8 @@ function openEditorColorPicker(side) {
   });
 }
 
-for (const button of boxColorButtons) button.addEventListener('click', () => openColor(button.dataset.colorProperty));
+for (const button of boxColorButtons) button.addEventListener('click', () =>
+  openColor(button.dataset.colorProperty, button.hasAttribute('data-border-side') ? borderTarget.index : undefined));
 for (const button of canvasColorButtons) button.addEventListener('click', () =>
   openCanvasColorEditor(button.dataset.canvasColorProperty));
 document.querySelector('#manage-swatches').addEventListener('click', openManageSwatches);
@@ -2117,15 +2246,10 @@ document.querySelector('#dark-behavior').addEventListener('change', event => {
 document.querySelector('#new-swatch').addEventListener('click', () => openSwatchEditor());
 document.querySelector('#delete-swatch').addEventListener('click', () => {
   const id = colorTarget?.editId;
-  if (!id || state.swatches.length <= 1 || state.boxes.some(box =>
-    ['fill', 'textColor', 'borderColor'].some(property => box[property] === id))) return;
+  if (!id || state.swatches.length <= 1 || state.boxes.some(box => boxStyle.usesColor(box, id))) return;
   change(() => {
     state.swatches = state.swatches.filter(item => item.id !== id);
-    if (state.lastStyle) {
-      for (const property of ['fill', 'textColor', 'borderColor']) {
-        if (state.lastStyle[property] === id) state.lastStyle[property] = state.swatches[0].id;
-      }
-    }
+    if (state.lastStyle) boxStyle.replaceColor(state.lastStyle, id, state.swatches[0].id);
   });
   colorTarget.editId = null;
   showInspectorParent('manage');
@@ -2239,7 +2363,7 @@ function downloadProject() {
 async function saveProject(asNew = false, overwriteStamp = null, automatic = false) {
   if (fileSaving || (fileLocked && !asNew && overwriteStamp === null)) return;
   if (automatic && (!projectFileHandle || fileSaveError || savedProjectIssue
-    || !reconnectFileButton.hidden || gesture || placement || textEditor || snapshot() === fileBaseline)) return;
+    || !reconnectFileButton.hidden || gesture || borderBefore !== null || placement || textEditor || snapshot() === fileBaseline)) return;
   if (!window.showSaveFilePicker) { downloadProject(); return; }
   clearTimeout(fileSaveTimer);
   if (!automatic) clearFileSaveError();
@@ -2389,7 +2513,7 @@ function previewHTML(css) {
   const boxes = [...canvas.querySelectorAll('.box')].map(element => {
     const box = state.boxes.find(item => item.id === Number(element.dataset.id));
     const copy = element.cloneNode(true);
-    copy.classList.remove('selected', 'drawing', 'placing');
+    copy.classList.remove('selected', 'drawing', 'placing', 'editing-border');
     copy.querySelectorAll('.handle').forEach(handle => handle.remove());
     copy.style.left = `${box.x - left + margin}px`;
     copy.style.top = `${box.y - top + margin}px`;

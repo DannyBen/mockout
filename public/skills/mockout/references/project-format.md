@@ -46,6 +46,9 @@ Optional fields:
 | --- | --- |
 | `paddingX`, `paddingY` | Nonnegative text padding. Omitted values render as `3`. |
 | `opacity` | Whole-box opacity from `0` (invisible) to `1` (fully opaque, the default). Applies to fill, border, and text together. Contained boxes are independent. |
+| `borderWidths` | Four nonnegative widths in top, right, bottom, left order. Overrides `borderWidth`. |
+| `borderColors` | Four swatch IDs or `null`, in top, right, bottom, left order. Overrides `borderColor`. |
+| `cornerRadii` | Four nonnegative radii in top-left, top-right, bottom-right, bottom-left order. Overrides `radius`. |
 | `fontFamily` | `""` for system font, a Google Fonts family, or a supported Material icon family. Maximum 80 characters; no leading/trailing whitespace, control characters, `:`, `;`, `"`, or backslash. |
 | `fontSize` | Positive pixels; omitted means `13`. |
 | `fontWeight` | `100`, `200`, …, `900`; omitted means `400`. |
@@ -56,6 +59,14 @@ before the labels and controls inside it. Containment is geometric; child
 coordinates remain absolute. There are no parent pointers, nested boxes, lock
 flags, or interactive button behaviors. A label is a box with transparent fill
 and border. A button is a styled box with text.
+
+Per-side arrays are optional and apply independently. Keep the uniform fields
+present as fallbacks. Editing a uniform field in the editor removes its matching
+array. Border widths can be very large (the editor allows up to `10000`); a thick
+single side can fill its entire axis for effects such as a progress bar. If
+opposing widths exceed a box's size, rendering scales them to fit that axis
+without changing saved values or box geometry. Individual corners follow CSS
+radius scaling when they do not fit.
 
 Changing grid settings does not snap existing geometry. When changing `gridBase`,
 keep the active multiplier by scaling `grid` by the new base divided by the old
@@ -73,6 +84,8 @@ minimum height is:
 ```text
 line count × fontSize × 1.35 + 2 × paddingY + 2 × borderWidth
 ```
+
+With per-side widths, replace `2 × borderWidth` with the top and bottom widths.
 
 For example, two lines at 20px need 54px for text. With 10px vertical padding and
 a 1px border, they need 76px total: use at least 80px on a 5px grid. A transparent
@@ -116,7 +129,7 @@ Optional `colorMode` is a picker mode: `hsb`, `rgb`, or `gray`.
 These colors belong in `swatches` or canvas settings, not directly on boxes.
 Do not duplicate light/dark boxes or create separate light/dark layouts.
 
-Removing a swatch requires updating all matching references, including
+Removing a swatch requires updating all matching references, including `borderColors`,
 `lastStyle.fill`, `lastStyle.textColor`, and `lastStyle.borderColor` if present.
 Prefer reusing or editing existing roles rather than deleting them.
 
@@ -124,7 +137,9 @@ Prefer reusing or editing existing roles rather than deleting them.
 
 `lastStyle` uses the box style fields without `id`, geometry, or `text`.
 When present, it requires `fill`, `textColor`, `borderColor`, `borderWidth`,
-`radius`, **both** padding fields, `alignX`, and `alignY`. Opacity and font fields are optional.
+`radius`, **both** padding fields, `alignX`, and `alignY`. Opacity, font fields,
+and the three per-side arrays are optional. Preserve per-side swatch references
+in `lastStyle` when removing a swatch.
 
 ## Icons
 

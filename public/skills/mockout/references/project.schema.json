@@ -286,6 +286,38 @@
             "normal",
             "italic"
           ]
+        },
+        "borderWidths": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": 0
+          },
+          "description": "Top, right, bottom, left."
+        },
+        "borderColors": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": "Top, right, bottom, left."
+        },
+        "cornerRadii": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": 0
+          },
+          "description": "Top-left, top-right, bottom-right, bottom-left."
         }
       }
     },
@@ -403,6 +435,38 @@
             "normal",
             "italic"
           ]
+        },
+        "borderWidths": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": 0
+          },
+          "description": "Top, right, bottom, left."
+        },
+        "borderColors": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": "Top, right, bottom, left."
+        },
+        "cornerRadii": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "number",
+            "minimum": 0
+          },
+          "description": "Top-left, top-right, bottom-right, bottom-left."
         }
       }
     }

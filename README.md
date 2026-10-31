@@ -33,6 +33,11 @@ a larger box move with it, and overlapping boxes arrange their layer order as
 you work. Use the grid to keep sizes and positions aligned. Right click the
 canvas and choose **Grid** to set its smallest size and major-line spacing.
 
+Press **O** to edit individual border edges and corners. Select a marker, then
+change its width, color, or radius in the attached inspector. Press **/** to
+open properties. Use **Esc** to go back or close the inspector.
+Use **Alt+←/→** to cycle through border points while editing their values.
+
 Every box color uses a named swatch. Change a swatch once to update all boxes
 that use it. Swatches and canvas colors support light and dark appearances;
 dark colors default to Invert, with Same and Custom options. You can also choose

@@ -43,7 +43,7 @@
     stylesheet.href = `style.css?v=${assetVersion}`;
     document.head.append(stylesheet);
     document.addEventListener('DOMContentLoaded', () => {
-      for (const file of ['selection.js', 'placement.js', 'fonts.js', 'project.js', 'app.js']) {
+      for (const file of ['selection.js', 'placement.js', 'fonts.js', 'box-style.js', 'project.js', 'app.js']) {
         const script = document.createElement('script');
         script.async = false;
         script.src = `${file}?v=${assetVersion}`;
@@ -55,6 +55,8 @@
 <body>
   <main id="workspace" tabindex="-1" aria-label="Mock canvas">
     <div id="canvas" aria-label="Boxes"></div>
+    <svg id="border-guides" aria-hidden="true" hidden></svg>
+    <div id="border-markers" role="group" aria-label="Border targets" hidden></div>
   </main>
 
   <div class="corner" aria-label="Canvas controls">
@@ -112,7 +114,9 @@
     <section>
       <h2>Properties</h2>
       <dl>
-        <div><dt>Box or canvas properties</dt><dd><div><kbd>P</kbd></div><div>Right click</div></dd></div>
+        <div><dt>Box or canvas properties</dt><dd><div><kbd>/</kbd></div><div>Right click</div></dd></div>
+        <div><dt>Edit box borders</dt><dd><kbd>O</kbd></dd></div>
+        <div><dt>Previous / next border target</dt><dd><kbd>Alt</kbd> + <kbd>←</kbd> / <kbd>→</kbd></dd></div>
         <div><dt>Open box properties section</dt><dd><kbd>Alt</kbd> + <kbd>1</kbd>–<kbd>4</kbd></dd></div>
         <div><dt>Back / close at root</dt><dd><kbd>Esc</kbd></dd></div>
         <div><dt>Close inspector</dt><dd><kbd>Shift</kbd> + <kbd>Esc</kbd></dd></div>
@@ -220,6 +224,7 @@
       <button type="button" class="dialog-choice" data-property-section="colors"><span>Colors</span><span class="menu-hint">Alt+2</span></button>
       <button type="button" class="dialog-choice" data-property-section="text"><span>Text</span><span class="menu-hint">Alt+3</span></button>
       <button type="button" class="dialog-choice" data-property-section="font"><span>Font</span><span class="menu-hint">Alt+4</span></button>
+      <button type="button" class="dialog-choice" data-property-section="border"><span>Border editor</span><span class="menu-hint">O</span></button>
       <button type="button" class="dialog-choice" data-property-section="canvas"><span>Colors</span></button>
       <button type="button" class="dialog-choice" data-property-section="grid"><span>Grid</span></button>
     </section>
@@ -242,6 +247,11 @@
           <input id="box-opacity-range" type="range" min="0" max="100" step="1">
           <input id="box-opacity" type="number" min="0" max="100" step="1" aria-label="Opacity percentage">
         </div>
+      </div>
+      <div id="border-properties" class="section-content" hidden>
+        <div class="field" id="border-width-field"><label for="border-width">Width</label><input id="border-width" type="number" min="0" max="10000" step="1"></div>
+        <div class="field" id="border-color-field"><label for="border-side-color">Color</label><button type="button" id="border-side-color" data-color-property="borderColor" data-border-side></button></div>
+        <div class="field" id="border-radius-field"><label for="border-radius">Radius</label><input id="border-radius" type="number" min="0" max="10000" step="1"></div>
       </div>
       <div id="color-properties" class="section-content" hidden>
         <div class="field"><label for="fill-color">Fill</label><button type="button" id="fill-color" data-color-property="fill"></button></div>
@@ -349,8 +359,8 @@
       </footer>
     </section>
     <section id="color-picker" hidden aria-label="Color picker">
-      <div class="field"><label for="color-hex">Hex</label><input id="color-hex" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="RRGGBB"></div>
-      <div class="field"><label for="color-mode">Mode</label><select id="color-mode"><option value="hsb">HSB</option><option value="rgb">RGB</option><option value="gray">Grayscale</option></select></div>
+      <label class="field">Hex <input id="color-hex" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="RRGGBB"></label>
+      <label class="field">Mode <select id="color-mode"><option value="hsb">HSB</option><option value="rgb">RGB</option><option value="gray">Grayscale</option></select></label>
       <div class="slider-field"><label for="channel-1" id="channel-1-label">H</label><input id="channel-1" type="range" min="0" max="360"><input id="channel-1-value" type="number" min="0" max="360" aria-label="Hue value"></div>
       <div class="slider-field"><label for="channel-2" id="channel-2-label">S</label><input id="channel-2" type="range" min="0" max="100"><input id="channel-2-value" type="number" min="0" max="100" aria-label="Saturation value"></div>
       <div class="slider-field"><label for="channel-3" id="channel-3-label">B</label><input id="channel-3" type="range" min="0" max="100"><input id="channel-3-value" type="number" min="0" max="100" aria-label="Brightness value"></div>
