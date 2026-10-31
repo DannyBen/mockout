@@ -563,7 +563,7 @@ input, select { width: 100%; padding: 5px 6px; }
   display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; text-align: left;
   & .menu-hint { margin-left: auto; }
 }
-.dialog-choice:is([aria-selected="true"], [aria-current="page"]) { background: var(--ui-active); border-color: var(--ui-accent); }
+.dialog-choice[aria-selected="true"] { background: var(--ui-active); }
 #color-hex { font-family: ui-monospace, monospace; letter-spacing: .06em; }
 #color-preview { height: 36px; margin: 9px 0; border: 1px solid var(--ui-subtle); border-radius: 4px; background: var(--preview-color); }
 .color-channel {

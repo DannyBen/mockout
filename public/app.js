@@ -901,14 +901,10 @@ function renderSwatchList() {
   const active = buttons.find(button => button.dataset.swatchId === focusedId)
     || (choosing && selected !== undefined && buttons.find(button => button.dataset.swatchId === (selected ?? '')))
     || buttons[0];
-  if (active) active.tabIndex = 0;
   if (focused) active?.focus();
 }
 
 for (const list of document.querySelectorAll('.dialog-choice-list')) {
-  list.addEventListener('focusin', event => {
-    for (const button of list.querySelectorAll('button')) button.tabIndex = button === event.target ? 0 : -1;
-  });
   list.addEventListener('keydown', event => {
     const direction = { ArrowDown: 1, ArrowUp: -1, Home: 'first', End: 'last' }[event.key];
     if (!direction) return;
@@ -1213,7 +1209,7 @@ inspector.addEventListener('keydown', event => {
   const fields = [...inspector.querySelectorAll('button, input, select, a[href]')]
     .filter(field => !field.disabled && field.tabIndex >= 0 && field.getClientRects().length);
   const index = fields.indexOf(document.activeElement);
-  if (index === -1 || (event.shiftKey ? index !== 0 : index !== fields.length - 1)) return;
+  if (!fields.length || (index >= 0 && (event.shiftKey ? index !== 0 : index !== fields.length - 1))) return;
   event.preventDefault();
   fields[event.shiftKey ? fields.length - 1 : 0].focus();
 });
@@ -1968,7 +1964,8 @@ function openColor(property) {
   pushInspectorView('choose', focusColorField);
   renderInspector();
   revealInspector();
-  document.querySelector('#choice-swatch-list .dialog-choice[tabindex="0"]')?.focus();
+  (document.querySelector('#choice-swatch-list [aria-selected="true"]')
+    || document.querySelector('#choice-swatch-list button'))?.focus();
 }
 
 function assignColor(id) {
