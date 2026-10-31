@@ -615,6 +615,8 @@ input, select { width: 100%; padding: 5px 6px; }
 .dialog-choice {
   display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; text-align: left;
   & .menu-hint { margin-left: auto; }
+  & .swatch-action { margin-left: auto; color: var(--ui-muted); }
+  &[aria-selected="false"] .swatch-action { visibility: hidden; }
 }
 .dialog-choice[aria-selected="true"] { background: var(--ui-active); }
 #color-hex { font-family: ui-monospace, monospace; letter-spacing: .06em; }

@@ -942,7 +942,7 @@ function renderInspectorHeader() {
           ...(colorTarget.side !== undefined ? [{ label: borderTarget.name }] : []),
           { label: colorTarget.side !== undefined ? 'Color' : colorLabel(colorTarget.property) }]
         : inspectorView === 'manage'
-          ? [{ label: 'Colors', view: 'properties' }, { label: 'Swatches' }]
+          ? [{ label: activePropertySection === 'border' ? 'Border' : 'Colors', view: 'properties' }, { label: 'Swatches' }]
           : inspectorView === 'edit'
             ? [{ label: 'Swatches', view: 'manage' },
               { label: colorTarget.editId ? swatch(colorTarget.editId)?.name || 'Swatch' : 'New' }]
@@ -989,6 +989,9 @@ function renderSwatchList() {
     if (item.id) chip.style.setProperty('--chip-color', resolvedColor(item.color, item.dark));
     else chip.classList.add('transparent');
     choice.querySelector('.swatch-name').textContent = item.name;
+    const action = choice.querySelector('.swatch-action');
+    action.querySelector('use').setAttribute('href', `assets/material-symbols/sprite.svg#${choosing ? 'check' : 'edit'}`);
+    choice.setAttribute('aria-label', `${choosing ? 'Use' : 'Edit'} ${item.name}`);
     if (choosing) {
       choice.setAttribute('role', 'option');
       choice.setAttribute('aria-selected', String(selected === item.id));
@@ -2168,9 +2171,10 @@ function openColorPicker(color, mode, onAccept) {
   document.querySelector('#color-hex').focus();
 }
 
-function openManageSwatches() {
-  colorTarget = { editId: null };
-  pushInspectorView('manage', () => document.querySelector('#manage-swatches').focus());
+function openManageSwatches(event) {
+  const opener = event.currentTarget;
+  colorTarget = inspectorView === 'choose' ? { ...colorTarget, editId: null } : { editId: null };
+  pushInspectorView('manage', () => opener.focus());
   renderInspector();
   revealInspector();
   (document.querySelector('#swatch-list .dialog-choice') || document.querySelector('#new-swatch')).focus();
@@ -2185,14 +2189,16 @@ function openColor(property, side) {
     || document.querySelector('#choice-swatch-list button'))?.focus();
 }
 
+function applyColor(id) {
+  if (colorTarget.property === 'borderColor') {
+    for (const box of selectedBoxes()) boxStyle.set(box, 'borderColor', id, colorTarget.side);
+  } else MockoutSelection.applyProperty(state.boxes, selectedIds, colorTarget.property, id);
+  rememberStyle(selectedBox());
+}
+
 function assignColor(id) {
   if (!selectedIds.size || !colorTarget) return;
-  change(() => {
-    if (colorTarget.property === 'borderColor') {
-      for (const box of selectedBoxes()) boxStyle.set(box, 'borderColor', id, colorTarget.side);
-    } else MockoutSelection.applyProperty(state.boxes, selectedIds, colorTarget.property, id);
-    rememberStyle(selectedBox());
-  });
+  change(() => applyColor(id));
   showInspectorParent('properties');
 }
 
@@ -2254,7 +2260,7 @@ for (const button of boxColorButtons) button.addEventListener('click', () =>
   openColor(button.dataset.colorProperty, button.hasAttribute('data-border-side') ? borderTarget.index : undefined));
 for (const button of canvasColorButtons) button.addEventListener('click', () =>
   openCanvasColorEditor(button.dataset.canvasColorProperty));
-document.querySelector('#manage-swatches').addEventListener('click', openManageSwatches);
+for (const button of document.querySelectorAll('[data-manage-swatches]')) button.addEventListener('click', openManageSwatches);
 for (const button of document.querySelectorAll('[data-editor-side]')) button.addEventListener('click', () =>
   openEditorColorPicker(button.dataset.editorSide));
 document.querySelector('#dark-behavior').addEventListener('change', event => {
@@ -2368,9 +2374,11 @@ document.querySelector('#save-color').addEventListener('click', () => {
       const id = `s${state.nextId++}`;
       state.swatches.push({ id, name, color: editorLight.color, mode: editorLight.mode, dark });
       colorTarget.editId = id;
+      if (colorTarget.property && selectedIds.size) applyColor(id);
     });
   }
-  showInspectorParent('manage');
+  const managerIndex = inspectorHistory.findLastIndex(entry => entry.view === 'manage');
+  showInspectorParent(inspectorHistory[managerIndex - 1].view);
 });
 
 function downloadProject() {

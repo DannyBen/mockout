@@ -281,7 +281,7 @@
         <div class="field"><label for="text-color">Text</label><button type="button" id="text-color" data-color-property="textColor"></button></div>
         <div class="field"><label for="border-color">Border</label><button type="button" id="border-color" data-color-property="borderColor"></button></div>
         <footer class="dialog-footer">
-          <button type="button" id="manage-swatches">Manage swatches</button>
+          <button type="button" id="manage-swatches" data-manage-swatches>Manage swatches</button>
         </footer>
       </div>
       <div id="text-properties" class="section-content" hidden>
@@ -362,6 +362,9 @@
     </section>
     <section id="swatch-chooser" hidden aria-label="Choose swatch">
       <div id="choice-swatch-list" class="dialog-choice-list" role="listbox" aria-label="Swatches"></div>
+      <footer class="dialog-footer">
+        <button type="button" id="choice-manage-swatches" data-manage-swatches>Manage swatches</button>
+      </footer>
     </section>
     <section id="swatch-manager" hidden aria-label="Manage swatches">
       <div id="swatch-list" class="dialog-choice-list" aria-label="Project swatches"></div>
@@ -397,7 +400,7 @@
   </aside>
 
   <template id="swatch-choice-template">
-    <button type="button" class="dialog-choice"><span class="chip" aria-hidden="true"></span><span class="swatch-name"></span></button>
+    <button type="button" class="dialog-choice"><span class="chip" aria-hidden="true"></span><span class="swatch-name"></span><svg class="icon swatch-action" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#edit"></use></svg></button>
   </template>
 
   <input id="open-file" type="file" accept=".json,application/json" hidden>
