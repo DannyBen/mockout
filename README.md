@@ -43,6 +43,11 @@ Your current project is saved automatically in this browser. Use **Save JSON**
 to keep a portable copy, and **Load JSON** to reopen it. **Preview** opens your
 mock without the editor controls or grid.
 
+When loading or dropping a project, choose **Open a local copy** to explore it
+without changing the original. Edits stay in Local Session; **Ctrl+S** opens
+Save As. Choose **Open connected file** to enable automatic saving and loading
+of external changes. If you decline file permission, it opens as a local copy.
+
 The bottom-left status shows **Local session** or the connected filename.
 Connected files save automatically after edits, including undo and redo. A check
 shows the file connection; routine saves stay quiet. Mockout remembers it across

@@ -190,7 +190,7 @@ button { cursor: pointer; }
 .handle[data-handle="sw"] { left: 0; bottom: 0; cursor: nesw-resize; }
 .handle[data-handle="w"] { left: 0; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
 
-.corner, .mini-dialog, #help-panel, #placement-hint, #ai-dialog {
+.corner, .mini-dialog, #help-panel, #placement-hint, .modal-dialog {
   background: var(--ui-panel);
   border: 1px solid var(--ui-panel-border);
   box-shadow: 0 6px 24px var(--ui-shadow);
@@ -341,7 +341,7 @@ button { cursor: pointer; }
   pointer-events: none;
 }
 
-#ai-dialog {
+.modal-dialog {
   width: 440px;
   max-width: calc(100vw - 24px);
   max-height: calc(100vh - 24px);
@@ -354,11 +354,27 @@ button { cursor: pointer; }
   & header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
   & h2 { margin: 0; font-size: 18px; }
   & > p { margin: 0 0 16px; color: var(--ui-muted); }
+  & > p strong { color: var(--ui-text); overflow-wrap: anywhere; }
   & section { padding: 12px; border: 1px solid var(--ui-rule); border-radius: 5px; }
   & section + section { margin-top: 12px; }
   & h3 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 6px; font-size: 14px; }
   & .recommendation { color: var(--ui-accent); font-size: 11px; font-weight: 400; }
   & section p { margin: 0 0 12px; color: var(--ui-muted); }
+  & .dialog-option {
+    display: block; width: 100%; padding: 12px; text-align: left;
+    background: var(--ui-panel); border-color: var(--ui-rule);
+
+    & + .dialog-option { margin-top: 12px; }
+    & strong { display: block; margin-bottom: 6px; font-size: 14px; }
+    & span { display: block; color: var(--ui-muted); line-height: 1.5; }
+    &:hover { border-color: var(--ui-focus); }
+    &:disabled { opacity: .5; }
+  }
+}
+
+#open-project-unavailable { margin: 12px 0 0; font-size: 12px; }
+
+#ai-dialog {
   & [data-ai-prompt] { width: 100%; min-height: 32px; }
   & [data-ai-prompt="install"] { color: var(--ui-on-accent); background: var(--ui-accent); border-color: var(--ui-accent); }
   & #ai-copy-status { min-height: 1.35em; margin: 12px 0 0; font-size: 12px; }

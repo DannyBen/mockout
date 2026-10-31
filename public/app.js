@@ -20,6 +20,9 @@ const helpPanel = document.querySelector('#help-panel');
 const helpButton = document.querySelector('#help-button');
 const aiDialog = document.querySelector('#ai-dialog');
 const aiCopyStatus = document.querySelector('#ai-copy-status');
+const openProjectDialog = document.querySelector('#open-project-dialog');
+const openLocalCopyButton = document.querySelector('#open-local-copy');
+const openConnectedFileButton = document.querySelector('#open-connected-file');
 const welcomeButton = document.querySelector('#welcome-button');
 const welcomeHint = document.querySelector('#welcome-hint');
 const toolButtons = [...document.querySelectorAll('[data-tool]')];
@@ -143,6 +146,8 @@ let fileSaving = false;
 let fileSaveTimer = null;
 let fileSaveError = '';
 let fileChecks = Promise.resolve();
+let pendingProject = null;
+let fileOpenBusy = false;
 
 function updateFileStatus() {
   const handle = projectFileHandle;
@@ -1121,9 +1126,9 @@ aiDialog.addEventListener('close', () => {
   aiCopyStatus.textContent = '';
   workspace.focus();
 });
-aiDialog.addEventListener('keydown', event => {
+for (const dialog of [aiDialog, openProjectDialog]) dialog.addEventListener('keydown', event => {
   if (event.key !== 'Tab') return;
-  const buttons = [...aiDialog.querySelectorAll('button:not(:disabled)')];
+  const buttons = [...dialog.querySelectorAll('button:not(:disabled)')];
   const first = buttons[0], last = buttons.at(-1);
   if (event.shiftKey && document.activeElement === first) {
     event.preventDefault(); last.focus();
@@ -1647,7 +1652,7 @@ inspector.addEventListener('wheel', event => {
 }, { passive: false });
 
 document.addEventListener('wheel', event => {
-  if (aiDialog.open) return;
+  if (aiDialog.open || openProjectDialog.open) return;
   if (!event.ctrlKey && !event.metaKey) return;
   event.preventDefault();
   if (textEditor || placement) return;
@@ -1672,7 +1677,7 @@ window.addEventListener('blur', () => {
 });
 
 document.addEventListener('keydown', event => {
-  if (aiDialog.open) {
+  if (aiDialog.open || openProjectDialog.open) {
     if ((event.ctrlKey || event.metaKey) && ['KeyS', 'KeyO', 'KeyP', 'KeyD'].includes(event.code)) event.preventDefault();
     return;
   }
@@ -2374,6 +2379,7 @@ async function openPreview() {
 }
 document.querySelector('#preview-button').addEventListener('click', openPreview);
 async function chooseProjectFile() {
+  if (fileOpenBusy || openProjectDialog.open || aiDialog.open) return;
   if (!window.showOpenFilePicker) { document.querySelector('#open-file').click(); return; }
   try {
     const [handle] = await window.showOpenFilePicker({
@@ -2386,30 +2392,65 @@ async function chooseProjectFile() {
 }
 document.querySelector('#open-button').addEventListener('click', chooseProjectFile);
 async function openProjectFile(file, handle = null) {
-  if (placement) return;
+  if (placement || fileOpenBusy || openProjectDialog.open || aiDialog.open) return;
+  fileOpenBusy = true;
   try {
-    let permission = null;
-    if (handle) {
-      // Ask while the drop or Load still has user activation, before reading the project.
-      try { permission = await handle.requestPermission({ mode: 'readwrite' }); }
+    if (!file) file = await handle.getFile();
+    const loaded = JSON.parse(await file.text());
+    if (!validProject(loaded)) throw new Error('This is not a Mockout project.');
+    pendingProject = { file, handle, loaded };
+    document.querySelector('#open-project-name').textContent = file.name;
+    document.querySelector('#open-project-unavailable').hidden = Boolean(handle);
+    openLocalCopyButton.disabled = false;
+    openConnectedFileButton.disabled = !handle;
+    closeProjectMenu();
+    openProjectDialog.showModal();
+    openLocalCopyButton.focus();
+  } catch (error) {
+    showNotice(`Could not open project: ${error.message}`);
+  } finally {
+    fileOpenBusy = false;
+  }
+}
+
+async function finishOpeningProject(connect) {
+  const pending = pendingProject;
+  if (!pending || fileOpenBusy) return;
+  fileOpenBusy = true;
+  openLocalCopyButton.disabled = true;
+  openConnectedFileButton.disabled = true;
+  try {
+    let connected = false;
+    if (connect && pending.handle) {
+      // This explicit choice supplies the user activation for Chrome's permission prompt.
+      try { connected = await pending.handle.requestPermission({ mode: 'readwrite' }) === 'granted'; }
       catch (error) {
         if (error.name !== 'SecurityError' && error.name !== 'NotAllowedError') throw error;
       }
     }
-    if (!file) file = await handle.getFile();
-    const loaded = JSON.parse(await file.text());
-    if (!validProject(loaded)) throw new Error('This is not a Mockout project.');
-    change(() => { state = loaded; selectOnly(null); inspectorOpen = false; focusProject(state.boxes); });
+    if (pendingProject !== pending || !openProjectDialog.open) return;
+    change(() => { state = pending.loaded; selectOnly(null); inspectorOpen = false; focusProject(state.boxes); });
     if (savedProjectIssue) showNotice(savedProjectIssue);
     else notice.hidden = true;
-    await setProjectFileHandle(handle, { file, needsPermission: Boolean(handle) && permission !== 'granted', canRead: Boolean(handle) });
+    await setProjectFileHandle(connected ? pending.handle : null, { file: pending.file });
     undoStack.length = 0;
     redoStack.length = 0;
     render();
   } catch (error) {
     showNotice(`Could not open project: ${error.message}`);
+  } finally {
+    pendingProject = null;
+    fileOpenBusy = false;
+    openProjectDialog.close();
   }
 }
+openLocalCopyButton.addEventListener('click', () => finishOpeningProject(false));
+openConnectedFileButton.addEventListener('click', () => finishOpeningProject(true));
+document.querySelector('#close-open-project').addEventListener('click', () => openProjectDialog.close());
+openProjectDialog.addEventListener('close', () => {
+  pendingProject = null;
+  workspace.focus();
+});
 
 document.querySelector('#open-file').addEventListener('change', async event => {
   const file = event.target.files?.[0];
@@ -2421,13 +2462,13 @@ document.querySelector('#open-file').addEventListener('change', async event => {
 document.addEventListener('dragover', event => {
   if (!event.dataTransfer?.types.includes('Files')) return;
   event.preventDefault();
-  event.dataTransfer.dropEffect = placement || aiDialog.open ? 'none' : 'copy';
+  event.dataTransfer.dropEffect = placement || aiDialog.open || openProjectDialog.open || fileOpenBusy ? 'none' : 'copy';
 });
 
 document.addEventListener('drop', async event => {
   if (!event.dataTransfer?.types.includes('Files')) return;
   event.preventDefault();
-  if (placement || aiDialog.open) return;
+  if (placement || aiDialog.open || openProjectDialog.open || fileOpenBusy) return;
   if (event.dataTransfer.files.length !== 1) {
     showNotice('Drop one JSON project file at a time.');
     return;

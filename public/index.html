@@ -170,7 +170,7 @@
     <footer>Mockout · <a href="https://github.com/dannyben/mockout" target="_blank" rel="noopener noreferrer">GitHub</a></footer>
   </aside>
 
-  <dialog id="ai-dialog" aria-labelledby="ai-heading" aria-describedby="ai-description">
+  <dialog id="ai-dialog" class="modal-dialog" aria-labelledby="ai-heading" aria-describedby="ai-description">
     <header>
       <h2 id="ai-heading">Work with AI</h2>
       <button type="button" id="close-ai-dialog" aria-label="Close AI dialog" class="icon-button"><svg class="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#close"></use></svg></button>
@@ -187,6 +187,23 @@
       <button type="button" data-ai-prompt="quick">Copy quick-run prompt</button>
     </section>
     <p id="ai-copy-status" role="status" aria-atomic="true"></p>
+  </dialog>
+
+  <dialog id="open-project-dialog" class="modal-dialog" aria-labelledby="open-project-heading" aria-describedby="open-project-description">
+    <header>
+      <h2 id="open-project-heading">Open mockup</h2>
+      <button type="button" id="close-open-project" aria-label="Cancel opening mockup" class="icon-button"><svg class="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#close"></use></svg></button>
+    </header>
+    <p id="open-project-description">Choose how to open <strong id="open-project-name"></strong>.</p>
+    <button type="button" id="open-local-copy" class="dialog-option" autofocus>
+      <strong>Open a local copy</strong>
+      <span>Explore and edit without changing the original file. Your work stays in Local Session; Ctrl+S saves a new file.</span>
+    </button>
+    <button type="button" id="open-connected-file" class="dialog-option">
+      <strong>Open connected file</strong>
+      <span>Automatically save changes to this file and load changes made by other tools, including AI.</span>
+    </button>
+    <p id="open-project-unavailable" hidden>This browser cannot connect this file. You can still open a local copy.</p>
   </dialog>
 
   <aside id="inspector" class="mini-dialog" hidden aria-label="Inspector">

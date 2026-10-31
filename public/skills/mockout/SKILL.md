@@ -20,7 +20,9 @@ The browser saves the user's edits automatically and reloads valid external edit
   **… → Save JSON**, choose a location accessible to you, and share its path.
 - If the requested path does not exist and they want a new project, create it from
   [starter.json](examples/starter.json). Ask them to open it with **… → Load JSON**
-  or drag it into Mockout. Preserve existing files unless replacement was requested.
+  or drag it into Mockout, choose **Open connected file**, and grant read/write
+  permission. **Open a local copy** does not connect the file. Preserve existing
+  files unless replacement was requested.
 - Before the first edit in a session, have the user confirm that the bottom-left
   status shows the intended filename **without `.json`**, alongside a circled
   check: `dialogs.json` appears as **dialogs**. **Local session** only saves in
@@ -93,8 +95,8 @@ how often you inspect the result.
 
 Open [live Mockout](https://mockout.sector-seven.com/) in a separate browser
 context. Load the current JSON through its normal file input (`#open-file` for
-browser automation), wait for
-fonts and layout, and inspect the result.
+browser automation), choose **Open a local copy**, wait for fonts and layout,
+and inspect the result.
 Keep this inspection separate from the user's active canvas and file connection.
 Look for clipped text, unintended overlaps, missing icons, and poor contrast.
 DOM scroll-size measurements can flag possible text overflow for closer inspection.
