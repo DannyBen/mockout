@@ -6,7 +6,7 @@
 
   <h1>Mockout</h1>
 
-  <p><strong>Think inside the box.</strong></p>
+  <p><strong>Think inside the box: Rapid UI Mockups</strong></p>
   <p><a href="https://mockout.sector-seven.com/">Open Mockout</a></p>
 </div>
 
