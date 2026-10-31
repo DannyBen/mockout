@@ -9,7 +9,9 @@ existing document before editing it; never substitute an example for live work.
 | Field | Meaning |
 | --- | --- |
 | `version` | Always `1`. |
-| `grid` | Snap size: `5`, `10`, `20`, or `40`; `0` disables snapping. Use `5` for new mockups by default. |
+| `grid` | Snap size: `gridBase` × `1`, `2`, `4`, or `8`; `0` disables snapping. Use `5` for new mockups by default. |
+| `gridBase` | Optional smallest grid size, a whole number from `2` to `100` pixels; omitted means `5`. |
+| `gridDivisions` | Optional number of active grid cells between major lines, a whole number from `2` to `100`; omitted means `10`. |
 | `nextId` | Next available integer used by the editor to allocate box IDs and new swatch IDs of the form `sN`. Advance it when allocating IDs. |
 | `swatches` | Named color roles with a light color and optional dark behavior. |
 | `boxes` | Flat array of elements, ordered from back to front. |
@@ -55,7 +57,10 @@ coordinates remain absolute. There are no parent pointers, nested boxes, lock
 flags, or interactive button behaviors. A label is a box with transparent fill
 and border. A button is a styled box with text.
 
-Changing `grid` does not snap existing geometry. Align new or changed geometry
+Changing grid settings does not snap existing geometry. When changing `gridBase`,
+keep the active multiplier by scaling `grid` by the new base divided by the old
+base; keep `0` unchanged. Major lines are spaced `grid × gridDivisions` pixels apart.
+Align new or changed geometry
 deliberately. Browser saves normalize exported positions so the top-left box
 starts at `(0, 0)`; reread before every agent edit and do not rely on a cached origin.
 
@@ -176,6 +181,7 @@ checks so a Material ligature name is not mistaken for the intended rendered ico
 Before publishing each box, check:
 
 - Unique box IDs and unique swatch IDs; `nextId` remains free and advances.
+- `grid` is `0` or one of the four doubling steps derived from `gridBase`.
 - Every non-null color reference, including `lastStyle`, names an existing swatch.
 - New geometry follows the chosen grid and all boxes have positive dimensions.
 - Backgrounds precede their contents, and no unwanted box covers existing work.

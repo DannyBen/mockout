@@ -221,6 +221,7 @@
       <button type="button" class="dialog-choice" data-property-section="text"><span>Text</span><span class="menu-hint">Alt+3</span></button>
       <button type="button" class="dialog-choice" data-property-section="font"><span>Font</span><span class="menu-hint">Alt+4</span></button>
       <button type="button" class="dialog-choice" data-property-section="canvas"><span>Colors</span></button>
+      <button type="button" class="dialog-choice" data-property-section="grid"><span>Grid</span></button>
     </section>
     <section id="box-properties">
       <div id="box-appearance-properties" class="section-content">
@@ -317,6 +318,14 @@
       <button type="button" class="dialog-choice" data-canvas-color-property="background"></button>
       <button type="button" class="dialog-choice" data-canvas-color-property="gridMinor"></button>
       <button type="button" class="dialog-choice" data-canvas-color-property="gridMajor"></button>
+    </section>
+    <section id="grid-properties" hidden aria-label="Grid settings">
+      <label class="field">Smallest grid size (px)
+        <input id="grid-base" type="number" min="2" max="100" step="1">
+      </label>
+      <label class="field">Major line every (cells)
+        <input id="grid-divisions" type="number" min="2" max="100" step="1">
+      </label>
     </section>
     <section id="swatch-chooser" hidden aria-label="Choose swatch">
       <div id="choice-swatch-list" class="dialog-choice-list" role="listbox" aria-label="Swatches"></div>

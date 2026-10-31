@@ -39,6 +39,10 @@ const propertySections = [
   { id: 'text', label: 'Text', element: document.querySelector('#text-properties') },
   { id: 'font', label: 'Font', element: document.querySelector('#font-properties') },
 ];
+const canvasSections = [
+  { id: 'canvas', label: 'Colors', element: document.querySelector('#canvas-properties') },
+  { id: 'grid', label: 'Grid', element: document.querySelector('#grid-properties') },
+];
 const channels = [1, 2, 3].map(n => document.querySelector(`#channel-${n}`));
 const channelValues = [1, 2, 3].map(n => document.querySelector(`#channel-${n}-value`));
 const { initialStyle } = MockoutProject;
@@ -416,6 +420,7 @@ let inspectorView = 'properties';
 // Nested screens return to this inspector; selecting another box keeps its root open.
 const inspectorHistory = [];
 let activePropertySection = 'box';
+let activeCanvasSection = 'canvas';
 const lastPropertyFocus = new Map();
 let tool = 'select';
 let spaceDown = false;
@@ -547,8 +552,9 @@ function render() {
   workspace.style.backgroundColor = canvasColor('background');
   workspace.style.setProperty('--grid-major-color', canvasColor('gridMajor'));
   workspace.style.setProperty('--grid-minor-color', canvasColor('gridMinor'));
-  workspace.style.setProperty('--grid-size', `${(state.grid || 10) * view.zoom}px`);
-  workspace.style.setProperty('--major-grid-size', `${(state.grid || 10) * view.zoom * 10}px`);
+  const gridSize = state.grid || (state.gridBase ?? 5);
+  workspace.style.setProperty('--grid-size', `${gridSize * view.zoom}px`);
+  workspace.style.setProperty('--major-grid-size', `${gridSize * view.zoom * (state.gridDivisions ?? 10)}px`);
   workspace.style.setProperty('--pan-x', `${view.x}px`);
   workspace.style.setProperty('--pan-y', `${view.y}px`);
   workspace.classList.toggle('grid-off', state.grid === 0);
@@ -564,8 +570,12 @@ function render() {
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   }
-  for (const button of gridButtons) {
-    const active = Number(button.dataset.grid) === state.grid;
+  const gridSizes = MockoutProject.gridSizes(state);
+  for (const [index, button] of gridButtons.entries()) {
+    const size = gridSizes[index];
+    button.dataset.grid = size;
+    button.textContent = size || 'Off';
+    const active = size === state.grid;
     button.classList.toggle('active', active);
     button.setAttribute('aria-pressed', String(active));
   }
@@ -677,16 +687,21 @@ function renderInspector() {
   document.querySelector('#section-selection').hidden = inspectorView !== 'sections';
   for (const button of document.querySelectorAll('[data-property-section]')) {
     const section = button.dataset.propertySection;
-    button.hidden = (section === 'canvas') !== (inspectorKind === 'canvas');
-    if (section === (inspectorKind === 'canvas' ? 'canvas' : activePropertySection)) button.setAttribute('aria-current', 'page');
+    button.hidden = canvasSections.some(item => item.id === section) !== (inspectorKind === 'canvas');
+    if (section === (inspectorKind === 'canvas' ? activeCanvasSection : activePropertySection)) button.setAttribute('aria-current', 'page');
     else button.removeAttribute('aria-current');
   }
-  document.querySelector('#canvas-properties').hidden = inspectorView !== 'properties' || inspectorKind !== 'canvas';
+  for (const section of canvasSections) {
+    section.element.hidden = inspectorView !== 'properties' || inspectorKind !== 'canvas' || section.id !== activeCanvasSection;
+  }
+  for (const [id, value] of [['grid-base', state.gridBase ?? 5], ['grid-divisions', state.gridDivisions ?? 10]]) {
+    const input = document.getElementById(id);
+    if (document.activeElement !== input) input.value = value;
+  }
   document.querySelector('#swatch-chooser').hidden = inspectorView !== 'choose';
   document.querySelector('#swatch-manager').hidden = inspectorView !== 'manage';
   document.querySelector('#color-editor').hidden = inspectorView !== 'edit';
   document.querySelector('#color-picker').hidden = inspectorView !== 'picker';
-  const sectionIndex = propertySectionIndex();
   for (const section of propertySections) section.element.hidden = section.id !== activePropertySection;
   renderInspectorHeader();
   if (inspectorView === 'edit') {
@@ -848,12 +863,14 @@ function renderInspectorHeader() {
   inspectorNav.dataset.action = hasParent ? 'back' : 'sections';
   inspectorNav.setAttribute('aria-label', hasParent ? 'Back' : menuTitle);
   document.querySelector('#section-selection').setAttribute('aria-label', menuTitle);
-  const sectionIndex = propertySectionIndex();
+  const section = inspectorKind === 'canvas'
+    ? canvasSections.find(item => item.id === activeCanvasSection)
+    : propertySections[propertySectionIndex()];
   document.querySelector('#delete-swatch').hidden = inspectorView !== 'edit' || !colorTarget?.editId
     || state.swatches.length <= 1 || state.boxes.some(item =>
       ['fill', 'textColor', 'borderColor'].some(property => item[property] === colorTarget.editId));
   const parts = inspectorView === 'sections' ? [{ label: menuTitle }] : properties
-    ? [{ label: inspectorKind === 'canvas' ? 'Colors' : propertySections[sectionIndex].label }]
+    ? [{ label: section.label }]
     : inspectorKind === 'canvas'
       ? [{ label: 'Colors', view: 'properties' },
         { label: colorLabel(colorTarget.property), ...(inspectorView === 'picker' ? { view: 'edit' } : {}) },
@@ -1197,6 +1214,10 @@ document.querySelector('#box-properties').addEventListener('focusin', event => {
   if (inspectorKind === 'box' && inspectorView === 'properties') lastPropertyFocus.set(activePropertySection, event.target);
 });
 function focusPropertySection() {
+  if (inspectorKind === 'canvas') {
+    canvasSections.find(section => section.id === activeCanvasSection).element.querySelector('input, button')?.focus();
+    return;
+  }
   const field = lastPropertyFocus.get(activePropertySection);
   if (field?.isConnected && !field.closest('[hidden]')) field.focus();
   else propertySections[propertySectionIndex()].element.querySelector('input, select, button')?.focus();
@@ -1214,12 +1235,12 @@ inspectorNav.addEventListener('click', () => {
 });
 for (const button of document.querySelectorAll('[data-inspector-back]')) button.addEventListener('click', () => showInspectorParent());
 for (const button of document.querySelectorAll('[data-property-section]')) button.addEventListener('click', () => {
-  if (button.dataset.propertySection !== 'canvas') activePropertySection = button.dataset.propertySection;
+  if (inspectorKind === 'canvas') activeCanvasSection = button.dataset.propertySection;
+  else activePropertySection = button.dataset.propertySection;
   resetInspectorView();
   renderInspector();
   revealInspector();
-  if (inspectorKind === 'box') focusPropertySection();
-  else document.querySelector('#canvas-properties button').focus();
+  focusPropertySection();
 });
 
 inspector.addEventListener('keydown', event => {
@@ -1261,7 +1282,7 @@ function openCanvasInspector(point = null, showSections = !inspectorOpen || insp
     positionInspector();
   }
   if (showSections) focusSectionSelection();
-  else document.querySelector('#canvas-properties button').focus();
+  else focusPropertySection();
 }
 
 workspace.addEventListener('contextmenu', event => {
@@ -1597,6 +1618,18 @@ function deleteSelected() {
 for (const button of gridButtons) {
   button.addEventListener('click', () => change(() => { state.grid = Number(button.dataset.grid); }));
 }
+for (const [id, property, fallback] of [['grid-base', 'gridBase', 5], ['grid-divisions', 'gridDivisions', 10]]) {
+  const input = document.getElementById(id);
+  input.addEventListener('change', () => {
+    if (input.value === '') { input.value = state[property] ?? fallback; return; }
+    const value = Math.max(2, Math.min(100, Math.round(input.valueAsNumber)));
+    change(() => {
+      if (property === 'gridBase') state.grid = state.grid / (state.gridBase ?? 5) * value;
+      state[property] = value;
+    });
+    input.value = value;
+  });
+}
 
 function undo() {
   if (!undoStack.length) return;
@@ -1854,7 +1887,7 @@ document.addEventListener('keydown', event => {
     return;
   }
   if (!ctrl && !event.altKey && !event.shiftKey && /^[1-5]$/.test(digit || '')) {
-    change(() => { state.grid = [40, 20, 10, 5, 0][Number(digit) - 1]; });
+    change(() => { state.grid = MockoutProject.gridSizes(state)[Number(digit) - 1]; });
     return;
   }
   if (!ctrl && !event.altKey && event.code === 'KeyV') { event.preventDefault(); setTool('select'); return; }
@@ -2290,6 +2323,7 @@ async function resetEverything() {
   selectOnly(null);
   inspectorOpen = false;
   activePropertySection = 'box';
+  activeCanvasSection = 'canvas';
   lastPropertyFocus.clear();
   isolatedCopyIds = null;
   placement = null;

@@ -30,7 +30,8 @@ quickly. The editable Welcome project shows what you can make.
 
 Everything is a box, including labels, buttons, panels, and icons. Boxes inside
 a larger box move with it, and overlapping boxes arrange their layer order as
-you work. Use the grid to keep sizes and positions aligned.
+you work. Use the grid to keep sizes and positions aligned. Right click the
+canvas and choose **Grid** to set its smallest size and major-line spacing.
 
 Every box color uses a named swatch. Change a swatch once to update all boxes
 that use it. Swatches and canvas colors support light and dark appearances;

@@ -31,6 +31,48 @@ test('version 1 projects remain valid; unsupported versions and broken boxes are
   assert.equal(project.validProject({ ...valid(), boxes: [{ ...valid().boxes[0], fontFamily: 'No; font' }] }), false);
 });
 
+test('grid settings default in older version 1 projects without changing their data', () => {
+  const old = valid();
+  const before = JSON.stringify(old);
+  assert.ok(project.validProject(old));
+  assert.deepEqual(project.gridSizes(old), [40, 20, 10, 5, 0]);
+  assert.equal(JSON.stringify(old), before);
+  const fresh = project.freshState();
+  assert.equal(fresh.gridBase, 5);
+  assert.equal(fresh.gridDivisions, 10);
+  assert.ok(project.validProject(fresh));
+});
+
+test('custom grids accept four doubling steps and Off, with bounded integer settings', () => {
+  for (const gridBase of [2, 8, 100]) {
+    const value = { ...valid(), gridBase, gridDivisions: 8 };
+    assert.deepEqual(project.gridSizes(value), [8, 4, 2, 1, 0].map(step => step * gridBase));
+    for (const grid of project.gridSizes(value)) assert.ok(project.validProject({ ...value, grid }));
+    assert.equal(project.validProject({ ...value, grid: gridBase * 3 }), false);
+  }
+  for (const property of ['gridBase', 'gridDivisions']) {
+    for (const value of [1, 101, 2.5, null, '8', NaN, Infinity]) {
+      assert.equal(project.validProject({ ...valid(), [property]: value }), false);
+    }
+  }
+});
+
+test('custom grid settings survive saving and exporting without changing box geometry', () => {
+  const value = { ...valid(), grid: 16, gridBase: 8, gridDivisions: 12 };
+  const before = structuredClone(value.boxes);
+  const stored = new Map();
+  project.persist({ setItem: (key, data) => stored.set(key, data) }, key, value, '');
+  const loaded = JSON.parse(stored.get(key));
+  assert.deepEqual(loaded, value);
+  assert.ok(project.validProject(loaded));
+  const exported = project.forExport(loaded);
+  assert.equal(exported.gridBase, 8);
+  assert.equal(exported.gridDivisions, 12);
+  assert.equal(exported.grid, 16);
+  assert.equal(exported.version, 1);
+  assert.deepEqual(value.boxes, before);
+});
+
 test('whole-box opacity is optional in version 1 and survives saving without changing older data', () => {
   const old = valid();
   const original = JSON.stringify(old);

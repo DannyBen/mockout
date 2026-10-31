@@ -25,10 +25,14 @@ const MockoutProject = (() => {
     && (item.fontStyle === undefined || ['normal', 'italic'].includes(item.fontStyle));
   const validOpacity = item => item.opacity === undefined
     || (Number.isFinite(item.opacity) && item.opacity >= 0 && item.opacity <= 1);
+  const gridSizes = state => [8, 4, 2, 1, 0].map(multiplier => multiplier * (state.gridBase ?? 5));
+  const validGridSetting = value => value === undefined
+    || (Number.isInteger(value) && value >= 2 && value <= 100);
 
   return {
     storageKey: 'mockout-project',
     initialStyle: makeInitialStyle,
+    gridSizes,
 
     invertColor(color) {
       return '#' + [1, 3, 5].map(index => (255 - parseInt(color.slice(index, index + 2), 16))
@@ -62,7 +66,8 @@ const MockoutProject = (() => {
         { id: 's3', name: 'Line', color: '#aeb6c5', mode: 'hsb' },
       ];
       return {
-        version: 1, grid: 10, nextId: 4, swatches, boxes: [], lastStyle: makeInitialStyle(swatches),
+        version: 1, grid: 10, gridBase: 5, gridDivisions: 10,
+        nextId: 4, swatches, boxes: [], lastStyle: makeInitialStyle(swatches),
         canvasColors: { ...defaultCanvasColors },
         canvasColorModes: { background: 'gray', gridMajor: 'gray', gridMinor: 'gray' },
       };
@@ -102,7 +107,9 @@ const MockoutProject = (() => {
     },
 
     validProject(value) {
-      return value && value.version === 1 && [0, 5, 10, 20, 40].includes(value.grid)
+      return value && value.version === 1
+        && validGridSetting(value.gridBase) && validGridSetting(value.gridDivisions)
+        && gridSizes(value).includes(value.grid)
         && Number.isInteger(value.nextId) && Array.isArray(value.swatches) && Array.isArray(value.boxes)
         && value.swatches.every(s => typeof s.id === 'string' && typeof s.name === 'string'
           && hexColor(s.color) && (s.mode === undefined || colorModeValues.includes(s.mode)) && validDark(s.dark))
