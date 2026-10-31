@@ -1,10 +1,21 @@
-# Mockout
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/assets/logo-dark.svg">
+    <img src="public/assets/logo.svg" alt="Mockout" width="100" height="100">
+  </picture>
 
-**Think inside the box.**
+  <h1>Mockout</h1>
 
-Rapid UI mockups.
+  <p><strong>Think inside the box.</strong></p>
+  <p><a href="https://mockout.sector-seven.com/">Open Mockout</a></p>
+</div>
 
-[Open Mockout](https://mockout.sector-seven.com)
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="support/screenshots/overview-dark.png">
+    <img src="support/screenshots/overview-light.png" alt="Mockout's editable Welcome project showing interface mockups, shapes, colors, text, and icons" width="960">
+  </picture>
+</p>
 
 Mockout is a small browser tool for sketching interfaces and other 2D layouts.
 Draw boxes, add text, and arrange them into an idea you can see and change
@@ -62,3 +73,17 @@ For one session, ask it to read and follow the
 [hosted instructions](https://mockout.sector-seven.com/skills/mockout/SKILL.md).
 The folder includes the schema, a blank starter, an email-client example, and the
 complete Welcome project with icons and light/dark colors.
+
+## Run locally
+
+Serve the `public` folder with any static web server, or run `op serve` with
+[httpme](https://github.com/DannyBen/httpme) installed. There is no build step.
+
+Run `op test` for the project checks. Run `op screenshots` to refresh both README
+screenshots from the Welcome project. The screenshot script needs Node.js 22 or
+later, Chromium, and access to Google Fonts. Set `CHROMIUM_BIN` if your browser
+executable is named differently.
+
+---
+
+![repocard](https://repocard.dannyben.com/svg/mockout.svg)
