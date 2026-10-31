@@ -679,7 +679,6 @@ function renderInspector() {
   if (inspectorView === 'edit') {
     document.querySelector('#dark-behavior').value = editorDark.mode;
     document.querySelector('#swatch-name-field').hidden = !!colorTarget?.direct;
-    document.querySelector('#save-color').textContent = colorTarget?.direct ? 'Save colors' : 'Save swatch';
     renderColorEditorPreview();
   }
   if (box) {
@@ -1199,6 +1198,7 @@ inspectorNav.addEventListener('click', () => {
   if (inspectorHistory.length) showInspectorParent();
   else if (inspectorView !== 'sections') openSectionSelection();
 });
+for (const button of document.querySelectorAll('[data-inspector-back]')) button.addEventListener('click', () => showInspectorParent());
 for (const button of document.querySelectorAll('[data-property-section]')) button.addEventListener('click', () => {
   if (button.dataset.propertySection !== 'canvas') activePropertySection = button.dataset.propertySection;
   resetInspectorView();
@@ -1321,7 +1321,7 @@ workspace.addEventListener('pointerdown', event => {
       const base = event.shiftKey ? new Set(selectedIds) : new Set();
       selectedIds = new Set(base);
       selectedId = selectedIds.values().next().value ?? null;
-      if (!event.shiftKey) inspectorOpen = false;
+      if (!event.shiftKey && inspectorKind !== 'canvas') inspectorOpen = false;
       gesture = { kind: 'marquee', start: p, end: null, base };
     }
   }

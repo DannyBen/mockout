@@ -402,7 +402,7 @@ input, select { width: 100%; padding: 5px 6px; }
   & .field.mixed input { font-style: normal; }
   & .field :is(input, select) { color: var(--ui-text); font-size: 13px; }
   & .section-content { padding-top: 2px; }
-  & .font-links { display: flex; gap: 12px; margin: 1px 0 2px; font-size: 11px; }
+  & .font-links { gap: 12px; font-size: 11px; }
   & .font-links a { --icon-size: 14px; display: inline-flex; align-items: center; gap: 3px; color: var(--ui-accent); }
   & :is(button, input, select):focus {
     outline: none;
@@ -443,6 +443,24 @@ input, select { width: 100%; padding: 5px 6px; }
   & button.dialog-crumb { padding: 0; border: 0; background: transparent; color: var(--ui-accent); }
   & strong.dialog-crumb { font-weight: 700; }
   & .dialog-separator { flex: none; color: var(--ui-muted); }
+}
+
+.dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-height: 37px;
+  margin: 10px -11px -11px;
+  padding: 4px 6px;
+  background: var(--ui-header);
+  border-top: 1px solid var(--ui-divider);
+  border-radius: 0 0 6px 6px;
+
+  & > button { min-height: 28px; padding: 4px 8px; }
+  & > :first-child:not(.primary) { margin-right: auto; }
+  & > .icon-button { width: 28px; height: 28px; padding: 4px; border: 1px solid var(--ui-border); background: var(--ui-surface); }
+  & > .primary { color: var(--ui-on-accent); background: var(--ui-accent); border-color: var(--ui-accent); font-weight: 600; }
 }
 
 #help-panel {
@@ -540,14 +558,12 @@ input, select { width: 100%; padding: 5px 6px; }
 .chip { flex: none; width: 15px; height: 15px; border: 1px solid var(--ui-subtle); border-radius: 3px; background: var(--chip-color); }
 .chip.transparent { background: repeating-conic-gradient(var(--ui-checker) 0 25%, var(--ui-surface) 0 50%) 0 0 / 8px 8px; }
 .chip.mixed { background: linear-gradient(135deg, var(--ui-mixed) 50%, var(--ui-surface) 50%); }
-#delete-swatch { margin-top: 8px; padding: 3px 5px; color: var(--ui-danger); }
 .dialog-choice-list { display: grid; gap: 4px; max-height: 245px; overflow: auto; padding: 2px; }
 .dialog-choice {
   display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; text-align: left;
   & .menu-hint { margin-left: auto; }
 }
 .dialog-choice:is([aria-selected="true"], [aria-current="page"]) { background: var(--ui-active); border-color: var(--ui-accent); }
-#manage-swatches, #new-swatch, #save-color, #use-color { width: 100%; margin-top: 8px; color: var(--ui-on-accent); background: var(--ui-accent); border-color: var(--ui-accent); }
 #color-hex { font-family: ui-monospace, monospace; letter-spacing: .06em; }
 #color-preview { height: 36px; margin: 9px 0; border: 1px solid var(--ui-subtle); border-radius: 4px; background: var(--preview-color); }
 .color-channel { display: grid; grid-template-columns: 14px minmax(0, 1fr) 52px; align-items: center; gap: 6px; margin: 8px 0; }

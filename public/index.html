@@ -224,7 +224,9 @@
         <div class="field"><label for="fill-color">Fill</label><button type="button" id="fill-color" data-color-property="fill"></button></div>
         <div class="field"><label for="text-color">Text</label><button type="button" id="text-color" data-color-property="textColor"></button></div>
         <div class="field"><label for="border-color">Border</label><button type="button" id="border-color" data-color-property="borderColor"></button></div>
-        <button type="button" id="manage-swatches">Manage swatches</button>
+        <footer class="dialog-footer">
+          <button type="button" id="manage-swatches">Manage swatches</button>
+        </footer>
       </div>
       <div id="text-properties" class="section-content" hidden>
         <label class="field">Text <input id="box-text" type="text" placeholder="Optional text"></label>
@@ -286,7 +288,7 @@
             <option value="normal">Normal</option><option value="italic">Italic</option>
           </select>
         </label>
-        <p class="font-links"><a href="https://fonts.google.com/" target="_blank" rel="noopener noreferrer">Browse fonts <svg class="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#open_in_new"></use></svg></a><a id="browse-icons" href="https://fonts.google.com/icons" target="_blank" rel="noopener noreferrer" hidden>Browse icons <svg class="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#open_in_new"></use></svg></a></p>
+        <footer class="dialog-footer font-links"><a href="https://fonts.google.com/" target="_blank" rel="noopener noreferrer">Browse fonts <svg class="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#open_in_new"></use></svg></a><a id="browse-icons" href="https://fonts.google.com/icons" target="_blank" rel="noopener noreferrer" hidden>Browse icons <svg class="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#open_in_new"></use></svg></a></footer>
       </div>
     </section>
     <section id="canvas-properties" class="dialog-choice-list" hidden aria-label="Canvas colors">
@@ -299,16 +301,21 @@
     </section>
     <section id="swatch-manager" hidden aria-label="Manage swatches">
       <div id="swatch-list" class="dialog-choice-list" aria-label="Project swatches"></div>
-      <button type="button" id="new-swatch">New swatch</button>
+      <footer class="dialog-footer">
+        <button type="button" id="new-swatch">New swatch</button>
+      </footer>
     </section>
     <section id="color-editor" hidden aria-label="Edit colors">
       <div id="swatch-name-field" class="field"><label for="swatch-name">Name</label><input id="swatch-name" type="text" maxlength="60" placeholder="Swatch name"></div>
       <div class="field"><label for="swatch-light">Light</label><button type="button" id="swatch-light" data-editor-side="light"></button></div>
       <div class="field"><label for="dark-behavior">Dark</label><select id="dark-behavior"><option value="invert">Invert</option><option value="same">Same</option><option value="custom">Custom</option></select></div>
       <div class="field"><span aria-hidden="true"></span><button type="button" id="swatch-dark" data-editor-side="dark" hidden></button><output id="swatch-dark-preview" aria-label="Dark color"></output></div>
-      <button type="button" id="save-color">Save swatch</button>
-      <button type="button" id="delete-swatch" hidden>Delete</button>
       <p id="swatch-error" role="alert" hidden></p>
+      <footer class="dialog-footer">
+        <button type="button" id="delete-swatch" class="icon-button" aria-label="Delete swatch" hidden><svg class="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#delete"></use></svg></button>
+        <button type="button" data-inspector-back>Cancel</button>
+        <button type="button" id="save-color" class="primary">Save</button>
+      </footer>
     </section>
     <section id="color-picker" hidden aria-label="Color picker">
       <div class="field"><label for="color-hex">Hex</label><input id="color-hex" type="text" maxlength="7" spellcheck="false" autocomplete="off" placeholder="RRGGBB"></div>
@@ -317,8 +324,11 @@
       <div class="color-channel"><label for="channel-1" id="channel-1-label">H</label><input id="channel-1" type="range" min="0" max="360"><input id="channel-1-value" type="number" min="0" max="360" aria-label="Hue value"></div>
       <div class="color-channel"><label for="channel-2" id="channel-2-label">S</label><input id="channel-2" type="range" min="0" max="100"><input id="channel-2-value" type="number" min="0" max="100" aria-label="Saturation value"></div>
       <div class="color-channel"><label for="channel-3" id="channel-3-label">B</label><input id="channel-3" type="range" min="0" max="100"><input id="channel-3-value" type="number" min="0" max="100" aria-label="Brightness value"></div>
-      <button type="button" id="use-color">Use color</button>
       <p id="color-error" role="alert" hidden></p>
+      <footer class="dialog-footer">
+        <button type="button" data-inspector-back>Cancel</button>
+        <button type="button" id="use-color" class="primary">Save</button>
+      </footer>
     </section>
   </aside>
 
