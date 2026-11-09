@@ -2071,7 +2071,10 @@ document.addEventListener('keydown', event => {
   const direction = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
   if (direction && selectedIds.size) {
     event.preventDefault();
-    const amount = (state.grid || 1) * (ctrl ? 5 : 1);
+    const nudge = (value, axis) => MockoutPlacement.nudge(value, axis, state.grid, ctrl ? 5 : 1);
+    const anchor = selectedBox();
+    const dx = nudge(anchor.x, direction[0]) - anchor.x;
+    const dy = nudge(anchor.y, direction[1]) - anchor.y;
     change(() => {
       const targets = event.shiftKey
         ? (event.altKey ? [selectedBox()] : selectedBoxes())
@@ -2079,11 +2082,11 @@ document.addEventListener('keydown', event => {
       for (const target of targets) {
         const box = state.boxes.find(item => item.id === target.id);
         if (event.shiftKey) {
-          if (direction[0]) box.w = Math.max(minimum(), snap(box.x + box.w + direction[0] * amount) - box.x);
-          if (direction[1]) box.h = Math.max(minimum(), snap(box.y + box.h + direction[1] * amount) - box.y);
+          if (direction[0]) box.w = Math.max(minimum(), nudge(box.x + box.w, direction[0]) - box.x);
+          if (direction[1]) box.h = Math.max(minimum(), nudge(box.y + box.h, direction[1]) - box.y);
         } else {
-          box.x += direction[0] * amount;
-          box.y += direction[1] * amount;
+          box.x += dx;
+          box.y += dy;
         }
       }
       if (!event.shiftKey) arrangeStack(targets.map(box => box.id));

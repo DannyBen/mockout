@@ -2,6 +2,32 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const placement = require('../public/placement.js');
 
+test('arrow nudges reach the next grid line in either direction without skipping one', () => {
+  for (const [value, left, right] of [
+    [33, 30, 40], [37, 30, 40], [40, 30, 50],
+    [-33, -40, -30], [-37, -40, -30], [-40, -50, -30], [0, -10, 10],
+  ]) {
+    assert.equal(placement.nudge(value, -1, 10), left);
+    assert.equal(placement.nudge(value, 1, 10), right);
+    assert.equal(placement.nudge(value, 0, 10), value);
+  }
+  assert.equal(placement.nudge(37, -1, 5), 35);
+  assert.equal(placement.nudge(37, 1, 5), 40);
+});
+
+test('fast arrow nudges count five grid lines from off-grid and aligned positions', () => {
+  assert.equal(placement.nudge(37, 1, 10, 5), 80);
+  assert.equal(placement.nudge(37, -1, 10, 5), -10);
+  assert.equal(placement.nudge(40, 1, 10, 5), 90);
+  assert.equal(placement.nudge(40, -1, 10, 5), -10);
+});
+
+test('arrows with the grid off keep pixel movement and fractional positions', () => {
+  assert.equal(placement.nudge(37, 1, 0), 38);
+  assert.equal(placement.nudge(37.5, -1, 0), 36.5);
+  assert.equal(placement.nudge(37.5, 1, 0, 5), 42.5);
+});
+
 test('duplicate starts under the cursor after the canvas is panned', () => {
   const source = { x: 100, y: 100, w: 150, h: 120 };
   const view = { x: 0, y: -450, zoom: 1 };
