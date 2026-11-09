@@ -2490,6 +2490,14 @@ async function saveProject(asNew = false, overwriteStamp = null, automatic = fal
     queueFileSave();
   }
 }
+saveProjectDialog.addEventListener('keydown', event => {
+  const direction = { ArrowDown: 1, ArrowUp: -1 }[event.key];
+  if (!direction || event.ctrlKey || event.altKey || event.metaKey || !event.target.closest('.dialog-option')) return;
+  event.preventDefault();
+  const options = [...saveProjectDialog.querySelectorAll('.dialog-option:not(:disabled)')];
+  const index = options.indexOf(document.activeElement);
+  options[(index + direction + options.length) % options.length]?.focus();
+});
 saveOnceButton.addEventListener('click', () => saveProject(true, null, false, false));
 saveConnectedButton.addEventListener('click', () => saveProject(true, null, false, true));
 closeSaveButton.addEventListener('click', () => saveProjectDialog.close());
