@@ -1409,6 +1409,8 @@ workspace.addEventListener('contextmenu', event => {
 
 document.addEventListener('pointerdown', event => {
   pointerPosition = { x: event.clientX, y: event.clientY };
+  if (event.button === 0 && inspectorOpen && inspectorKind === 'canvas'
+    && !inspector.contains(event.target)) closeInspector();
 });
 document.addEventListener('pointermove', event => {
   pointerPosition = { x: event.clientX, y: event.clientY };
