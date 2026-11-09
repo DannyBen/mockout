@@ -1850,9 +1850,7 @@ workspace.addEventListener('wheel', panCanvasWithWheel, { passive: false });
 inspector.addEventListener('wheel', event => {
   if (event.target.closest('select, input[type="range"]')) return;
   const list = event.target.closest('.dialog-choice-list');
-  if (list && list.scrollHeight > list.clientHeight
-    && ((event.deltaY < 0 && list.scrollTop > 0)
-      || (event.deltaY > 0 && list.scrollTop + list.clientHeight < list.scrollHeight))) return;
+  if (list && list.scrollHeight > list.clientHeight) return;
   panCanvasWithWheel(event);
 }, { passive: false });
 
