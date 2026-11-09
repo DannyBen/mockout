@@ -429,6 +429,14 @@ saveOursButton.addEventListener('click', () => {
 });
 window.addEventListener('focus', () => checkExternalFile());
 document.addEventListener('visibilitychange', () => { if (!document.hidden) checkExternalFile(); });
+// File observers may be unavailable or miss external changes on shared folders.
+let filePolling = false;
+setInterval(async () => {
+  if (!projectFileHandle || filePolling) return;
+  filePolling = true;
+  try { await checkExternalFile(); }
+  finally { filePolling = false; }
+}, 1000);
 let inspectorOpen = false;
 let inspectorKind = 'box';
 let inspectorPoint = { x: 12, y: 12 };
