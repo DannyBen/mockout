@@ -1304,7 +1304,8 @@ function focusPropertySection() {
     input.select();
     return;
   }
-  const field = lastPropertyFocus.get(activePropertySection);
+  const field = activePropertySection === 'text' ? document.querySelector('#box-text')
+    : lastPropertyFocus.get(activePropertySection);
   if (field?.isConnected && !field.closest('[hidden]')) field.focus();
   else propertySections[propertySectionIndex()].element.querySelector('input, select, button')?.focus();
 }
