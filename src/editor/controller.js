@@ -3,7 +3,7 @@ import MockoutProject from '../core/project.js';
 import MockoutSelection from '../core/selection.js';
 import MockoutPlacement from '../core/placement.js';
 
-export function createController({ model, elements, actions, events }) {
+export function createController({ model, elements, actions, events, ui }) {
   const themeMedia = matchMedia('(prefers-color-scheme: dark)');
   const modalDialogs = [elements.aiDialog, elements.openProjectDialog, elements.saveProjectDialog];
   const modalOpen = () => modalDialogs.some(dialog => dialog.open);
@@ -19,21 +19,24 @@ export function createController({ model, elements, actions, events }) {
     { menu: elements.projectMenu, button: elements.projectMenuButton, holder: elements.projectMenuHolder },
   ];
   function closeToolbarMenu(item, focusCanvas = false) {
-    item.menu.hidden = true;
-    item.button.setAttribute('aria-expanded', 'false');
+    model.projectMenuOpen = false;
+    publishToolbar();
     if (focusCanvas) elements.workspace.focus();
   }
   function closeProjectMenu() { closeToolbarMenu(toolbarMenus[0]); }
   function toggleToolbarMenu(item) {
-    const opening = item.menu.hidden;
+    const opening = !model.projectMenuOpen;
     for (const other of toolbarMenus) closeToolbarMenu(other);
     if (!opening) { elements.workspace.focus(); return; }
-    item.menu.hidden = false;
-    item.button.setAttribute('aria-expanded', 'true');
+    model.projectMenuOpen = true;
+    publishToolbar();
     (item.menu.querySelector('[aria-pressed="true"]') || item.menu.querySelector('button:not(:disabled)'))?.focus();
   }
+  function publishToolbar() {
+    ui.update({ toolbar: { menuOpen: model.projectMenuOpen, helpOpen: model.helpOpen, theme: document.documentElement.dataset.uiTheme || 'light' } });
+  }
   function syncThemeButton() {
-    elements.themeButton.setAttribute('aria-label', `Switch to ${document.documentElement.dataset.uiTheme === 'dark' ? 'light' : 'dark'} theme`);
+    publishToolbar();
     document.querySelector('meta[name="theme-color"]').content = getComputedStyle(document.documentElement).getPropertyValue('--ui-accent').trim() || '#ca5e11';
   }
   function setTheme(theme) {
@@ -218,8 +221,8 @@ export function createController({ model, elements, actions, events }) {
     elements.workspace.focus();
   }
   function toggleHelp() {
-    elements.helpPanel.hidden = !elements.helpPanel.hidden;
-    elements.helpButton.setAttribute('aria-expanded', String(!elements.helpPanel.hidden));
+    model.helpOpen = !model.helpOpen;
+    publishToolbar();
   }
   const aiPrompts = {
     install: 'Install or update the Mockout skill from https://github.com/DannyBen/mockout/tree/master/public/skills/mockout. Then help me create or edit a mockup through a shared project file.',
@@ -245,8 +248,8 @@ export function createController({ model, elements, actions, events }) {
         focusProject(model.project.boxes);
       });
       if (first) { model.undoStack.length = 0; model.redoStack.length = 0; }
-      elements.helpPanel.hidden = true;
-      elements.helpButton.setAttribute('aria-expanded', 'false');
+      model.helpOpen = false;
+      publishToolbar();
       elements.workspace.focus();
     } catch (error) {
       showNotice(`Could not load Welcome example: ${error.message}`);
@@ -516,21 +519,11 @@ export function createController({ model, elements, actions, events }) {
         }
       });
       syncThemeButton();
-      events.on(elements.themeButton, 'click', toggleTheme);
-      events.on(elements.projectMenuButton, 'click', () => toggleToolbarMenu(toolbarMenus[0]));
-      events.on(elements.projectMenu, 'click', event => {
-        if (!event.target.closest('.hold-action')) closeToolbarMenu(toolbarMenus[0], true);
-      });
       events.on(document, 'pointerdown', event => {
-        const toolbarButton = event.target.closest('.corner button');
-        if (toolbarButton && !toolbarButton.closest('.toolbar-menu')) event.preventDefault();
         for (const item of toolbarMenus) {
           if (!item.holder.contains(event.target)) closeToolbarMenu(item);
         }
       });
-      for (const button of elements.toolButtons) events.on(button, 'click', () => setTool(button.dataset.tool));
-      events.on(elements.helpButton, 'click', toggleHelp);
-      events.on(document.querySelector('#close-help'), 'click', toggleHelp);
       events.on(document.querySelector('#ai-button'), 'click', () => {
         closeProjectMenu();
         clearTimeout(model.aiCopyTimer);
@@ -578,7 +571,6 @@ export function createController({ model, elements, actions, events }) {
           }
         });
       }
-      events.on(elements.welcomeButton, 'click', () => loadWelcome());
       events.on(elements.workspace, 'contextmenu', event => {
         if (model.fileLocked) { event.preventDefault(); return; }
         if (model.placement) { event.preventDefault(); return; }
@@ -764,9 +756,6 @@ export function createController({ model, elements, actions, events }) {
           });
           if (key === 'opacity') input.value = Math.round((actions.selectedBox().opacity ?? 1) * 100);
         });
-      }
-      for (const button of elements.gridButtons) {
-        events.on(button, 'click', () => change(() => { model.project.grid = Number(button.dataset.grid); }));
       }
       for (const [id, property, fallback] of [['grid-base', 'gridBase', 5], ['grid-divisions', 'gridDivisions', 10]]) {
         const input = document.getElementById(id);
@@ -1031,7 +1020,6 @@ export function createController({ model, elements, actions, events }) {
           actions.render();
         }
       });
-      events.on(document.querySelector('#new-blank-button'), 'click', newBlank);
       for (const button of document.querySelectorAll('.hold-action')) {
         let timer = null;
         const cancel = () => {
@@ -1075,7 +1063,6 @@ export function createController({ model, elements, actions, events }) {
           setTimeout(() => URL.revokeObjectURL(url), 1000);
         } catch { showNotice('Could not download saved data. It was left untouched.'); }
       });
-      events.on(document.querySelector('#preview-button'), 'click', openPreview);
       focusProject(model.project.boxes);
       actions.render();
       if (model.savedProjectIssue) {

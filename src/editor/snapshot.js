@@ -7,6 +7,8 @@ export function editorSnapshot(model) {
     selectedIds: [...model.selectedIds],
     view: { ...model.view },
     tool: model.tool,
+    projectMenuOpen: model.projectMenuOpen,
+    helpOpen: model.helpOpen,
     placing: Boolean(model.placement),
     locked: model.fileLocked,
     savedProjectIssue: model.savedProjectIssue,

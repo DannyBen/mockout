@@ -1,39 +1,41 @@
-export function Toolbar() {
+import { useSyncExternalStore } from 'react';
+import Project from '../core/project.js';
+
+export function Toolbar({ ui }) {
+  const { editor: e, toolbar: t } = useSyncExternalStore(ui.subscribe, ui.getSnapshot);
+  const placing = e?.placing || false, locked = e?.locked || false;
+  const grids = e ? Project.gridSizes(e.project) : [40, 20, 10, 5, 0];
   return <>
-  <div className="corner" aria-label="Canvas controls">
-    <button type="button" tabIndex="-1" data-tool="select" aria-label="Select tool" aria-keyshortcuts="S"><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#arrow_selector_tool"></use></svg></button>
-    <button type="button" tabIndex="-1" data-tool="box" aria-label="Box tool" aria-keyshortcuts="D"><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#crop_square"></use></svg></button>
+  <div className="corner" aria-label="Canvas controls" onPointerDown={event => { if (event.target.closest('button') && !event.target.closest('.toolbar-menu')) event.preventDefault(); }}>
+    <button type="button" tabIndex="-1" data-tool="select" className={(e?.tool || 'select') === 'select' ? 'active' : ''} aria-pressed={(e?.tool || 'select') === 'select'} disabled={placing || locked} onClick={() => ui.commands.setTool('select')} aria-label="Select tool" aria-keyshortcuts="S"><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#arrow_selector_tool"></use></svg></button>
+    <button type="button" tabIndex="-1" data-tool="box" className={(e?.tool || 'select') === 'box' ? 'active' : ''} aria-pressed={(e?.tool || 'select') === 'box'} disabled={placing || locked} onClick={() => ui.commands.setTool('box')} aria-label="Box tool" aria-keyshortcuts="D"><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#crop_square"></use></svg></button>
     <span className="divider"></span>
     <span className="small-label">Grid</span>
     <div className="grid-buttons" role="group" aria-label="Grid size">
-      <button type="button" tabIndex="-1" data-grid="40">40</button>
-      <button type="button" tabIndex="-1" data-grid="20">20</button>
-      <button type="button" tabIndex="-1" data-grid="10">10</button>
-      <button type="button" tabIndex="-1" data-grid="5">5</button>
-      <button type="button" tabIndex="-1" data-grid="0">Off</button>
+      {grids.map(size => <button key={size} type="button" tabIndex={-1} data-grid={size} className={size === (e?.project.grid ?? 10) ? 'active' : ''} aria-pressed={size === (e?.project.grid ?? 10)} disabled={placing || locked} onClick={() => ui.commands.setGrid(size)}>{size || 'Off'}</button>)}
     </div>
     <span className="divider"></span>
     <div id="project-menu-holder">
-      <button type="button" tabIndex="-1" id="project-menu-button" aria-label="Project actions" aria-controls="project-menu" aria-expanded="false"><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#more_horiz"></use></svg></button>
-      <div id="project-menu" className="toolbar-menu" hidden>
-        <button type="button" id="save-button"><span>Save JSON</span><span className="menu-hint">Ctrl+S</span></button>
-        <button type="button" id="save-as-button"><span>Save as…</span><span className="menu-hint">Ctrl+Shift+S</span></button>
-        <button type="button" id="open-button"><span>Load JSON</span><span className="menu-hint">Ctrl+O</span></button>
-        <button type="button" id="preview-button"><span>Preview</span><span className="menu-hint">Ctrl+P</span></button>
+      <button type="button" tabIndex="-1" id="project-menu-button" disabled={placing} onClick={() => ui.commands.toggleProjectMenu()} aria-label="Project actions" aria-controls="project-menu" aria-expanded={t?.menuOpen || false}><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#more_horiz"></use></svg></button>
+      <div id="project-menu" className="toolbar-menu" hidden={!t?.menuOpen} onClick={event => { if (!event.target.closest('.hold-action')) { ui.commands.closeProjectMenu(); document.querySelector('#workspace').focus(); } }}>
+        <button type="button" id="save-button" disabled={placing || locked} onClick={() => ui.commands.saveProject()}><span>Save JSON</span><span className="menu-hint">Ctrl+S</span></button>
+        {Boolean(window.showSaveFilePicker) && <button type="button" id="save-as-button" disabled={placing} onClick={() => ui.commands.saveProject(true)}><span>Save as…</span><span className="menu-hint">Ctrl+Shift+S</span></button>}
+        <button type="button" id="open-button" disabled={placing} onClick={() => ui.commands.chooseProjectFile()}><span>Load JSON</span><span className="menu-hint">Ctrl+O</span></button>
+        <button type="button" id="preview-button" disabled={placing} onClick={() => ui.commands.openPreview()}><span>Preview</span><span className="menu-hint">Ctrl+P</span></button>
         <hr />
-        <button type="button" id="new-blank-button"><span>New blank</span><span className="menu-hint">Shift+N</span></button>
+        <button type="button" id="new-blank-button" disabled={placing} onClick={() => ui.commands.newBlank()}><span>New blank</span><span className="menu-hint">Shift+N</span></button>
         <hr />
-        <button type="button" id="reset-button" className="hold-action"><span>Reset app</span><span className="menu-hint">Hold</span></button>
+        <button type="button" id="reset-button" disabled={placing} className="hold-action"><span>Reset app</span><span className="menu-hint">Hold</span></button>
       </div>
     </div>
-    <button type="button" tabIndex="-1" id="theme-button" aria-label="Switch theme">
+    <button type="button" tabIndex="-1" id="theme-button" disabled={placing} onClick={() => ui.commands.toggleTheme()} aria-label={`Switch to ${t?.theme === 'dark' ? 'light' : 'dark'} theme`}>
       <svg className="icon" data-icon="light" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#light_mode"></use></svg>
       <svg className="icon" data-icon="dark" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#dark_mode"></use></svg>
     </button>
-    <button type="button" tabIndex="-1" id="ai-button" aria-label="Work with AI" aria-haspopup="dialog" aria-controls="ai-dialog"><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#auto_awesome"></use></svg></button>
-    <button type="button" tabIndex="-1" id="help-button" aria-label="Help" aria-controls="help-panel" aria-expanded="false"><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#help"></use></svg></button>
+    <button type="button" tabIndex="-1" id="ai-button" disabled={placing} aria-label="Work with AI" aria-haspopup="dialog" aria-controls="ai-dialog"><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#auto_awesome"></use></svg></button>
+    <button type="button" tabIndex="-1" id="help-button" onClick={() => ui.commands.toggleHelp()} aria-label="Help" aria-controls="help-panel" aria-expanded={t?.helpOpen || false}><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#help"></use></svg></button>
   </div>
-
+  <p id="placement-hint" role="status" hidden={!placing}>Move copy · Click or Enter to place · Esc to cancel</p>
 
   </>;
 }

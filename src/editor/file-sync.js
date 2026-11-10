@@ -441,10 +441,6 @@ export function createFileSync({ model, elements, actions, events }) {
         checkExternalFile();
         queueFileSave();
       });
-      events.on(document.querySelector('#save-button'), 'click', () => saveProject());
-      if (window.showSaveFilePicker) events.on(elements.saveAsButton, 'click', () => saveProject(true));
-      else elements.saveAsButton.remove();
-      events.on(document.querySelector('#open-button'), 'click', chooseProjectFile);
       events.on(elements.openLocalCopyButton, 'click', () => finishOpeningProject(false));
       events.on(elements.openConnectedFileButton, 'click', () => finishOpeningProject(true));
       events.on(document.querySelector('#close-open-project'), 'click', () => elements.openProjectDialog.close());

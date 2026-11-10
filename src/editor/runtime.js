@@ -44,6 +44,8 @@ export function startEditor(ui) {
     setGrid: grid => actions.change(() => { model.project.grid = grid; }),
     toggleTheme: () => actions.toggleTheme(),
     toggleHelp: () => actions.toggleHelp(),
+    toggleProjectMenu: () => actions.toggleToolbarMenu(actions.toolbarMenus[0]),
+    closeProjectMenu: () => actions.closeProjectMenu(),
     newBlank: () => actions.newBlank(),
     loadWelcome: () => actions.loadWelcome(),
     openPreview: () => actions.openPreview(),

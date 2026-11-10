@@ -1,4 +1,3 @@
-import MockoutProject from '../core/project.js';
 import { editorSnapshot } from '../editor/snapshot.js';
 
 export function createCanvas({ model, elements, actions, ui }) {
@@ -39,10 +38,6 @@ export function createCanvas({ model, elements, actions, ui }) {
   }
   function render() {
     actions.updateFileStatus();
-    elements.welcomeButton.disabled = Boolean(model.project.boxes.length || model.savedProjectIssue || model.fileLocked);
-    elements.welcomeHint.hidden = !elements.welcomeButton.disabled;
-    elements.welcomeHint.textContent = model.savedProjectIssue ? 'Resolve the saved project issue first.'
-      : 'Start a new blank project first to show Welcome.';
     syncFontStylesheets();
     elements.workspace.style.backgroundColor = actions.canvasColor('background');
     elements.workspace.style.setProperty('--grid-major-color', actions.canvasColor('gridMajor'));
@@ -60,26 +55,6 @@ export function createCanvas({ model, elements, actions, ui }) {
     elements.canvas.style.transform = `translate(${model.view.x}px, ${model.view.y}px) scale(${model.view.zoom})`;
     elements.canvas.style.setProperty('--screen-pixel', `${1 / model.view.zoom}px`);
     elements.canvas.style.setProperty('--handle-size', `${9 / model.view.zoom}px`);
-    for (const button of elements.toolButtons) {
-      const active = button.dataset.tool === model.tool;
-      button.classList.toggle('active', active);
-      button.setAttribute('aria-pressed', String(active));
-    }
-    const gridSizes = MockoutProject.gridSizes(model.project);
-    for (const [index, button] of elements.gridButtons.entries()) {
-      const size = gridSizes[index];
-      button.dataset.grid = size;
-      button.textContent = size || 'Off';
-      const active = size === model.project.grid;
-      button.classList.toggle('active', active);
-      button.setAttribute('aria-pressed', String(active));
-    }
-    for (const button of document.querySelectorAll('.corner button:not(#help-button)')) button.disabled = Boolean(model.placement);
-    if (model.fileLocked) {
-      for (const button of [...elements.toolButtons, ...elements.gridButtons, document.querySelector('#save-button')]) button.disabled = true;
-    }
-    document.querySelector('#placement-hint').hidden = !model.placement;
-
     elements.canvas.replaceChildren();
     for (const box of model.project.boxes) {
       const widths = actions.boxStyle.widths(box);

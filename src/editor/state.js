@@ -45,6 +45,8 @@ export function createEditorState(storage) {
   model.paddingTarget = MockoutBoxStyle.targets[1];
   model.lastPropertyFocus = new Map();
   model.tool = 'select';
+  model.projectMenuOpen = false;
+  model.helpOpen = false;
   model.spaceDown = false;
   model.altDown = false;
   model.view = { x: 0, y: 0, zoom: 1 };

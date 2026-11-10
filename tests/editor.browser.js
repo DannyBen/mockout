@@ -164,6 +164,34 @@ test('canvas inspector dismisses outside; Save choices wrap focus and restore it
   await b.wait("document.activeElement.id === 'workspace'");
 });
 
+test('toolbar menus, help, theme and custom grid choices follow editor state', async t => {
+  const b = await setup(t);
+  await click(b, '#project-menu-button');
+  assert.equal(await b.evaluate("document.querySelector('#project-menu-button').getAttribute('aria-expanded')"), 'true');
+  assert.equal(await b.evaluate('document.activeElement.id'), 'save-button');
+  await b.key('ArrowUp');
+  assert.equal(await b.evaluate('document.activeElement.id'), 'reset-button');
+  await b.key('Escape');
+  assert.equal(await b.evaluate("document.querySelector('#project-menu').hidden"), true);
+  assert.equal(await b.evaluate('document.activeElement.id'), 'workspace');
+  await b.key('?', { code: 'Slash', modifiers: 8 });
+  assert.equal(await b.evaluate("document.querySelector('#help-panel').hidden"), false);
+  assert.equal(await b.evaluate("document.querySelector('#welcome-button').disabled"), true);
+  await click(b, '#close-help');
+  assert.equal(await b.evaluate("document.querySelector('#help-button').getAttribute('aria-expanded')"), 'false');
+  await click(b, '#theme-button');
+  assert.equal(await b.evaluate('document.documentElement.dataset.uiTheme'), 'dark');
+  assert.equal(await b.evaluate("document.querySelector('#theme-button').getAttribute('aria-label')"), 'Switch to light theme');
+  await b.evaluate("document.querySelector('#workspace').focus()");
+  await b.key('/' , { code: 'Slash' });
+  await click(b, '[data-property-section="grid"]');
+  await input(b, '#grid-base', 7, 'change');
+  assert.deepEqual(await b.evaluate("[...document.querySelectorAll('[data-grid]')].map(button => button.textContent)"), ['56', '28', '14', '7', 'Off']);
+  await click(b, '[data-grid="28"]');
+  assert.equal((await saved(b)).grid, 28);
+  assert.equal(await b.evaluate("document.querySelector('[data-grid=\"28\"]').getAttribute('aria-pressed')"), 'true');
+});
+
 test('connected file autosave, unfocused polling, undo, malformed updates and conflicts', async t => {
   const b = await setup(t, { script: `window.FileSystemObserver = undefined;
     window.__fileReady = navigator.storage.getDirectory().then(async dir => {
