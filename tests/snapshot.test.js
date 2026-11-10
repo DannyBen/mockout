@@ -1,0 +1,31 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createEditorState } from '../src/editor/state.js';
+import { editorSnapshot } from '../src/editor/snapshot.js';
+import { createUIStore } from '../src/ui/store.js';
+
+test('React snapshots are cached, detached from live edits, and stop notifying after unsubscribe', () => {
+  const model = createEditorState({ getItem: () => null });
+  const ui = createUIStore();
+  let notifications = 0;
+  const unsubscribe = ui.subscribe(() => notifications++);
+  ui.update({ editor: editorSnapshot(model) });
+  const first = ui.getSnapshot();
+  assert.equal(first, ui.getSnapshot());
+  model.project.grid = 20;
+  model.selectedIds.add(7);
+  model.view.zoom = 2;
+  model.undoStack.push('{}');
+  assert.equal(first.editor.project.grid, 10);
+  assert.deepEqual(first.editor.selectedIds, []);
+  assert.equal(first.editor.view.zoom, 1);
+  ui.update({ editor: editorSnapshot(model) });
+  assert.notEqual(first, ui.getSnapshot());
+  assert.equal(ui.getSnapshot().editor.project.grid, 20);
+  assert.deepEqual(ui.getSnapshot().editor.selectedIds, [7]);
+  assert.equal(ui.getSnapshot().editor.canUndo, true);
+  assert.equal(notifications, 2);
+  unsubscribe();
+  ui.update({ editor: editorSnapshot(model) });
+  assert.equal(notifications, 2);
+});

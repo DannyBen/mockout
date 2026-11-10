@@ -35,6 +35,23 @@ export function startEditor(ui) {
     return module;
   });
   ui.actions = actions;
+  // UI commands deliberately expose editor operations rather than the mutable
+  // model or the internal cross-service action registry.
+  ui.commands = {
+    undo: () => actions.undo(),
+    redo: () => actions.redo(),
+    setTool: tool => actions.setTool(tool),
+    setGrid: grid => actions.change(() => { model.project.grid = grid; }),
+    toggleTheme: () => actions.toggleTheme(),
+    toggleHelp: () => actions.toggleHelp(),
+    newBlank: () => actions.newBlank(),
+    loadWelcome: () => actions.loadWelcome(),
+    openPreview: () => actions.openPreview(),
+    saveProject: as => actions.saveProject(as),
+    chooseProjectFile: () => actions.chooseProjectFile(),
+    closeInspector: () => actions.closeInspector(),
+    showInspectorParent: view => actions.showInspectorParent(view),
+  };
   for (const module of modules) module.init();
   return {
     destroy() {

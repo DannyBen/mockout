@@ -1,7 +1,7 @@
 import { flushSync } from 'react-dom';
 
 export function createUIStore() {
-  let snapshot = { inspector: { visible: false, view: 'properties', kind: 'box', section: 'box', canvasSection: 'canvas', parts: [] }, palette: null };
+  let snapshot = { editor: null, inspector: { visible: false, view: 'properties', kind: 'box', section: 'box', canvasSection: 'canvas', parts: [] }, palette: null };
   const listeners = new Set();
   return {
     getSnapshot: () => snapshot,

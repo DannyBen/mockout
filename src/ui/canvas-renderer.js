@@ -1,6 +1,7 @@
 import MockoutProject from '../core/project.js';
+import { editorSnapshot } from '../editor/snapshot.js';
 
-export function createCanvas({ model, elements, actions }) {
+export function createCanvas({ model, elements, actions, ui }) {
   function addResizeHandles(element) {
     for (const direction of ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']) {
       const handle = document.createElement('span');
@@ -153,6 +154,7 @@ export function createCanvas({ model, elements, actions }) {
     }
     actions.renderInspector();
     renderStyleMarkers();
+    ui.update({ editor: editorSnapshot(model) });
   }
   function syncFontStylesheets() {
     const urls = actions.fonts.stylesheets(model.project.boxes);
