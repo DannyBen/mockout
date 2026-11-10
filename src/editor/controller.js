@@ -732,43 +732,6 @@ export function createController({ model, elements, actions, events, ui }) {
         actions.render();
         actions.queueFileSave();
       });
-      for (const [id, key, transform] of [
-        ['box-text', 'text', value => value],
-        ['box-width', 'w', value => Math.max(actions.minimum(), actions.snap(Number(value) || actions.minimum()))],
-        ['box-height', 'h', value => Math.max(actions.minimum(), actions.snap(Number(value) || actions.minimum()))],
-        ['box-radius', 'radius', value => Math.max(0, Number(value) || 0)],
-        ['box-border-width', 'borderWidth', value => Math.max(0, Number(value) || 0)],
-        ['box-padding-x', 'paddingX', value => Math.max(0, Number(value) || 0)],
-        ['box-padding-y', 'paddingY', value => Math.max(0, Number(value) || 0)],
-        ['box-opacity', 'opacity', value => Math.round(Math.max(0, Math.min(100, Number(value) || 0))) / 100],
-        ['box-font-size', 'fontSize', value => Math.max(1, Number(value) || 1)],
-        ['box-font-weight', 'fontWeight', Number],
-        ['box-font-style', 'fontStyle', value => value],
-      ]) {
-        const input = document.getElementById(id);
-        events.on(input, 'change', event => {
-          if (!model.selectedIds.size || (input.type === 'number' && event.target.value === '')) return;
-          change(() => {
-            if (['borderWidth', 'radius', 'paddingX', 'paddingY'].includes(key)) {
-              for (const box of actions.selectedBoxes()) actions.boxStyle.set(box, key, transform(event.target.value));
-            } else MockoutSelection.applyProperty(model.project.boxes, model.selectedIds, key, transform(event.target.value));
-            actions.rememberStyle(actions.selectedBox());
-          });
-          if (key === 'opacity') input.value = Math.round((actions.selectedBox().opacity ?? 1) * 100);
-        });
-      }
-      for (const [id, property, fallback] of [['grid-base', 'gridBase', 5], ['grid-divisions', 'gridDivisions', 10]]) {
-        const input = document.getElementById(id);
-        events.on(input, 'change', () => {
-          if (input.value === '') { input.value = model.project[property] ?? fallback; return; }
-          const value = Math.max(2, Math.min(100, Math.round(input.valueAsNumber)));
-          change(() => {
-            if (property === 'gridBase') model.project.grid = model.project.grid / (model.project.gridBase ?? 5) * value;
-            model.project[property] = value;
-          });
-          input.value = value;
-        });
-      }
       events.on(elements.workspace, 'wheel', panCanvasWithWheel, { passive: false });
       events.on(elements.inspector, 'wheel', event => {
         if (event.target.closest('select, input[type="range"]')) return;

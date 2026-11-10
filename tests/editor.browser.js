@@ -192,6 +192,40 @@ test('toolbar menus, help, theme and custom grid choices follow editor state', a
   assert.equal(await b.evaluate("document.querySelector('[data-grid=\"28\"]').getAttribute('aria-pressed')"), 'true');
 });
 
+test('property fields retain unfinished input and selection through rerenders; fonts and alignment commit once', async t => {
+  const b = await setup(t);
+  await properties(b, 'box');
+  await b.evaluate("window.__width = document.querySelector('#box-width'); window.__width.select()");
+  await b.page('Input.insertText', { text: '-' });
+  await click(b, '#theme-button');
+  assert.equal(await b.evaluate("document.querySelector('#box-width') === window.__width && window.__width.validity.badInput"), true);
+  assert.equal((await saved(b)).boxes[0].w, 200);
+  await b.evaluate('window.__width.select()');
+  await b.page('Input.insertText', { text: '245' });
+  await b.key('Tab');
+  assert.equal((await saved(b)).boxes[0].w, 250);
+  await b.key('Escape');
+  await b.key('/', { code: 'Slash' });
+  await click(b, '[data-property-section="font"]');
+  await input(b, '#box-font-family', 'google', 'change');
+  await b.wait("document.activeElement.id === 'box-google-font'");
+  await input(b, '#box-google-font', 'Roboto', 'change');
+  assert.equal((await saved(b)).boxes[0].fontFamily, 'Roboto');
+  await input(b, '#box-font-family', 'material', 'change');
+  assert.equal(await b.evaluate('document.activeElement.id'), 'box-material-style');
+  await input(b, '#box-material-style', 'Material Icons', 'change');
+  assert.equal(await b.evaluate("document.querySelector('#box-font-weight').disabled && document.querySelector('#box-font-style').disabled"), true);
+  await b.key('Escape');
+  await b.key('/', { code: 'Slash' });
+  await click(b, '[data-property-section="text"]');
+  await click(b, '[data-align-axis="alignY"][data-align-value="center"]');
+  assert.equal((await saved(b)).boxes[0].alignY, 'center');
+  assert.equal((await saved(b)).boxes[0].alignX, fixture.boxes[0].alignX);
+  await b.evaluate("document.querySelector('#box-text').focus(); document.querySelector('#box-text').setSelectionRange(1, 3)");
+  await click(b, '#theme-button');
+  assert.deepEqual(await b.evaluate("[document.querySelector('#box-text').selectionStart, document.querySelector('#box-text').selectionEnd]"), [1, 3]);
+});
+
 test('connected file autosave, unfocused polling, undo, malformed updates and conflicts', async t => {
   const b = await setup(t, { script: `window.FileSystemObserver = undefined;
     window.__fileReady = navigator.storage.getDirectory().then(async dir => {

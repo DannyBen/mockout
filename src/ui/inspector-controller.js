@@ -28,91 +28,11 @@ export function createInspector({ model, elements, actions, events, ui }) {
     const visible = model.inspectorOpen && (model.inspectorKind === 'canvas' || box);
     renderInspectorHeader(visible);
     if (!visible) return;
-    for (const [id, value] of [['grid-base', model.project.gridBase ?? 5], ['grid-divisions', model.project.gridDivisions ?? 10]]) {
-      const input = document.getElementById(id);
-      if (document.activeElement !== input) input.value = value;
-    }
     if (model.inspectorView === 'edit') {
       document.querySelector('#dark-behavior').value = model.editorDark.mode;
       document.querySelector('#swatch-name-field').hidden = !!model.colorTarget?.direct;
       renderColorEditorPreview();
     }
-    if (box) {
-      for (const [field, getValue] of Object.entries({
-        'box-text': item => item.text, 'box-width': item => item.w, 'box-height': item => item.h,
-        'box-radius': item => actions.boxProperty(item, 'radius'), 'box-border-width': item => actions.boxProperty(item, 'borderWidth'),
-        'border-width': item => actions.boxProperty(item, 'borderWidth', model.borderTarget.index),
-        'border-radius': item => actions.boxProperty(item, 'radius', model.borderTarget.index),
-        'side-padding': item => actions.boxProperty(item, 'padding', model.paddingTarget.index),
-        'box-padding-x': item => actions.boxProperty(item, 'paddingX'), 'box-padding-y': item => actions.boxProperty(item, 'paddingY'),
-        'box-opacity': item => Math.round((item.opacity ?? 1) * 100),
-      })) {
-        const input = document.getElementById(field);
-        const value = MockoutSelection.commonValue(boxes, getValue);
-        const mixed = value === undefined;
-        if (document.activeElement !== input) input.value = mixed ? '' : value;
-        input.closest('.field, .slider-field').classList.toggle('mixed', mixed);
-        if (mixed) input.setAttribute('aria-description', 'Mixed values');
-        else input.removeAttribute('aria-description');
-        if (input.type === 'number') input.placeholder = mixed ? 'Mixed' : '';
-        if (field === 'box-text') {
-          const family = MockoutSelection.commonValue(boxes, actions.fonts.familyOf);
-          input.placeholder = mixed ? 'Mixed values' : boxes.every(item => actions.fonts.isMaterial(actions.fonts.familyOf(item)))
-            ? 'Icon name, e.g. arrow_forward' : 'Optional text';
-        }
-      }
-      const opacityRange = document.querySelector('#box-opacity-range');
-      const opacity = MockoutSelection.commonValue(boxes, item => item.opacity ?? 1);
-      if (document.activeElement !== opacityRange) opacityRange.value = opacity === undefined ? 50 : Math.round(opacity * 100);
-      opacityRange.setAttribute('aria-valuetext', opacity === undefined ? 'Mixed values' : `${Math.round(opacity * 100)}%`);
-      const family = MockoutSelection.commonValue(boxes, actions.fonts.familyOf);
-      const familyChoice = MockoutSelection.commonValue(boxes, item => actions.fonts.categoryOf(actions.fonts.familyOf(item))) ?? 'mixed';
-      const familySelect = document.querySelector('#box-font-family');
-      if (document.activeElement !== familySelect) familySelect.value = familyChoice;
-      familySelect.parentElement.classList.toggle('mixed', familyChoice === 'mixed');
-      for (const option of document.querySelectorAll('#box-font-weight option')) {
-        option.disabled = actions.fonts.isSymbol(family) && Number(option.value) > 700;
-      }
-      const classicOnly = boxes.every(item => actions.fonts.isClassicIcon(actions.fonts.familyOf(item)));
-      document.querySelector('#box-font-weight').disabled = classicOnly;
-      document.querySelector('#box-font-style').disabled = classicOnly;
-      document.querySelector('#google-font-field').hidden = familyChoice !== 'google';
-      const googleInput = document.querySelector('#box-google-font');
-      if (document.activeElement !== googleInput) googleInput.value = familyChoice === 'google' && family !== undefined ? family : '';
-      googleInput.placeholder = familyChoice === 'google' && family === undefined ? 'Mixed values' : 'e.g. Roboto';
-      googleInput.parentElement.classList.toggle('mixed', familyChoice === 'google' && family === undefined);
-      document.querySelector('#material-style-field').hidden = familyChoice !== 'material';
-      const materialStyle = document.querySelector('#box-material-style');
-      materialStyle.value = familyChoice === 'material' && family !== undefined ? family : 'mixed';
-      materialStyle.parentElement.classList.toggle('mixed', familyChoice === 'material' && family === undefined);
-      const browseIcons = document.querySelector('#browse-icons');
-      browseIcons.hidden = familyChoice !== 'material';
-      browseIcons.href = actions.fonts.isClassicIcon(family)
-        ? 'https://fonts.google.com/icons?icon.set=Material+Icons' : 'https://fonts.google.com/icons';
-      for (const [id, getValue] of [
-        ['box-font-size', actions.fonts.sizeOf], ['box-font-weight', actions.fonts.weightOf],
-        ['box-font-style', actions.fonts.styleOf],
-      ]) {
-        const input = document.getElementById(id);
-        const value = MockoutSelection.commonValue(boxes, getValue);
-        const mixed = value === undefined;
-        if (document.activeElement !== input) input.value = mixed ? input.tagName === 'SELECT' ? 'mixed' : '' : value;
-        input.parentElement.classList.toggle('mixed', mixed);
-        if (mixed) input.setAttribute('aria-description', 'Mixed values');
-        else input.removeAttribute('aria-description');
-      }
-      for (const button of elements.alignButtons) {
-        const value = MockoutSelection.commonValue(boxes, item => item[button.dataset.alignAxis]);
-        const mixed = value === undefined;
-        button.closest('.align-group').querySelector('span').classList.toggle('mixed', mixed);
-        const active = value === button.dataset.alignValue;
-        button.classList.toggle('active', active);
-        button.setAttribute('aria-pressed', String(active));
-      }
-    }
-    document.querySelector('#border-width-field').hidden = !!model.borderTarget.corner;
-    document.querySelector('#border-color-field').hidden = !!model.borderTarget.corner;
-    document.querySelector('#border-radius-field').hidden = !model.borderTarget.corner;
     if (model.inspectorKind === 'box') for (const button of elements.boxColorButtons) renderBoxColorButton(button, boxes);
     if (model.inspectorKind === 'canvas') for (const button of elements.canvasColorButtons) {
       const canvasProperty = button.dataset.canvasColorProperty;
@@ -216,7 +136,7 @@ export function createInspector({ model, elements, actions, events, ui }) {
       visible: Boolean(visible), view: model.inspectorView, kind: model.inspectorKind,
       section: model.activePropertySection, canvasSection: model.activeCanvasSection,
       hasParent, menuTitle, parts, locked: model.fileLocked,
-    } });
+    }, properties: actions.propertyData() });
   }
   function renderSwatchList() {
     const choosing = model.inspectorView === 'choose';
@@ -613,88 +533,6 @@ export function createInspector({ model, elements, actions, events, ui }) {
         event.preventDefault();
         fields[event.shiftKey ? fields.length - 1 : 0].focus();
       });
-      for (const [id, property] of [['border-width', 'borderWidth'], ['border-radius', 'radius'], ['side-padding', 'padding']]) {
-        const input = document.getElementById(id);
-        const target = () => property === 'padding' ? model.paddingTarget : model.borderTarget;
-        const update = () => {
-          if (!model.selectedIds.size || model.fileLocked || input.value === '') return;
-          model.styleBefore ??= actions.snapshot();
-          const value = Math.max(0, Math.min(10000, input.valueAsNumber));
-          for (const box of actions.selectedBoxes()) actions.boxStyle.set(box, property, value, target().index);
-          actions.rememberStyle(actions.selectedBox());
-          actions.render();
-        };
-        events.on(input, 'input', update);
-        events.on(input, 'change', () => {
-          update();
-          finishStyleEdit();
-          const value = MockoutSelection.commonValue(actions.selectedBoxes(), box => actions.boxProperty(box, property, target().index));
-          input.value = value ?? '';
-        });
-        events.on(input, 'blur', finishStyleEdit);
-      }
-      events.on(elements.opacityRange, 'input', () => {
-        if (!model.selectedIds.size) return;
-        model.opacityBefore ??= actions.snapshot();
-        MockoutSelection.applyProperty(model.project.boxes, model.selectedIds, 'opacity', Number(elements.opacityRange.value) / 100);
-        actions.rememberStyle(actions.selectedBox());
-        actions.render();
-      });
-      events.on(elements.opacityRange, 'change', finishOpacityEdit);
-      events.on(elements.opacityRange, 'blur', finishOpacityEdit);
-      events.on(elements.fontFamilySelect, 'change', () => {
-        const category = elements.fontFamilySelect.value;
-        if (category === 'google') {
-          const current = MockoutSelection.commonValue(actions.selectedBoxes(), actions.fonts.familyOf);
-          document.querySelector('#google-font-field').hidden = false;
-          document.querySelector('#material-style-field').hidden = true;
-          elements.googleFontInput.value = current && !actions.fonts.isMaterial(current) ? current : '';
-          elements.googleFontInput.focus();
-          return;
-        }
-        if (category === 'mixed' || !model.selectedIds.size) return;
-        const current = MockoutSelection.commonValue(actions.selectedBoxes(), actions.fonts.familyOf);
-        let family = category;
-        if (category === 'material') family = actions.fonts.isMaterial(current) ? current : 'Material Symbols Outlined';
-        assignFontFamily(family);
-        if (category === 'material') elements.materialStyleSelect.focus();
-      });
-      events.on(elements.materialStyleSelect, 'change', () => {
-        const family = elements.materialStyleSelect.value;
-        if (!actions.fonts.isMaterial(family) || !model.selectedIds.size) return;
-        assignFontFamily(family);
-      });
-      events.on(elements.googleFontInput, 'change', () => {
-        const family = elements.googleFontInput.value.trim().replace(/\s+/g, ' ');
-        if (!family || !actions.fonts.validFamily(family) || !model.selectedIds.size) {
-          if (family) actions.showNotice('Enter the family name as shown on Google Fonts.');
-          return;
-        }
-        actions.change(() => {
-          MockoutSelection.applyProperty(model.project.boxes, model.selectedIds, 'fontFamily', family);
-          actions.rememberStyle(actions.selectedBox());
-        });
-      });
-      events.on(elements.googleFontInput, 'blur', () => {
-        if (!elements.googleFontInput.value.trim()) renderInspector();
-      });
-      events.on(document.querySelector('#box-text'), 'keydown', event => {
-        if (!['Backspace', 'Delete'].includes(event.key) || event.target.value !== '') return;
-        if (MockoutSelection.commonValue(actions.selectedBoxes(), box => box.text) !== undefined) return;
-        event.preventDefault();
-        actions.change(() => {
-          MockoutSelection.applyProperty(model.project.boxes, model.selectedIds, 'text', '');
-          actions.rememberStyle(actions.selectedBox());
-        });
-      });
-      for (const button of elements.alignButtons) {
-        events.on(button, 'click', () => {
-          if (model.selectedIds.size) actions.change(() => {
-            MockoutSelection.applyProperty(model.project.boxes, model.selectedIds, button.dataset.alignAxis, button.dataset.alignValue);
-            actions.rememberStyle(actions.selectedBox());
-          });
-        });
-      }
       for (const button of elements.boxColorButtons) events.on(button, 'click', () =>
         openColor(button.dataset.colorProperty, button.hasAttribute('data-border-side') ? model.borderTarget.index : undefined));
       for (const button of elements.canvasColorButtons) events.on(button, 'click', () =>

@@ -1,8 +1,9 @@
 import { Fragment, useSyncExternalStore } from 'react';
 import { PalettePicker } from './PalettePicker.jsx';
+import { Properties } from './Properties.jsx';
 
 export function Inspector({ ui }) {
-  const { inspector: i } = useSyncExternalStore(ui.subscribe, ui.getSnapshot);
+  const { inspector: i, properties } = useSyncExternalStore(ui.subscribe, ui.getSnapshot);
   return (
   <aside id="inspector" className="mini-dialog" hidden={!i.visible} data-view={i.view} inert={i.locked} aria-label="Inspector">
     <header id="inspector-header" className="dialog-header">
@@ -29,115 +30,7 @@ export function Inspector({ ui }) {
       <button type="button" className="dialog-choice" data-property-section="canvas" hidden={i.kind !== 'canvas'} aria-current={i.canvasSection === 'canvas' ? 'page' : undefined}><span>Colors</span></button>
       <button type="button" className="dialog-choice" data-property-section="grid" hidden={i.kind !== 'canvas'} aria-current={i.canvasSection === 'grid' ? 'page' : undefined}><span>Grid</span></button>
     </section>
-    <section id="box-properties" hidden={i.view !== 'properties' || i.kind !== 'box'}>
-      <div id="box-appearance-properties" className="section-content" hidden={i.section !== 'box'}>
-        <div className="two-fields">
-          <label className="field">Width <input id="box-width" type="number" min="1" step="1" /></label>
-          <label className="field">Height <input id="box-height" type="number" min="1" step="1" /></label>
-        </div>
-        <div className="two-fields">
-          <label className="field">Radius <input id="box-radius" type="number" min="0" step="1" /></label>
-          <label className="field">Border <input id="box-border-width" type="number" min="0" step="1" /></label>
-        </div>
-        <div className="two-fields">
-          <label className="field">Padding X <input id="box-padding-x" type="number" min="0" step="1" /></label>
-          <label className="field">Padding Y <input id="box-padding-y" type="number" min="0" step="1" /></label>
-        </div>
-        <div className="slider-field">
-          <label className="field" htmlFor="box-opacity-range">Opacity</label>
-          <input id="box-opacity-range" type="range" min="0" max="100" step="1" />
-          <input id="box-opacity" type="number" min="0" max="100" step="1" aria-label="Opacity percentage" />
-        </div>
-      </div>
-      <div id="border-properties" className="section-content" hidden={i.section !== 'border'}>
-        <div className="field" id="border-width-field"><label htmlFor="border-width">Width</label><input id="border-width" type="number" min="0" max="10000" step="1" /></div>
-        <div className="field" id="border-color-field"><label htmlFor="border-side-color">Color</label><button type="button" id="border-side-color" data-color-property="borderColor" data-border-side=""></button></div>
-        <div className="field" id="border-radius-field"><label htmlFor="border-radius">Radius</label><input id="border-radius" type="number" min="0" max="10000" step="1" /></div>
-      </div>
-      <div id="padding-properties" className="section-content" hidden={i.section !== 'padding'}>
-        <div className="field"><label htmlFor="side-padding">Padding</label><input id="side-padding" type="number" min="0" max="10000" step="1" /></div>
-      </div>
-      <div id="color-properties" className="section-content" hidden={i.section !== 'colors'}>
-        <div className="field"><label htmlFor="fill-color">Fill</label><button type="button" id="fill-color" data-color-property="fill"></button></div>
-        <div className="field"><label htmlFor="text-color">Text</label><button type="button" id="text-color" data-color-property="textColor"></button></div>
-        <div className="field"><label htmlFor="border-color">Border</label><button type="button" id="border-color" data-color-property="borderColor"></button></div>
-      </div>
-      <div id="text-properties" className="section-content" hidden={i.section !== 'text'}>
-        <label className="field">Text <input id="box-text" type="text" placeholder="Optional text" /></label>
-        <div className="two-fields align-fields">
-          <div className="align-group" role="group" aria-label="Horizontal alignment">
-            <span>Horizontal</span>
-            <div className="align-buttons">
-              <button type="button" data-align-axis="alignX" data-align-value="left" aria-label="Align left"><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#format_align_left"></use></svg></button>
-              <button type="button" data-align-axis="alignX" data-align-value="center" aria-label="Align center"><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#format_align_center"></use></svg></button>
-              <button type="button" data-align-axis="alignX" data-align-value="right" aria-label="Align right"><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#format_align_right"></use></svg></button>
-            </div>
-          </div>
-          <div className="align-group" role="group" aria-label="Vertical alignment">
-            <span>Vertical</span>
-            <div className="align-buttons">
-              <button type="button" data-align-axis="alignY" data-align-value="top" aria-label="Align top"><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#vertical_align_top"></use></svg></button>
-              <button type="button" data-align-axis="alignY" data-align-value="center" aria-label="Align middle"><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#vertical_align_center"></use></svg></button>
-              <button type="button" data-align-axis="alignY" data-align-value="bottom" aria-label="Align bottom"><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#vertical_align_bottom"></use></svg></button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div id="font-properties" className="section-content" hidden={i.section !== 'font'}>
-        <label className="field">Family
-          <select id="box-font-family">
-            <option value="mixed" hidden>Mixed values</option>
-            <option value="">Default</option>
-            <option value="google">Google font…</option>
-            <option value="material">Material icons…</option>
-          </select>
-        </label>
-        <label id="google-font-field" className="field" hidden>Google family
-          <input id="box-google-font" type="text" maxLength="80" autoComplete="off" spellCheck="false" placeholder="e.g. Roboto" />
-        </label>
-        <label id="material-style-field" className="field" hidden>Icon style
-          <select id="box-material-style">
-            <option value="mixed" hidden>Mixed values</option>
-            <option value="Material Symbols Outlined">Outlined</option>
-            <option value="Material Symbols Rounded">Rounded</option>
-            <option value="Material Symbols Sharp">Sharp</option>
-            <option value="Material Icons">Filled</option>
-            <option value="Material Icons Two Tone">Two Tone</option>
-          </select>
-        </label>
-        <div className="two-fields">
-          <label className="field">Size <input id="box-font-size" type="number" min="1" step="1" /></label>
-          <label className="field">Weight
-            <select id="box-font-weight">
-              <option value="mixed" hidden>Mixed values</option>
-              <option value="100">100</option><option value="200">200</option><option value="300">300</option>
-              <option value="400">400</option><option value="500">500</option><option value="600">600</option>
-              <option value="700">700</option><option value="800">800</option><option value="900">900</option>
-            </select>
-          </label>
-        </div>
-        <label className="field">Style
-          <select id="box-font-style">
-            <option value="mixed" hidden>Mixed values</option>
-            <option value="normal">Normal</option><option value="italic">Italic</option>
-          </select>
-        </label>
-        <footer className="dialog-footer font-links"><a href="https://fonts.google.com/" target="_blank" rel="noopener noreferrer">Browse fonts <svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#open_in_new"></use></svg></a><a id="browse-icons" href="https://fonts.google.com/icons" target="_blank" rel="noopener noreferrer" hidden>Browse icons <svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#open_in_new"></use></svg></a></footer>
-      </div>
-    </section>
-    <section id="canvas-properties" className="dialog-choice-list" hidden={i.view !== 'properties' || i.kind !== 'canvas' || i.canvasSection !== 'canvas'} aria-label="Canvas colors">
-      <button type="button" className="dialog-choice" data-canvas-color-property="background"></button>
-      <button type="button" className="dialog-choice" data-canvas-color-property="gridMinor"></button>
-      <button type="button" className="dialog-choice" data-canvas-color-property="gridMajor"></button>
-    </section>
-    <section id="grid-properties" hidden={i.view !== 'properties' || i.kind !== 'canvas' || i.canvasSection !== 'grid'} aria-label="Grid settings">
-      <label className="field">Smallest grid size (px)
-        <input id="grid-base" type="number" min="2" max="100" step="1" />
-      </label>
-      <label className="field">Major line every (cells)
-        <input id="grid-divisions" type="number" min="2" max="100" step="1" />
-      </label>
-    </section>
+    <Properties ui={ui} inspector={i} data={properties} />
     <PalettePicker ui={ui} />
     <section id="swatch-chooser" hidden={i.view !== 'choose'} aria-label="Choose swatch">
       <div id="choice-swatch-list" className="dialog-choice-list" role="listbox" aria-label="Swatches"></div>
