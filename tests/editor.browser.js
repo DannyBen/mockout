@@ -268,6 +268,48 @@ test('canvas color drafts, legacy channels, validation, independent dark colors 
   assert.deepEqual((await saved(b)).canvasColors, fixture.canvasColors);
 });
 
+test('Save dialog handles picker errors, cancellation and a busy native write', async t => {
+  const b = await setup(t, { script: `window.__saveMode = 'error';
+    window.__fileReady = navigator.storage.getDirectory().then(async dir => { window.__handle = await dir.getFileHandle('dialog.json', { create: true }); });
+    window.showSaveFilePicker = () => window.__saveMode === 'pending' ? new Promise(resolve => window.__resolvePicker = resolve)
+      : Promise.reject(new DOMException(window.__saveMode, window.__saveMode === 'abort' ? 'AbortError' : 'NotAllowedError'));` });
+  await b.evaluate('window.__fileReady');
+  await b.key('s', { code: 'KeyS', modifiers: 2 });
+  await click(b, '#save-connected-file');
+  await b.wait("!document.querySelector('#save-project-error').hidden && !document.querySelector('#save-once').disabled");
+  assert.equal(await b.evaluate('document.activeElement.id'), 'save-connected-file');
+  await b.evaluate("window.__saveMode = 'abort'");
+  await click(b, '#save-connected-file');
+  await b.wait("!document.querySelector('#save-connected-file').disabled");
+  assert.equal(await b.evaluate("document.querySelector('#save-project-error').hidden"), true);
+  await b.evaluate("window.__saveMode = 'pending'");
+  await click(b, '#save-connected-file');
+  assert.equal(await b.evaluate("document.querySelector('#close-save-project').disabled"), true);
+  await b.key('Escape');
+  assert.equal(await b.evaluate("document.querySelector('#save-project-dialog').open"), true);
+  await b.evaluate('window.__resolvePicker(window.__handle)');
+  await b.wait("!document.querySelector('#save-project-dialog').open && document.querySelector('#file-status').dataset.state === 'connected'");
+  assert.equal(await b.evaluate('window.__handle.getFile().then(file => file.text()).then(JSON.parse).then(project => project.version)'), 1);
+});
+
+test('Open dialog shows file choices and opens a local copy without rewriting the file', async t => {
+  const b = await setup(t, { script: `window.__fileReady = navigator.storage.getDirectory().then(async dir => {
+    window.__handle = await dir.getFileHandle('open.json', { create: true });
+    const writer = await window.__handle.createWritable(); await writer.write(${JSON.stringify(raw)}); await writer.close();
+    window.showOpenFilePicker = async () => [window.__handle];
+  });` });
+  await b.evaluate('window.__fileReady');
+  await b.key('o', { code: 'KeyO', modifiers: 2 });
+  await b.wait("document.querySelector('#open-project-dialog').open && !document.querySelector('#open-local-copy').disabled");
+  assert.equal(await b.evaluate('document.activeElement.id'), 'open-local-copy');
+  assert.equal(await b.evaluate("document.querySelector('#open-project-name').textContent"), 'open.json');
+  await click(b, '#open-local-copy');
+  await b.wait("!document.querySelector('#open-project-dialog').open");
+  await b.key('Tab'); await b.key('ArrowRight');
+  assert.equal(await b.evaluate("document.querySelector('#file-status').dataset.state"), 'local');
+  assert.equal(await b.evaluate('window.__handle.getFile().then(file => file.text())'), raw);
+});
+
 test('connected file autosave, unfocused polling, undo, malformed updates and conflicts', async t => {
   const b = await setup(t, { script: `window.FileSystemObserver = undefined;
     window.__fileReady = navigator.storage.getDirectory().then(async dir => {

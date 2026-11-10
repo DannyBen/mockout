@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import Project from '../core/project.js';
+import { HoldButton } from './HoldButton.jsx';
 
 export function Toolbar({ ui }) {
   const { editor: e, toolbar: t } = useSyncExternalStore(ui.subscribe, ui.getSnapshot);
@@ -25,14 +26,14 @@ export function Toolbar({ ui }) {
         <hr />
         <button type="button" id="new-blank-button" disabled={placing} onClick={() => ui.commands.newBlank()}><span>New blank</span><span className="menu-hint">Shift+N</span></button>
         <hr />
-        <button type="button" id="reset-button" disabled={placing} className="hold-action"><span>Reset app</span><span className="menu-hint">Hold</span></button>
+        <HoldButton ui={ui} id="reset-button" disabled={placing}><span>Reset app</span><span className="menu-hint">Hold</span></HoldButton>
       </div>
     </div>
     <button type="button" tabIndex="-1" id="theme-button" disabled={placing} onClick={() => ui.commands.toggleTheme()} aria-label={`Switch to ${t?.theme === 'dark' ? 'light' : 'dark'} theme`}>
       <svg className="icon" data-icon="light" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#light_mode"></use></svg>
       <svg className="icon" data-icon="dark" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#dark_mode"></use></svg>
     </button>
-    <button type="button" tabIndex="-1" id="ai-button" disabled={placing} aria-label="Work with AI" aria-haspopup="dialog" aria-controls="ai-dialog"><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#auto_awesome"></use></svg></button>
+    <button type="button" tabIndex="-1" id="ai-button" disabled={placing} onClick={() => ui.commands.openAI()} aria-label="Work with AI" aria-haspopup="dialog" aria-controls="ai-dialog"><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#auto_awesome"></use></svg></button>
     <button type="button" tabIndex="-1" id="help-button" onClick={() => ui.commands.toggleHelp()} aria-label="Help" aria-controls="help-panel" aria-expanded={t?.helpOpen || false}><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#help"></use></svg></button>
   </div>
   <p id="placement-hint" role="status" hidden={!placing}>Move copy · Click or Enter to place · Esc to cancel</p>

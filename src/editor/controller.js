@@ -6,15 +6,7 @@ import MockoutPlacement from '../core/placement.js';
 export function createController({ model, elements, actions, events, ui }) {
   const themeMedia = matchMedia('(prefers-color-scheme: dark)');
   const modalDialogs = [elements.aiDialog, elements.openProjectDialog, elements.saveProjectDialog];
-  const modalOpen = () => modalDialogs.some(dialog => dialog.open);
-  function showNotice(message, kind = '') {
-    elements.notice.classList.remove('file-update');
-    elements.notice.dataset.kind = kind;
-    elements.noticeMessage.textContent = message;
-    elements.recoveryActions.hidden = !model.savedProjectIssue;
-    elements.fileChangeActions.hidden = !model.fileConflict;
-    elements.notice.hidden = false;
-  }
+  const modalOpen = () => model.dialog !== null;
   const toolbarMenus = [
     { menu: elements.projectMenu, button: elements.projectMenuButton, holder: elements.projectMenuHolder },
   ];
@@ -252,7 +244,7 @@ export function createController({ model, elements, actions, events, ui }) {
       publishToolbar();
       elements.workspace.focus();
     } catch (error) {
-      showNotice(`Could not load Welcome example: ${error.message}`);
+      actions.showNotice(`Could not load Welcome example: ${error.message}`);
     }
   }
   function startCanvasPan(event) {
@@ -415,9 +407,9 @@ export function createController({ model, elements, actions, events, ui }) {
     closeProjectMenu();
     let loaded;
     try { loaded = await fetchWelcomeProject(); }
-    catch (error) { showNotice(`Could not load Welcome example: ${error.message}`); return; }
+    catch (error) { actions.showNotice(`Could not load Welcome example: ${error.message}`); return; }
     try { MockoutProject.reset(localStorage, actions.STORAGE_KEY); }
-    catch { showNotice('Could not clear saved data. Nothing was reset.'); return; }
+    catch { actions.showNotice('Could not clear saved data. Nothing was reset.'); return; }
     model.project = loaded;
     actions.setProjectFileHandle(null);
     model.savedProjectIssue = '';
@@ -433,8 +425,7 @@ export function createController({ model, elements, actions, events, ui }) {
     model.gesture = null;
     model.tool = 'select';
     focusProject(model.project.boxes);
-    elements.notice.hidden = true;
-    elements.recoveryActions.hidden = true;
+    actions.hideNotice();
     elements.workspace.focus();
     persist();
     actions.render();
@@ -478,28 +469,61 @@ export function createController({ model, elements, actions, events, ui }) {
   }
   async function openPreview() {
     if (!model.project.boxes.length) {
-      showNotice('Draw a box before opening a preview.');
+      actions.showNotice('Draw a box before opening a preview.');
       return;
     }
     const tab = window.open('', '_blank');
     if (!tab) {
-      showNotice('Allow pop-ups to open the preview.');
+      actions.showNotice('Allow pop-ups to open the preview.');
       return;
     }
     try {
       const html = previewHTML(previewCss);
       tab.location.replace(URL.createObjectURL(new Blob([html], { type: 'text/html' })));
-      if (model.savedProjectIssue) showNotice(model.savedProjectIssue);
-      else if (!model.fileLocked) elements.notice.hidden = true;
+      if (model.savedProjectIssue) actions.showNotice(model.savedProjectIssue);
+      else if (!model.fileLocked) actions.hideNotice();
     } catch (error) {
       tab.close();
-      showNotice(`Could not open preview: ${error.message}`);
+      actions.showNotice(`Could not open preview: ${error.message}`);
     }
+  }
+
+  function openAI() {
+    closeProjectMenu();
+    clearTimeout(model.aiCopyTimer);
+    model.aiCopyStatus = '';
+    actions.openDialog('ai');
+  }
+  async function copyAIPrompt(kind) {
+    clearTimeout(model.aiCopyTimer);
+    try {
+      await navigator.clipboard.writeText(aiPrompts[kind]);
+      if (model.dialog !== 'ai') return;
+      model.aiCopyStatus = 'Copied. Paste it into your AI app.';
+      model.aiCopyTimer = setTimeout(() => { model.aiCopyStatus = ''; actions.publishPresentation(); }, 2500);
+    } catch {
+      if (model.dialog !== 'ai') return;
+      model.aiCopyStatus = window.isSecureContext ? 'Could not copy. Allow clipboard access and try again.'
+        : 'Clipboard access needs HTTPS. Open https://mockout.sector-seven.com/.';
+    }
+    actions.publishPresentation();
+  }
+  function downloadSavedData() {
+        try {
+          const raw = localStorage.getItem(actions.STORAGE_KEY);
+          if (raw === null) { actions.showNotice('No saved data was found.'); return; }
+          const url = URL.createObjectURL(new Blob([raw], { type: 'text/plain' }));
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'mockout-saved-data-backup.txt';
+          link.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch { actions.showNotice('Could not download saved data. It was left untouched.'); }
   }
 
   return {
     actions: {
-      themeMedia, modalDialogs, modalOpen, showNotice, toolbarMenus,
+      themeMedia, modalDialogs, modalOpen, toolbarMenus,
       closeToolbarMenu, closeProjectMenu, toggleToolbarMenu, syncThemeButton, setTheme,
       toggleTheme, focusProject, persist, commit, change,
       point, newBox, dragTargets, startCopyPlacement, startDuplicatePlacement,
@@ -508,7 +532,7 @@ export function createController({ model, elements, actions, events, ui }) {
       aiPrompts, fetchWelcomeProject, loadWelcome, startCanvasPan, endGesture,
       editText, deleteSelected, undo, redo, zoomAt,
       cycleSelection, panCanvasWithWheel, newBlank, resetEverything, previewHTML,
-      openPreview,
+      openPreview, openAI, copyAIPrompt, downloadSavedData,
     },
     init() {
       events.on(themeMedia, 'change', event => {
@@ -524,53 +548,6 @@ export function createController({ model, elements, actions, events, ui }) {
           if (!item.holder.contains(event.target)) closeToolbarMenu(item);
         }
       });
-      events.on(document.querySelector('#ai-button'), 'click', () => {
-        closeProjectMenu();
-        clearTimeout(model.aiCopyTimer);
-        elements.aiCopyStatus.textContent = '';
-        elements.aiDialog.showModal();
-      });
-      events.on(document.querySelector('#close-ai-dialog'), 'click', () => elements.aiDialog.close());
-      events.on(elements.aiDialog, 'close', () => {
-        clearTimeout(model.aiCopyTimer);
-        elements.aiCopyStatus.textContent = '';
-        elements.workspace.focus();
-      });
-      for (const dialog of modalDialogs) events.on(dialog, 'keydown', event => {
-        const direction = { ArrowDown: 1, ArrowUp: -1 }[event.key];
-        if (direction && !event.ctrlKey && !event.altKey && !event.metaKey) {
-          const options = [...dialog.querySelectorAll('button:not(.icon-button):not(:disabled)')]
-            .filter(button => button.getClientRects().length);
-          const index = options.indexOf(document.activeElement);
-          if (index < 0) return;
-          event.preventDefault();
-          options[(index + direction + options.length) % options.length].focus();
-          return;
-        }
-        if (event.key !== 'Tab') return;
-        const buttons = [...dialog.querySelectorAll('button:not(:disabled)')];
-        const first = buttons[0], last = buttons.at(-1);
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault(); last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault(); first.focus();
-        }
-      });
-      for (const button of elements.aiDialog.querySelectorAll('[data-ai-prompt]')) {
-        events.on(button, 'click', async () => {
-          clearTimeout(model.aiCopyTimer);
-          try {
-            await navigator.clipboard.writeText(aiPrompts[button.dataset.aiPrompt]);
-            if (!elements.aiDialog.open) return;
-            elements.aiCopyStatus.textContent = 'Copied. Paste it into your AI app.';
-            model.aiCopyTimer = setTimeout(() => { elements.aiCopyStatus.textContent = ''; }, 2500);
-          } catch {
-            elements.aiCopyStatus.textContent = window.isSecureContext
-              ? 'Could not copy. Allow clipboard access and try again.'
-              : 'Clipboard access needs HTTPS. Open https://mockout.sector-seven.com/.';
-          }
-        });
-      }
       events.on(elements.workspace, 'contextmenu', event => {
         if (model.fileLocked) { event.preventDefault(); return; }
         if (model.placement) { event.preventDefault(); return; }
@@ -983,53 +960,10 @@ export function createController({ model, elements, actions, events, ui }) {
           actions.render();
         }
       });
-      for (const button of document.querySelectorAll('.hold-action')) {
-        let timer = null;
-        const cancel = () => {
-          clearTimeout(timer);
-          timer = null;
-          button.classList.remove('holding');
-        };
-        const start = () => {
-          if (timer || button.disabled) return;
-          button.classList.add('holding');
-          timer = setTimeout(() => { cancel(); resetEverything(); }, 1200);
-        };
-        events.on(button, 'pointerdown', event => { if (event.button === 0) start(); });
-        events.on(button, 'pointerleave', cancel);
-        events.on(button, 'pointercancel', cancel);
-        events.on(window, 'pointerup', cancel);
-        events.on(button, 'keydown', event => {
-          if (event.key !== 'Enter' && event.key !== ' ') return;
-          event.preventDefault();
-          event.stopPropagation();
-          start();
-        });
-        events.on(button, 'keyup', event => {
-          if (event.key !== 'Enter' && event.key !== ' ') return;
-          event.preventDefault();
-          event.stopPropagation();
-          cancel();
-        });
-        events.on(button, 'blur', cancel);
-        events.on(button, 'click', event => event.preventDefault());
-      }
-      events.on(document.querySelector('#download-saved-button'), 'click', () => {
-        try {
-          const raw = localStorage.getItem(actions.STORAGE_KEY);
-          if (raw === null) { showNotice('No saved data was found.'); return; }
-          const url = URL.createObjectURL(new Blob([raw], { type: 'text/plain' }));
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = 'mockout-saved-data-backup.txt';
-          link.click();
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-        } catch { showNotice('Could not download saved data. It was left untouched.'); }
-      });
       focusProject(model.project.boxes);
       actions.render();
       if (model.savedProjectIssue) {
-        showNotice(model.savedProjectIssue);
+        actions.showNotice(model.savedProjectIssue);
       }
       if (model.firstLoad) loadWelcome(true);
       if (!model.savedProjectIssue && window.showOpenFilePicker) actions.restoreFileConnection();

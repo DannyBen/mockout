@@ -6,6 +6,7 @@ import { createInspector } from '../ui/inspector-controller.js';
 import { createFileSync } from './file-sync.js';
 import { createController } from './controller.js';
 import { createProperties } from './properties.js';
+import { createPresentation } from './presentation.js';
 
 export function startEditor(ui) {
   // Access storage inside the loader's try/catch: browsers can deny even the
@@ -30,7 +31,7 @@ export function startEditor(ui) {
     },
   };
   const context = { model, elements: findElements(), actions, events, ui };
-  const modules = [createSelectors, createProperties, createCanvas, createInspector, createFileSync, createController].map(create => {
+  const modules = [createSelectors, createProperties, createPresentation, createCanvas, createInspector, createFileSync, createController].map(create => {
     const module = create(context);
     Object.assign(actions, module.actions);
     return module;
@@ -78,6 +79,19 @@ export function startEditor(ui) {
     acceptColor: () => actions.acceptColor(),
     deleteSwatch: () => actions.deleteSwatch(),
     saveColor: () => actions.saveColor(),
+    openAI: () => actions.openAI(),
+    copyAIPrompt: kind => actions.copyAIPrompt(kind),
+    closeDialog: () => actions.closeDialog(),
+    dialogClosed: name => actions.dialogClosed(name),
+    saveChoice: connect => actions.saveProject(true, null, false, connect),
+    openChoice: connect => actions.finishOpeningProject(connect),
+    openProjectFile: file => actions.openProjectFile(file),
+    reconnectFile: () => { if (model.projectFileHandle) actions.checkFileConnection(model.projectFileHandle, model.fileConnectionRevision, true); },
+    workLocally: () => { actions.setProjectFileHandle(null); context.elements.workspace.focus(); },
+    reloadFile: () => actions.checkExternalFile(true),
+    saveOurs: () => { if (model.fileConflict && model.filePendingStamp !== null) actions.saveProject(false, model.filePendingStamp); },
+    resetEverything: () => actions.resetEverything(),
+    downloadSavedData: () => actions.downloadSavedData(),
   };
   for (const module of modules) module.init();
   return {

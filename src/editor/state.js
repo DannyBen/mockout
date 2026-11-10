@@ -47,6 +47,11 @@ export function createEditorState(storage) {
   model.tool = 'select';
   model.projectMenuOpen = false;
   model.helpOpen = false;
+  model.dialog = null;
+  model.notice = { visible: false, message: '', kind: '', fileUpdate: false, showFileActions: false };
+  model.fileNeedsPermission = false;
+  model.saveDialogError = '';
+  model.aiCopyStatus = '';
   model.spaceDown = false;
   model.altDown = false;
   model.view = { x: 0, y: 0, zoom: 1 };

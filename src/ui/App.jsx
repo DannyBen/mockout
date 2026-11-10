@@ -10,8 +10,8 @@ export function App({ ui }) {
     <Canvas />
     <Toolbar ui={ui} />
     <Help ui={ui} />
-    <Dialogs />
+    <Dialogs ui={ui} />
     <Inspector ui={ui} />
-    <Status />
+    <Status ui={ui} />
   </>;
 }

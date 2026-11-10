@@ -2,39 +2,18 @@ import MockoutProject from '../core/project.js';
 
 export function createFileSync({ model, elements, actions, events }) {
   function updateFileStatus() {
-    const handle = model.projectFileHandle;
-    const status = !handle ? 'local' : model.fileConflict ? model.filePendingStamp === null ? 'error' : 'conflict'
-      : !elements.reconnectFileButton.hidden ? 'reconnect'
-      : model.fileSaveError ? 'error' : 'connected';
-    const [icon, label] = {
-      local: ['web_asset', ''],
-      connected: ['check_circle', ''],
-      reconnect: ['link_off', ''],
-      conflict: ['warning', 'Conflict'],
-      error: ['error', model.fileSaveError ? 'Save failed' : 'File error'],
-    }[status];
-    const description = handle ? `${handle.name}: ${label || (status === 'reconnect' ? 'Reconnect' : 'Connected')}`
-      : 'Local session, saved in this browser';
-    const connected = String(Boolean(handle) && elements.reconnectFileButton.hidden);
-    if (elements.fileStatus.dataset.state === status && elements.fileStatus.getAttribute('aria-label') === description
-      && elements.fileStatus.dataset.connected === connected) return;
-    elements.fileStatus.dataset.state = status;
-    elements.fileStatus.dataset.connected = connected;
-    elements.fileStatus.querySelector('use').setAttribute('href', `assets/material-symbols/sprite.svg#${icon}`);
-    elements.fileStatus.querySelector('.file-name').textContent = handle ? handle.name.replace(/\.json$/i, '') : 'Local session';
-    elements.fileStatus.querySelector('.file-detail').textContent = label;
-    elements.fileStatus.setAttribute('aria-label', description);
+    actions.publishPresentation();
   }
   function clearFileSaveError() {
     if (!model.fileSaveError) return;
     model.fileSaveError = '';
-    if (!model.savedProjectIssue && !model.fileConflict) elements.notice.hidden = true;
+    if (!model.savedProjectIssue && !model.fileConflict) actions.hideNotice();
   }
   function queueFileSave() {
     clearTimeout(model.fileSaveTimer);
     updateFileStatus();
     if (!model.projectFileHandle || model.fileLocked || model.fileSaving || model.fileSaveError || model.savedProjectIssue
-      || elements.saveProjectDialog.open || !elements.reconnectFileButton.hidden || model.gesture || model.opacityBefore !== null || model.styleBefore !== null || model.placement || model.textEditor || actions.snapshot() === model.fileBaseline) return;
+      || (model.dialog === 'save') || model.fileNeedsPermission || model.gesture || model.opacityBefore !== null || model.styleBefore !== null || model.placement || model.textEditor || actions.snapshot() === model.fileBaseline) return;
     model.fileSaveTimer = setTimeout(() => saveProject(false, null, true), 0);
   }
   function setProjectFileHandle(handle, { remember = true, needsPermission = false, canRead = false, file = null, baseline = null } = {}) {
@@ -51,15 +30,14 @@ export function createFileSync({ model, elements, actions, events }) {
       model.fileLocked = false;
       model.fileConflict = false;
       model.filePendingStamp = null;
-      elements.fileChangeActions.hidden = true;
+      actions.hideFileActions();
     }
     const connected = Boolean(handle) && !needsPermission;
-    elements.reconnectFileButton.hidden = !needsPermission;
-    elements.workLocallyButton.hidden = !needsPermission;
+    model.fileNeedsPermission = needsPermission;
     updateFileStatus();
-    if (!needsPermission && elements.notice.dataset.kind === 'file-connection') {
+    if (!needsPermission && model.notice.kind === 'file-connection') {
       if (model.savedProjectIssue) actions.showNotice(model.savedProjectIssue);
-      else elements.notice.hidden = true;
+      else actions.hideNotice();
     }
     if (handle && (connected || canRead) && typeof FileSystemObserver === 'function') {
       const observer = new FileSystemObserver(() => checkExternalFile());
@@ -70,7 +48,7 @@ export function createFileSync({ model, elements, actions, events }) {
     }
     if (wasLocked && !model.fileLocked) {
       if (model.savedProjectIssue) actions.showNotice(model.savedProjectIssue);
-      else elements.notice.hidden = true;
+      else actions.hideNotice();
       actions.render();
     }
     if (remember) return rememberFileConnection();
@@ -137,15 +115,14 @@ export function createFileSync({ model, elements, actions, events }) {
   }
   function showFileUpdate(message) {
     actions.showNotice(message);
-    elements.notice.classList.add('file-update');
-    elements.reloadFileButton.hidden = !model.fileConflict;
-    elements.saveOursButton.hidden = model.filePendingStamp === null;
+    model.notice.fileUpdate = true;
+    actions.publishPresentation();
   }
   function clearFileUpdate() {
-    elements.fileChangeActions.hidden = true;
-    if (!elements.notice.classList.contains('file-update')) return;
+    actions.hideFileActions();
+    if (!model.notice.fileUpdate) return;
     if (model.savedProjectIssue) actions.showNotice(model.savedProjectIssue);
-    else elements.notice.hidden = true;
+    else actions.hideNotice();
   }
   function pauseFileEditing() {
     if (model.placement) actions.finishPlacement(false);
@@ -169,21 +146,21 @@ export function createFileSync({ model, elements, actions, events }) {
   async function loadExternalFile(replace) {
     const handle = model.projectFileHandle;
     const revision = model.fileConnectionRevision;
-    if (!handle || model.fileWriting || elements.saveProjectDialog.open) return false;
+    if (!handle || model.fileWriting || (model.dialog === 'save')) return false;
     let loading = false;
     try {
-      if (!elements.reconnectFileButton.hidden && await handle.queryPermission({ mode: 'read' }) !== 'granted') return false;
+      if (model.fileNeedsPermission && await handle.queryPermission({ mode: 'read' }) !== 'granted') return false;
       if (revision !== model.fileConnectionRevision) return false;
       const file = await handle.getFile();
       if (revision !== model.fileConnectionRevision) return false;
-      if (elements.saveProjectDialog.open) return false;
+      if ((model.dialog === 'save')) return false;
       if (!replace && model.fileStamp === file.lastModified) return false;
       pauseFileEditing();
       loading = true;
       actions.render();
       const loaded = JSON.parse(await file.text());
       if (revision !== model.fileConnectionRevision) return false;
-      if (elements.saveProjectDialog.open) return false;
+      if ((model.dialog === 'save')) return false;
       if (!actions.validProject(loaded)) throw Error('The file is not a supported Mockout project.');
       // Older connections have no timestamp yet. Recognise an unchanged exported board.
       if (!replace && model.fileStamp === null && JSON.stringify(MockoutProject.forExport(loaded)) === JSON.stringify(MockoutProject.forExport(model.project))) {
@@ -252,25 +229,21 @@ export function createFileSync({ model, elements, actions, events }) {
       if (actions.modalOpen()) return;
       actions.closeProjectMenu();
       clearTimeout(model.fileSaveTimer);
-      elements.saveDialogError.hidden = true;
-      elements.saveOnceButton.disabled = false;
-      elements.saveConnectedButton.disabled = !window.showSaveFilePicker;
-      elements.closeSaveButton.disabled = false;
-      document.querySelector('#save-project-unavailable').hidden = Boolean(window.showSaveFilePicker);
-      elements.saveProjectDialog.showModal();
+      model.saveDialogError = '';
+      actions.openDialog('save');
       elements.saveOnceButton.focus();
       return;
     }
     const choosing = connect !== null;
-    if (choosing && !elements.saveProjectDialog.open) return;
-    if (automatic && (elements.saveProjectDialog.open || !model.projectFileHandle || model.fileSaveError || model.savedProjectIssue
-      || !elements.reconnectFileButton.hidden || model.gesture || model.styleBefore !== null || model.placement || model.textEditor || actions.snapshot() === model.fileBaseline)) return;
+    if (choosing && !(model.dialog === 'save')) return;
+    if (automatic && ((model.dialog === 'save') || !model.projectFileHandle || model.fileSaveError || model.savedProjectIssue
+      || model.fileNeedsPermission || model.gesture || model.styleBefore !== null || model.placement || model.textEditor || actions.snapshot() === model.fileBaseline)) return;
     clearTimeout(model.fileSaveTimer);
     if (!automatic && !choosing) clearFileSaveError();
     model.fileSaving = true;
     if (choosing) {
-      elements.saveDialogError.hidden = true;
-      elements.saveOnceButton.disabled = elements.saveConnectedButton.disabled = elements.closeSaveButton.disabled = true;
+      model.saveDialogError = '';
+      actions.publishPresentation();
     }
     updateFileStatus();
     const revision = model.fileConnectionRevision;
@@ -280,7 +253,7 @@ export function createFileSync({ model, elements, actions, events }) {
         downloadProject();
         if (choosing) {
           await setProjectFileHandle(null);
-          elements.saveProjectDialog.close();
+          actions.closeDialog();
         }
         return;
       }
@@ -289,9 +262,9 @@ export function createFileSync({ model, elements, actions, events }) {
         types: [{ description: 'Mockout project', accept: { 'application/json': ['.json'] } }],
       });
       if (revision !== model.fileConnectionRevision) return;
-      if (choosing && !elements.saveProjectDialog.open) return;
+      if (choosing && !(model.dialog === 'save')) return;
       if (handle === model.projectFileHandle && !asNew) {
-        if (!elements.reconnectFileButton.hidden) { actions.showNotice('Reconnect the file before saving.', 'file-connection'); return; }
+        if (model.fileNeedsPermission) { actions.showNotice('Reconnect the file before saving.', 'file-connection'); return; }
         if (automatic && await handle.queryPermission({ mode: 'readwrite' }) !== 'granted') {
           if (revision === model.fileConnectionRevision) setProjectFileHandle(handle, { remember: false, needsPermission: true, canRead: true });
           return;
@@ -313,14 +286,14 @@ export function createFileSync({ model, elements, actions, events }) {
       const file = await handle.getFile();
       if (revision === model.fileConnectionRevision) {
         await setProjectFileHandle(connect === false ? null : handle, { file, baseline: savedState });
-        if (choosing) elements.saveProjectDialog.close();
+        if (choosing) actions.closeDialog();
       }
     } catch (error) {
       if (revision !== model.fileConnectionRevision) return;
       if (choosing) {
         if (error.name !== 'AbortError') {
-          elements.saveDialogError.textContent = `Could not save project: ${error.message}`;
-          elements.saveDialogError.hidden = false;
+          model.saveDialogError = `Could not save project: ${error.message}`;
+          actions.publishPresentation();
         }
       } else if (error.name === 'NotAllowedError' && model.projectFileHandle) {
         setProjectFileHandle(model.projectFileHandle, { remember: false, needsPermission: true });
@@ -331,9 +304,8 @@ export function createFileSync({ model, elements, actions, events }) {
     } finally {
       model.fileWriting = false;
       model.fileSaving = false;
-      if (choosing && elements.saveProjectDialog.open) {
-        elements.saveOnceButton.disabled = elements.closeSaveButton.disabled = false;
-        elements.saveConnectedButton.disabled = !window.showSaveFilePicker;
+      if (choosing && (model.dialog === 'save')) {
+        actions.publishPresentation();
         (connect ? elements.saveConnectedButton : elements.saveOnceButton).focus();
       }
       checkExternalFile();
@@ -360,25 +332,22 @@ export function createFileSync({ model, elements, actions, events }) {
       const loaded = JSON.parse(await file.text());
       if (!actions.validProject(loaded)) throw new Error('This is not a Mockout project.');
       model.pendingProject = { file, handle, loaded };
-      document.querySelector('#open-project-name').textContent = file.name;
-      document.querySelector('#open-project-unavailable').hidden = Boolean(handle);
-      elements.openLocalCopyButton.disabled = false;
-      elements.openConnectedFileButton.disabled = !handle;
       actions.closeProjectMenu();
-      elements.openProjectDialog.showModal();
+      actions.openDialog('open');
       elements.openLocalCopyButton.focus();
     } catch (error) {
       actions.showNotice(`Could not open project: ${error.message}`);
     } finally {
       model.fileOpenBusy = false;
+      actions.publishPresentation();
+      if (model.dialog === 'open') elements.openLocalCopyButton.focus();
     }
   }
   async function finishOpeningProject(connect) {
     const pending = model.pendingProject;
     if (!pending || model.fileOpenBusy) return;
     model.fileOpenBusy = true;
-    elements.openLocalCopyButton.disabled = true;
-    elements.openConnectedFileButton.disabled = true;
+    actions.publishPresentation();
     try {
       let connected = false;
       if (connect && pending.handle) {
@@ -388,10 +357,10 @@ export function createFileSync({ model, elements, actions, events }) {
           if (error.name !== 'SecurityError' && error.name !== 'NotAllowedError') throw error;
         }
       }
-      if (model.pendingProject !== pending || !elements.openProjectDialog.open) return;
+      if (model.pendingProject !== pending || !(model.dialog === 'open')) return;
       actions.change(() => { model.project = pending.loaded; actions.selectOnly(null); model.inspectorOpen = false; actions.focusProject(model.project.boxes); });
       if (model.savedProjectIssue) actions.showNotice(model.savedProjectIssue);
-      else elements.notice.hidden = true;
+      else actions.hideNotice();
       await setProjectFileHandle(connected ? pending.handle : null, { file: pending.file });
       model.undoStack.length = 0;
       model.redoStack.length = 0;
@@ -401,7 +370,7 @@ export function createFileSync({ model, elements, actions, events }) {
     } finally {
       model.pendingProject = null;
       model.fileOpenBusy = false;
-      elements.openProjectDialog.close();
+      actions.closeDialog();
     }
   }
 
@@ -413,17 +382,6 @@ export function createFileSync({ model, elements, actions, events }) {
       chooseProjectFile, openProjectFile, finishOpeningProject,
     },
     init() {
-      events.on(elements.reconnectFileButton, 'click', () => {
-        if (model.projectFileHandle) checkFileConnection(model.projectFileHandle, model.fileConnectionRevision, true);
-      });
-      events.on(elements.workLocallyButton, 'click', () => {
-        setProjectFileHandle(null);
-        elements.workspace.focus();
-      });
-      events.on(elements.reloadFileButton, 'click', () => checkExternalFile(true));
-      events.on(elements.saveOursButton, 'click', () => {
-        if (model.fileConflict && model.filePendingStamp !== null) saveProject(false, model.filePendingStamp);
-      });
       events.on(window, 'focus', () => checkExternalFile());
       events.on(document, 'visibilitychange', () => { if (!document.hidden) checkExternalFile(); });
       events.interval(async () => {
@@ -432,28 +390,6 @@ export function createFileSync({ model, elements, actions, events }) {
         try { await checkExternalFile(); }
         finally { model.filePolling = false; }
       }, 1000);
-      events.on(elements.saveOnceButton, 'click', () => saveProject(true, null, false, false));
-      events.on(elements.saveConnectedButton, 'click', () => saveProject(true, null, false, true));
-      events.on(elements.closeSaveButton, 'click', () => elements.saveProjectDialog.close());
-      events.on(elements.saveProjectDialog, 'cancel', event => { if (model.fileSaving) event.preventDefault(); });
-      events.on(elements.saveProjectDialog, 'close', () => {
-        elements.workspace.focus();
-        checkExternalFile();
-        queueFileSave();
-      });
-      events.on(elements.openLocalCopyButton, 'click', () => finishOpeningProject(false));
-      events.on(elements.openConnectedFileButton, 'click', () => finishOpeningProject(true));
-      events.on(document.querySelector('#close-open-project'), 'click', () => elements.openProjectDialog.close());
-      events.on(elements.openProjectDialog, 'close', () => {
-        model.pendingProject = null;
-        elements.workspace.focus();
-      });
-      events.on(document.querySelector('#open-file'), 'change', async event => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-        await openProjectFile(file);
-        event.target.value = '';
-      });
       events.on(document, 'dragover', event => {
         if (!event.dataTransfer?.types.includes('Files')) return;
         event.preventDefault();
