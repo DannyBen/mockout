@@ -1251,6 +1251,16 @@ aiDialog.addEventListener('close', () => {
   workspace.focus();
 });
 for (const dialog of modalDialogs) dialog.addEventListener('keydown', event => {
+  const direction = { ArrowDown: 1, ArrowUp: -1 }[event.key];
+  if (direction && !event.ctrlKey && !event.altKey && !event.metaKey) {
+    const options = [...dialog.querySelectorAll('button:not(.icon-button):not(:disabled)')]
+      .filter(button => button.getClientRects().length);
+    const index = options.indexOf(document.activeElement);
+    if (index < 0) return;
+    event.preventDefault();
+    options[(index + direction + options.length) % options.length].focus();
+    return;
+  }
   if (event.key !== 'Tab') return;
   const buttons = [...dialog.querySelectorAll('button:not(:disabled)')];
   const first = buttons[0], last = buttons.at(-1);
@@ -2528,14 +2538,6 @@ async function saveProject(asNew = false, overwriteStamp = null, automatic = fal
     queueFileSave();
   }
 }
-saveProjectDialog.addEventListener('keydown', event => {
-  const direction = { ArrowDown: 1, ArrowUp: -1 }[event.key];
-  if (!direction || event.ctrlKey || event.altKey || event.metaKey || !event.target.closest('.dialog-option')) return;
-  event.preventDefault();
-  const options = [...saveProjectDialog.querySelectorAll('.dialog-option:not(:disabled)')];
-  const index = options.indexOf(document.activeElement);
-  options[(index + direction + options.length) % options.length]?.focus();
-});
 saveOnceButton.addEventListener('click', () => saveProject(true, null, false, false));
 saveConnectedButton.addEventListener('click', () => saveProject(true, null, false, true));
 closeSaveButton.addEventListener('click', () => saveProjectDialog.close());
