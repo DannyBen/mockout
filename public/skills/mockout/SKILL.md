@@ -1,6 +1,6 @@
 ---
 name: mockout
-description: Create and edit Mockout mockups through a shared local JSON file, guide the user through connecting that file, and build visibly box by box. Use when the user asks to start a Mockout project or change an existing Mockout layout.
+description: Create and edit Mockout mockups through a shared local JSON file, building visibly box by box. Use when the user asks to start a Mockout project or change an existing Mockout layout.
 ---
 
 # Mockout
@@ -9,28 +9,26 @@ Collaborate with the user in [Mockout](https://mockout.sector-seven.com) by edit
 the same JSON file that their browser has open. Every element is an editable box.
 The browser saves the user's edits automatically and reloads valid external edits.
 
-## Establish the shared file
+## Use the shared file
 
 - If the user supplied a project path, use it. Otherwise ask for the path to the
   file they want to share. A browser filename alone does not give you its path.
 - You need read/write access to that exact file on the user's computer or a shared
   filesystem. An uploaded copy or a separate cloud workspace is not a live connection.
   If that access is unavailable, explain the requirement before promising live edits.
-- If they have work open in Mockout but no file yet, guide them to **Ctrl+S** or
-  **… → Save JSON**, choose a location accessible to you, and share its path.
+- For users new to this workflow, briefly explain that Mockout and the agent edit
+  the same file. If they have work open but no file yet, guide them to **Ctrl+S →
+  Save and connect**, choose a location accessible to you, and share its path.
 - If the requested path does not exist and they want a new project, create it from
   [starter.json](examples/starter.json). Ask them to open it with **… → Load JSON**
   or drag it into Mockout, choose **Open connected file**, and grant read/write
   permission. **Open a local copy** does not connect the file. Preserve existing
   files unless replacement was requested.
-- Before the first edit in a session, have the user confirm that the bottom-left
-  status shows the intended filename **without `.json`**, alongside a circled
-  check: `dialogs.json` appears as **dialogs**. **Local session** only saves in
-  the browser. **Reconnect** renews file permission; ask them to grant
-  read/write access. A download alone does not establish a file connection.
-- Reuse an already confirmed connection during the conversation. Do not repeat
-  setup for each request. On a later session, confirm it again; permission may
-  need renewing after a browser restart.
+- When the shared path is known and accessible, proceed with the requested edits.
+  Reuse the conversation's setup; do not require a connection-status confirmation
+  before editing or at the start of every session. Ask only when the intended
+  file or access is unclear, or troubleshoot when updates are reported missing.
+  A browser connection enables live updates; it is not required to prepare JSON.
 
 Read [the project format](references/project-format.md) before your first edit.
 The [JSON Schema](references/project.schema.json) describes the document structure.
@@ -53,8 +51,8 @@ file saves, without artificial delays or confirmation after every box.
 Use [email-client.json](examples/email-client.json) for an interface with Material
 icon boxes and a Google font. For a richer layout, consult
 [welcome.json](examples/welcome.json): it contains Material icons, typography, panels
-with contained elements, and paired light/dark colors. It is the same Welcome
-project shipped with Mockout and is included in this skill for local use.
+with contained elements, and OKLCH palettes with light/dark recipes. It is the
+same Welcome project shipped with Mockout and is included in this skill for local use.
 Consult it when those features are relevant; do not
 paste a completed example over the user's work. For a new project, start with
 the small starter and build the requested design box by box.
@@ -82,9 +80,18 @@ This is a best-effort timestamp check, not a cross-process lock. If Mockout show
 and let the user choose **Reload file** (use the disk version) or **Save ours**
 (use the browser canvas), then reread the chosen result before continuing.
 For **Save failed** or **File error**, resolve the reported problem first.
-Do not claim that a browser is connected or a change is visible unless you can
-observe it or the user confirms it. If an external edit has not appeared, ask the
-user to return to the Mockout tab; browsers without file observation check on focus.
+Report file edits as file edits; describe them as visible in the user's browser
+only when observed or reported by the user.
+
+### If updates do not appear
+
+Use connection checks as troubleshooting, not a routine checkpoint. Ask what the
+bottom-left status shows: the intended filename without `.json` and a circled
+check indicate a connection. **Local session** means the browser is working on a
+local copy; reopen the shared file with **Open connected file**. **Reconnect**
+renews read/write permission, which may be needed after a browser restart.
+If the file is connected, have the user return to the Mockout tab to prompt a
+fresh check, then investigate file timestamps or errors if updates are still missing.
 
 ## Inspect the result when supported
 
@@ -110,9 +117,20 @@ the result has not been visually inspected; do not claim a rendered check.
 - Default new mockups to a 5px grid. Align box coordinates and dimensions to that
   grid. When extending an existing project, respect its chosen grid and geometry;
   do not rescale existing work to impose the default. `grid: 0` disables snapping.
-- Use a small palette with role names such as **Surface**, **Text**, **Border**,
-  **Button**, and **Accent 1**. Reuse swatches and provide readable light/dark pairs.
-  Swatch names are user-owned labels; box colors refer to swatch IDs.
+- Start new projects with named **Background** and **Accent** palettes, as in the
+  starter. Choose a base color and L/C/H steps to generate `3`, `6`, or `9` colors;
+  reuse those slots across surfaces, text, borders, and controls. Box color fields
+  still reference swatch IDs, not hex values. See
+  [palette recipes](references/project-format.md#palette-recipes) for the format.
+- Author the light recipe first. Set `dark.mode` explicitly: **Inverse** reverses
+  lightness, **Same** keeps the light colors, and **Custom** provides an independent
+  dark recipe. Inverse suits many neutral ramps; choose Same or Custom when an
+  accent or a surface should behave differently. For a small theme variation,
+  copy the light recipe into Custom and adjust it; the two recipes are independent.
+  Check contrast in both themes.
+- Preserve palette IDs and slot order when editing. Update the generated light
+  and dark fallback hexes along with the recipe. Preserve existing standalone
+  swatches in older projects; opening a project is not a request to convert it.
 - For icons, follow the [Unicode and Material examples](references/project-format.md#icons).
   Unicode uses a normal font and the literal symbol; Material uses an icon font
   and a ligature name. Keep normal text labels in separate boxes from Material icons.

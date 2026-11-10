@@ -13,7 +13,7 @@ existing document before editing it; never substitute an example for live work.
 | `gridBase` | Optional smallest grid size, a whole number from `2` to `100` pixels; omitted means `5`. |
 | `gridDivisions` | Optional number of active grid cells between major lines, a whole number from `2` to `100`; omitted means `10`. |
 | `nextId` | Next available integer used by the editor to allocate box IDs and new swatch IDs of the form `sN`. Advance it when allocating IDs. |
-| `swatches` | Named color roles with a light color and optional dark behavior. |
+| `swatches` | Color slots referenced by boxes; palette slots include generated light/dark fallbacks. |
 | `palettes` | Optional named OKLCH recipes and their ordered swatch IDs. |
 | `boxes` | Flat array of elements, ordered from back to front. |
 | `canvasColors` | Required light colors for `background`, `gridMajor`, and `gridMinor`. |
@@ -106,71 +106,85 @@ Each box applies one font size and weight to all its text. Use separate boxes fo
 a heading and a smaller subtitle. Estimates depend on the font and line wrapping;
 leave room when rendering is unavailable and inspect the actual layout when you can.
 
-## Swatches and dual colors
+## Colors and palettes
 
-A swatch has `id`, `name`, and `color`; light colors use six-digit `#RRGGBB`.
-Optional `mode` (`hsb`, `rgb`, or `gray`) controls the picker, not rendering.
-All three box color references resolve through the same swatch list.
+For new mockups, use palette recipes to generate a coordinated set of colors
+from a base and steps. Boxes reference the resulting swatch IDs through `fill`,
+`textColor`, `borderColor`, or `borderColors`; `null` means transparent. Do not
+put hex colors directly on boxes or duplicate boxes for different themes.
 
-Example role swatch:
-
-```json
-{
-  "id": "surface",
-  "name": "Surface",
-  "color": "#ffffff",
-  "mode": "gray",
-  "dark": { "mode": "custom", "color": "#202735", "colorMode": "hsb" }
-}
-```
-
-`dark` is optional on a swatch. The same dark object can be assigned to each
-property in `canvasDark`:
-
-| Dark behavior | Object |
-| --- | --- |
-| Invert, the default when omitted | `{ "mode": "invert" }` |
-| Use the light color unchanged | `{ "mode": "same" }` |
-| Explicit dark color | `{ "mode": "custom", "color": "#202735" }` |
-
-For `invert` and `same`, an unused `color` may be omitted or `null`; the editor
-can save either representation. `custom` requires a six-digit hex color.
-Optional `colorMode` is a picker mode: `hsb`, `rgb`, or `gray`.
-These colors belong in `swatches` or canvas settings, not directly on boxes.
-Do not duplicate light/dark boxes or create separate light/dark layouts.
-
-### Formula palettes
+### Palette recipes
 
 The optional `palettes` array contains named recipes. Each has a stable string
 `id`, a `name`, a `count` of `3`, `6`, or `9`, a `base` OKLCH object, a `step`
 object, and an ordered `colors` array of swatch IDs with exactly `count` entries.
 
-Example: `{ "id": "p4", "name": "Surface", "count": 3,
-"base": { "l": 65, "c": 0.14, "h": 250 },
-"step": { "l": -8, "c": 0, "h": 10 }, "colors": ["s5", "s6", "s7"] }`.
+```json
+{
+  "id": "palette-background",
+  "name": "Background",
+  "count": 3,
+  "base": { "l": 92, "c": 0.015, "h": 250 },
+  "step": { "l": -35, "c": 0, "h": 0 },
+  "colors": ["surface", "border", "ink"],
+  "dark": { "mode": "inverse" }
+}
+```
 
 Slot zero is the base. Slot `i` uses `base + i × step` on all three coordinates.
 Base lightness is `0–100`, chroma `0–0.4`, and hue `0–360`. Steps are signed,
 bounded by `±100`, `±0.4`, and `±360` respectively. Rendering wraps hue and maps
-the displayed color into sRGB without changing the saved recipe.
+the displayed color into sRGB without changing the saved recipe. Chroma uses
+standard OKLCH units, not percentages. The editor accepts three- or six-digit
+hex input for a base color, but JSON fallback colors must use six digits.
 
-An optional `dark` object has `mode` (`inverse`, `same`, or `custom`). New palettes
-default to `{ "mode": "inverse" }`. Inverse reverses OKLCH lightness: dark base
+An optional `dark` object has `mode` (`inverse`, `same`, or `custom`). The editor
+defaults new palettes to `{ "mode": "inverse" }`; set it explicitly when authoring
+JSON. Inverse reverses OKLCH lightness: dark base
 `l = 100 - light base l`, dark step `l = -light step l`; chroma and hue are unchanged.
 Same uses the light recipe. Custom requires its own `base` and `step`.
 The other modes may retain a paired `base` and `step` as an inactive custom recipe
 for later editing. All modes share the palette's name, count, and ordered color IDs.
 Existing palettes without a dark object keep their per-swatch theme behavior.
 
-Every slot has a swatch entry with its current light fallback `color` hex. Inverse
-and Custom palettes also store the generated dark fallback in the swatch's
-`dark: { "mode": "custom", "color": "#rrggbb", "colorMode": "rgb" }`.
+Every slot has a swatch entry with a stable `id`, a name such as `Background 1`,
+and its current light fallback `color` hex. Use `mode: "rgb"` for these generated
+fallbacks. Inverse and Custom palettes also store the generated dark fallback in
+the swatch's `dark: { "mode": "custom", "color": "#rrggbb", "colorMode": "rgb" }`.
 Explicit Same uses `dark: { "mode": "same" }`. Without a palette-level dark
 recipe, preserve any existing per-swatch dark settings.
 Boxes continue to reference swatch IDs. Preserve
 slot IDs and order when editing a recipe; update the fallback hexes too. A swatch
 can belong to only one palette. Never remove a slot referenced by a box, a border
-side, the last drawing style, or another color.
+side, the last drawing style, or another color. If the Mockout source is available
+locally, `public/colors.js` exports `savePalette(state, draft)` to generate or
+update the palette slots and fallbacks together.
+
+Start with a neutral Background lightness ramp and an Accent palette. A hue step
+can generate contrasting accents; a small lightness step can generate shades of
+one accent instead. Choose the recipe to suit the design. Use explicit Inverse
+for a reversed light/dark ramp, Same for colors that should stay fixed, or Custom
+for different dark-theme accents. The starter and email example demonstrate
+Inverse backgrounds and brighter Custom accents; Welcome also demonstrates a
+Special palette for a hero that stays dark in both themes.
+
+### Standalone swatches and canvas colors
+
+A standalone swatch has `id`, `name`, and a six-digit `color` hex, plus an optional
+picker `mode` (`hsb`, `rgb`, or `gray`). Its optional `dark` object uses the older
+per-color behavior below. Canvas colors are direct hex values in `canvasColors`,
+with optional behavior for each property in `canvasDark` using the same objects:
+
+| Dark behavior | Object |
+| --- | --- |
+| RGB inversion, the default when omitted | `{ "mode": "invert" }` |
+| Use the light color unchanged | `{ "mode": "same" }` |
+| Explicit dark color | `{ "mode": "custom", "color": "#202735" }` |
+
+Per-color `invert` is RGB inversion; palette `inverse` is OKLCH lightness reversal.
+For per-color `invert` and `same`, an unused `color` may be omitted or `null`;
+the editor can save either representation. `custom` requires a six-digit hex.
+Optional `colorMode` is a picker mode: `hsb`, `rgb`, or `gray`.
 
 Projects without palettes remain usable through their existing swatches; opening
 them does not convert or rewrite their colors. Earlier pilot swatches with optional

@@ -5,57 +5,134 @@
   "swatches": [
     {
       "id": "surface",
-      "name": "Surface",
-      "color": "#ffffff",
-      "mode": "gray",
+      "name": "Background 1",
+      "color": "#ebf3fc",
+      "mode": "rgb",
       "dark": {
         "mode": "custom",
-        "color": "#202735",
-        "colorMode": "gray"
+        "color": "#000001",
+        "colorMode": "rgb"
       }
     },
     {
       "id": "ink",
-      "name": "Text",
-      "color": "#253047",
-      "mode": "gray",
+      "name": "Background 6",
+      "color": "#13191f",
+      "mode": "rgb",
       "dark": {
         "mode": "custom",
-        "color": "#e6eaf3",
-        "colorMode": "gray"
+        "color": "#b4bbc4",
+        "colorMode": "rgb"
       }
     },
     {
       "id": "border",
-      "name": "Border",
-      "color": "#cbd1de",
-      "mode": "gray",
+      "name": "Background 3",
+      "color": "#8c939b",
+      "mode": "rgb",
       "dark": {
         "mode": "custom",
-        "color": "#536078",
-        "colorMode": "gray"
+        "color": "#323940",
+        "colorMode": "rgb"
       }
     },
     {
       "id": "accent",
-      "name": "Button",
-      "color": "#6746b7",
-      "mode": "hsb",
+      "name": "Accent 1",
+      "color": "#6c4ab3",
+      "mode": "rgb",
       "dark": {
         "mode": "custom",
-        "color": "#b9a1ff",
-        "colorMode": "hsb"
+        "color": "#b59bfd",
+        "colorMode": "rgb"
       }
     },
     {
       "id": "muted",
-      "name": "Muted text",
-      "color": "#626d82",
-      "mode": "gray",
+      "name": "Background 5",
+      "color": "#373e45",
+      "mode": "rgb",
       "dark": {
         "mode": "custom",
-        "color": "#aeb9cb",
-        "colorMode": "gray"
+        "color": "#868d95",
+        "colorMode": "rgb"
+      }
+    },
+    {
+      "id": "background-tint",
+      "name": "Background 2",
+      "color": "#bac2ca",
+      "mode": "rgb",
+      "dark": {
+        "mode": "custom",
+        "color": "#0f141a",
+        "colorMode": "rgb"
+      }
+    },
+    {
+      "id": "background-shade",
+      "name": "Background 4",
+      "color": "#60676f",
+      "mode": "rgb",
+      "dark": {
+        "mode": "custom",
+        "color": "#5a6169",
+        "colorMode": "rgb"
+      }
+    },
+    {
+      "id": "accent-2",
+      "name": "Accent 2",
+      "color": "#a43068",
+      "mode": "rgb",
+      "dark": {
+        "mode": "custom",
+        "color": "#f286b2",
+        "colorMode": "rgb"
+      }
+    },
+    {
+      "id": "accent-3",
+      "name": "Accent 3",
+      "color": "#974c00",
+      "mode": "rgb",
+      "dark": {
+        "mode": "custom",
+        "color": "#f1944f",
+        "colorMode": "rgb"
+      }
+    },
+    {
+      "id": "accent-4",
+      "name": "Accent 4",
+      "color": "#626a00",
+      "mode": "rgb",
+      "dark": {
+        "mode": "custom",
+        "color": "#abb843",
+        "colorMode": "rgb"
+      }
+    },
+    {
+      "id": "accent-5",
+      "name": "Accent 5",
+      "color": "#007460",
+      "mode": "rgb",
+      "dark": {
+        "mode": "custom",
+        "color": "#0dcaa9",
+        "colorMode": "rgb"
+      }
+    },
+    {
+      "id": "accent-6",
+      "name": "Accent 6",
+      "color": "#006c97",
+      "mode": "rgb",
+      "dark": {
+        "mode": "custom",
+        "color": "#3cbbf9",
+        "colorMode": "rgb"
       }
     }
   ],
@@ -101,5 +178,69 @@
       "color": "#20293b",
       "colorMode": "gray"
     }
-  }
+  },
+  "palettes": [
+    {
+      "id": "palette-background",
+      "name": "Background",
+      "count": 6,
+      "base": {
+        "l": 96,
+        "c": 0.015,
+        "h": 250
+      },
+      "step": {
+        "l": -15,
+        "c": 0,
+        "h": 0
+      },
+      "colors": [
+        "surface",
+        "background-tint",
+        "border",
+        "background-shade",
+        "muted",
+        "ink"
+      ],
+      "dark": {
+        "mode": "inverse"
+      }
+    },
+    {
+      "id": "palette-accent",
+      "name": "Accent",
+      "count": 6,
+      "base": {
+        "l": 50,
+        "c": 0.16,
+        "h": 295
+      },
+      "step": {
+        "l": 0,
+        "c": 0,
+        "h": 60
+      },
+      "colors": [
+        "accent",
+        "accent-2",
+        "accent-3",
+        "accent-4",
+        "accent-5",
+        "accent-6"
+      ],
+      "dark": {
+        "mode": "custom",
+        "base": {
+          "l": 75,
+          "c": 0.14,
+          "h": 295
+        },
+        "step": {
+          "l": 0,
+          "c": 0,
+          "h": 60
+        }
+      }
+    }
+  ]
 }

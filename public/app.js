@@ -1234,8 +1234,8 @@ helpButton.addEventListener('click', toggleHelp);
 document.querySelector('#close-help').addEventListener('click', toggleHelp);
 
 const aiPrompts = {
-  install: 'Install or update the Mockout skill from https://github.com/DannyBen/mockout/tree/master/public/skills/mockout. Then help me connect a shared project file so we can create or edit a mockup together.',
-  quick: 'Read and follow https://mockout.sector-seven.com/skills/mockout/SKILL.md for this conversation. Then help me connect a shared project file so we can create or edit a mockup together.',
+  install: 'Install or update the Mockout skill from https://github.com/DannyBen/mockout/tree/master/public/skills/mockout. Then help me create or edit a mockup through a shared project file.',
+  quick: 'Read and follow https://mockout.sector-seven.com/skills/mockout/SKILL.md for this conversation. Then help me create or edit a mockup through a shared project file.',
 };
 let aiCopyTimer = null;
 document.querySelector('#ai-button').addEventListener('click', () => {
