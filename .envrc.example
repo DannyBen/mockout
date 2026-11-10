@@ -1,2 +1,4 @@
 export CHANGELOG_COMMIT_URL=https://github.com/dannyben/mockout/commit/%h
 export CHANGELOG_COMPARE_URL=https://github.com/dannyben/mockout/compare/%s
+# Set the secret hook URL only in the ignored .envrc file.
+export MOCKOUT_DEPLOY_HOOK=""
