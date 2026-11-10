@@ -101,6 +101,8 @@ For example, two lines at 20px need 54px for text. With 10px vertical padding an
 a 1px border, they need 76px total: use at least 80px on a 5px grid. A transparent
 border still occupies space when `borderWidth` is nonzero. Available text width
 also excludes horizontal padding and borders, so allow for additional wrapping.
+The fill stops at the inside edge of the border. A transparent border reveals
+what is underneath while keeping its width and the box's selection area.
 
 Each box applies one font size and weight to all its text. Use separate boxes for
 a heading and a smaller subtitle. Estimates depend on the font and line wrapping;
