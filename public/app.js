@@ -1953,7 +1953,9 @@ document.addEventListener('keydown', event => {
     if (ctrl || event.code === 'Space' || event.key === 'Tab' || event.key.length === 1) event.preventDefault();
     return;
   }
-  if (event.altKey && !ctrl && !event.shiftKey && /^[1-4]$/.test(digit || '') && !textEditor && selectedIds.size) {
+  const focus = document.activeElement;
+  if (!event.altKey && !ctrl && !event.shiftKey && /^[1-4]$/.test(digit || '') && !textEditor && selectedIds.size
+    && !focus.isContentEditable && !/INPUT|SELECT|TEXTAREA/.test(focus.tagName)) {
     event.preventDefault();
     activePropertySection = propertySections[Number(digit) - 1].id;
     if (inspectorOpen && inspectorKind === 'box') {
@@ -2010,7 +2012,6 @@ document.addEventListener('keydown', event => {
     selectStyleTarget(targets[(index + (event.key === 'ArrowRight' ? 1 : targets.length - 1)) % targets.length]);
     return;
   }
-  const focus = document.activeElement;
   if (!ctrl && !event.altKey && !event.shiftKey && ['KeyO', 'KeyP'].includes(event.code) && selectedIds.size
     && !textEditor && !focus.isContentEditable && !/INPUT|SELECT|TEXTAREA/.test(focus.tagName)
     && (!inspector.contains(focus) || inspectorView === 'sections')) {
@@ -2060,7 +2061,7 @@ document.addEventListener('keydown', event => {
     zoomAt(zoomOutKey ? 1 / 1.2 : 1.2, workspace.clientWidth / 2, workspace.clientHeight / 2);
     return;
   }
-  if (!ctrl && !event.altKey && !event.shiftKey && /^[1-5]$/.test(digit || '')) {
+  if (!ctrl && event.altKey && !event.shiftKey && /^[1-5]$/.test(digit || '')) {
     change(() => { state.grid = MockoutProject.gridSizes(state)[Number(digit) - 1]; });
     return;
   }
