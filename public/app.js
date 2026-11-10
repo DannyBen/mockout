@@ -1431,6 +1431,20 @@ document.addEventListener('pointermove', event => {
   pointerPosition = { x: event.clientX, y: event.clientY };
 });
 
+function startCanvasPan(event) {
+  gesture = { kind: 'pan', startX: event.clientX, startY: event.clientY, x: view.x, y: view.y };
+  workspace.setPointerCapture(event.pointerId);
+  render();
+  event.preventDefault();
+}
+
+inspector.addEventListener('pointerdown', event => {
+  if (gesture || placement || textEditor) return;
+  if (event.button !== 1 && !(event.button === 0 && spaceDown)) return;
+  event.stopPropagation();
+  startCanvasPan(event);
+}, { capture: true });
+
 workspace.addEventListener('pointerdown', event => {
   if (fileLocked && event.button !== 1 && !spaceDown) { event.preventDefault(); return; }
   if (inspector.contains(document.activeElement)) document.activeElement.blur();
@@ -1447,7 +1461,8 @@ workspace.addEventListener('pointerdown', event => {
   const p = point(event);
   const boxId = boxElement ? Number(boxElement.dataset.id) : handle ? selectedId : null;
   if (event.button === 1 || spaceDown) {
-    gesture = { kind: 'pan', startX: event.clientX, startY: event.clientY, x: view.x, y: view.y };
+    startCanvasPan(event);
+    return;
   } else if (boxId && !handle && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey && lastBoxClick?.id === boxId
     && event.timeStamp - lastBoxClick.time < 450
     && Math.hypot(p.x - lastBoxClick.x, p.y - lastBoxClick.y) < 7 / view.zoom) {
@@ -2021,6 +2036,12 @@ document.addEventListener('keydown', event => {
     else { activePropertySection = section; tool = 'select'; openInspector(selectedId, false); }
     return;
   }
+  if (event.code === 'Space' && !ctrl && !event.altKey && !textEditor
+    && !focus.isContentEditable && !/INPUT|SELECT|TEXTAREA/.test(focus.tagName)) {
+    event.preventDefault();
+    if (!spaceDown) { spaceDown = true; render(); }
+    return;
+  }
   if (inspector.contains(document.activeElement) || textEditor
     || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
   if (!ctrl && !event.altKey && !event.shiftKey && event.code === 'KeyT') {
@@ -2047,11 +2068,6 @@ document.addEventListener('keydown', event => {
   if (event.code === 'Slash' && event.shiftKey && !ctrl && !event.altKey) {
     event.preventDefault();
     if (!event.repeat) toggleHelp();
-    return;
-  }
-  if (event.code === 'Space' && !ctrl && !event.altKey) {
-    event.preventDefault();
-    if (!spaceDown) { spaceDown = true; render(); }
     return;
   }
   if (ctrl && event.code === 'KeyZ') { event.preventDefault(); event.shiftKey ? redo() : undo(); return; }
