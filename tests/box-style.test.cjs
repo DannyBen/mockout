@@ -21,7 +21,7 @@ test('editing one edge or corner preserves other values; a uniform edit clears t
   style.set(value, 'borderColor', null, 1);
   style.set(value, 'radius', 15, 0);
   assert.deepEqual(value.borderWidths, [1, 1, 1, 10000]);
-  assert.deepEqual(value.borderColors, ['s3', null, 's3', 's3']);
+  assert.deepEqual(value.borderColors, [value.borderColor, null, value.borderColor, value.borderColor]);
   assert.deepEqual(value.cornerRadii, [15, 0, 0, 0]);
   assert.equal(style.value(value, 'borderWidth'), undefined);
   const remembered = { ...value, ...style.copy(value) };
@@ -31,7 +31,7 @@ test('editing one edge or corner preserves other values; a uniform edit clears t
   assert.equal(value.borderWidths, undefined);
   assert.equal(style.value(value, 'borderWidth'), 3);
   assert.deepEqual(value.cornerRadii, [15, 0, 0, 0]);
-  assert.deepEqual(value.borderColors, ['s3', null, 's3', 's3']);
+  assert.deepEqual(value.borderColors, [value.borderColor, null, value.borderColor, value.borderColor]);
 });
 
 test('a thick single side can fill a box; opposing borders fit within its stored dimensions', () => {
@@ -70,7 +70,7 @@ test('advanced border values save and reload in version 1 and reject invalid val
 });
 
 test('per-edge swatches count as used colors and replacements preserve unrelated sides', () => {
-  const value = { ...box(), borderColors: ['s2', null, 's3', 's2'] };
+  const value = { ...box(), textColor: 's2', borderColors: ['s2', null, 's3', 's2'] };
   assert.equal(style.usesColor(value, 's2'), true);
   assert.equal(style.usesColor(value, 'missing'), false);
   style.replaceColor(value, 's2', 's1');

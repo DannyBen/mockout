@@ -1,6 +1,7 @@
 const MockoutProject = (() => {
   const fonts = typeof module !== 'undefined' ? require('./fonts.js') : MockoutFonts;
   const boxStyle = typeof module !== 'undefined' ? require('./box-style.js') : MockoutBoxStyle;
+  const colors = typeof module !== 'undefined' ? require('./colors.js') : MockoutColors;
   const defaultCanvasColors = { background: '#ffffff', gridMajor: '#d0d0d0', gridMinor: '#e8e8e8' };
   const colorModeValues = ['hsb', 'rgb', 'gray'];
   const hexColor = value => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
@@ -61,17 +62,20 @@ const MockoutProject = (() => {
     },
 
     freshState() {
-      const swatches = [
-        { id: 's1', name: 'White', color: '#ffffff', mode: 'hsb' },
-        { id: 's2', name: 'Ink', color: '#253047', mode: 'hsb' },
-        { id: 's3', name: 'Line', color: '#aeb6c5', mode: 'hsb' },
-      ];
-      return {
+      const state = {
         version: 1, grid: 10, gridBase: 5, gridDivisions: 10,
-        nextId: 4, swatches, boxes: [], lastStyle: makeInitialStyle(swatches),
+        nextId: 1, swatches: [], boxes: [],
         canvasColors: { ...defaultCanvasColors },
         canvasColorModes: { background: 'gray', gridMajor: 'gray', gridMinor: 'gray' },
       };
+      colors.savePalette(state, { name: 'Background', count: 6,
+        base: { l: 96, c: .015, h: 250 }, step: { l: -8, c: 0, h: 0 } });
+      colors.savePalette(state, { name: 'Accent', count: 6,
+        base: { l: 65, c: .16, h: 25 }, step: { l: 0, c: 0, h: 60 } });
+      const backgrounds = state.palettes[0].colors;
+      state.lastStyle = { ...makeInitialStyle(state.swatches),
+        fill: backgrounds[0], textColor: backgrounds[5], borderColor: backgrounds[2] };
+      return state;
     },
 
     topLeft(boxes) {
@@ -114,6 +118,7 @@ const MockoutProject = (() => {
         && Number.isInteger(value.nextId) && Array.isArray(value.swatches) && Array.isArray(value.boxes)
         && value.swatches.every(s => typeof s.id === 'string' && typeof s.name === 'string'
           && hexColor(s.color) && (s.mode === undefined || colorModeValues.includes(s.mode)) && validDark(s.dark))
+        && colors.valid(value.swatches, value.palettes)
         && (value.lastStyle === undefined || this.validStyle(value.lastStyle, value.swatches))
         && value.canvasColors && ['background', 'gridMajor', 'gridMinor'].every(key =>
           hexColor(value.canvasColors[key]))

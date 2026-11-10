@@ -108,7 +108,7 @@ test('color editing modes are optional in older projects and validated when save
   }));
   assert.equal(project.validProject({ ...valid(), swatches: [{ ...valid().swatches[0], mode: 'other' }] }), false);
   assert.equal(project.validProject({ ...valid(), canvasColorModes: { background: 'other' } }), false);
-  assert.deepEqual(project.freshState().swatches.map(s => s.mode), ['hsb', 'hsb', 'hsb']);
+  assert.ok(project.freshState().swatches.every(s => s.mode === 'rgb'));
   assert.deepEqual(project.freshState().canvasColorModes,
     { background: 'gray', gridMajor: 'gray', gridMinor: 'gray' });
 });
@@ -216,11 +216,19 @@ test('JSON export starts at the top-left box without changing live or autosaved 
   assert.deepEqual(project.forExport({ ...live, boxes: [] }).boxes, []);
 });
 
-test('a blank project starts with the basic palette and a white canvas', () => {
+test('a blank project starts with two six-color palettes and a white canvas', () => {
   const blank = project.freshState();
   assert.equal(blank.version, 1);
   assert.deepEqual(blank.boxes, []);
-  assert.deepEqual(blank.swatches.map(s => s.name), ['White', 'Ink', 'Line']);
+  assert.deepEqual(blank.palettes.map(p => [p.name, p.count]), [['Background', 6], ['Accent', 6]]);
+  assert.equal(blank.swatches.length, 12);
+  const [backgrounds, accents] = blank.palettes;
+  assert.equal(blank.lastStyle.fill, backgrounds.colors[0]);
+  assert.equal(blank.lastStyle.textColor, backgrounds.colors[5]);
+  assert.equal(blank.lastStyle.borderColor, backgrounds.colors[2]);
+  assert.equal(backgrounds.step.l, -8);
+  assert.deepEqual(accents.step, { l: 0, c: 0, h: 60 });
+  assert.ok(project.validProject(blank));
   assert.deepEqual(blank.canvasColors,
     { background: '#ffffff', gridMajor: '#d0d0d0', gridMinor: '#e8e8e8' });
   assert.equal(blank.grid, 10);
@@ -236,5 +244,5 @@ test('Reset app removes the saved project and returns version 1 defaults', () =>
   assert.equal(after.version, 1);
   assert.equal(after.grid, 10);
   assert.deepEqual(after.boxes, []);
-  assert.equal(after.swatches.length, 3);
+  assert.equal(after.swatches.length, 12);
 });

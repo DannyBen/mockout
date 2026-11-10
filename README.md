@@ -23,7 +23,7 @@ AI assistant. The editable Welcome project shows what you can make.
 
 ## Start sketching
 
-1. Press **B** and drag to draw a box.
+1. Press **X** and drag to draw a box.
 2. Select a box and press **Enter** to edit its text.
 3. Right click a box to change its shape, colors, text, or font.
 4. Press **?** to see all keyboard and mouse controls.
@@ -39,10 +39,10 @@ edit padding on each edge. Use **Alt+←/→** to cycle through points while edi
 their values. Press **/** to open properties, and **Esc** to go back or close
 the inspector.
 
-Every box color uses a named swatch. Change a swatch once to update all boxes
-that use it. Swatches and canvas colors support light and dark appearances;
-dark colors default to Invert, with Same and Custom options. You can also choose
-fonts and Material icons in box properties.
+Start with one color and shape a whole palette with sliders. Named palette colors
+stay linked across your mockup, and light/dark variants are built in. Palettes use
+OKLCH and offer Inverse, Same, and Custom dark modes. Press **T** to switch themes.
+You can also choose fonts and Material icons in box properties.
 
 ## Work with AI
 

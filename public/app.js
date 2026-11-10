@@ -41,7 +41,6 @@ const canvasColorButtons = [...document.querySelectorAll('[data-canvas-color-pro
 const alignButtons = [...document.querySelectorAll('[data-align-axis]')];
 const inspectorPath = document.querySelector('#inspector-path');
 const inspectorNav = document.querySelector('#inspector-nav');
-const swatchChoiceTemplate = document.querySelector('#swatch-choice-template');
 const propertySections = [
   { id: 'box', label: 'Box', element: document.querySelector('#box-appearance-properties') },
   { id: 'colors', label: 'Colors', element: document.querySelector('#color-properties') },
@@ -482,6 +481,23 @@ let editorSide = 'light';
 let editorLight = { color: editorColor, mode: colorMode };
 let editorDark = { mode: 'invert', color: null, colorMode: colorMode };
 let pickerOnAccept = null;
+const boxColorPicker = MockoutColorPicker.create(document.querySelector('#box-color-picker'), {
+  state: () => state,
+  color: id => colorOf(id),
+  theme: () => activeTheme(),
+  onPreview: () => render(),
+  onLayout: () => { render(); revealInspector(); },
+  onPick: id => {
+    change(() => applyColor(id));
+    boxColorPicker.open(id);
+  },
+  onSave: draft => {
+    let id;
+    change(() => { id = MockoutColors.savePalette(state, draft); });
+    return id;
+  },
+  onDelete: id => change(() => MockoutColors.deletePalette(state, id)),
+});
 const undoStack = [];
 const redoStack = [];
 
@@ -526,9 +542,15 @@ const draftColor = () => {
     : editorDark;
   return resolvedColor(light, dark);
 };
-const colorOf = id => inspectorOpen && ['edit', 'picker'].includes(inspectorView)
-  && colorTarget?.editId && colorTarget.editId === id
-  ? draftColor() : id ? resolvedColor(swatch(id).color, swatch(id).dark) : 'transparent';
+const colorOf = id => {
+  if (!id) return 'transparent';
+  if (inspectorOpen && ['edit', 'picker'].includes(inspectorView) && colorTarget?.editId === id) return draftColor();
+  const preview = inspectorOpen && inspectorView === 'box-color' ? boxColorPicker.preview(id, activeTheme()) : null;
+  if (preview) return preview;
+  const palette = state.palettes?.find(item => item.colors.includes(id));
+  return palette?.dark ? MockoutColors.toHex(MockoutColors.paletteValue(palette, palette.colors.indexOf(id), activeTheme()))
+    : resolvedColor(MockoutColors.hexFor(state.swatches, id, state.palettes), swatch(id).dark);
+};
 function canvasColor(property) {
   if (inspectorOpen && ['edit', 'picker'].includes(inspectorView) && colorTarget?.direct
     && colorTarget.property === property) return draftColor();
@@ -745,6 +767,7 @@ function renderInspector() {
   const boxes = selectedBoxes();
   const visible = inspectorOpen && (inspectorKind === 'canvas' || box);
   inspector.hidden = !visible;
+  inspector.dataset.view = inspectorView;
   if (!visible) return;
   document.querySelector('#box-properties').hidden = inspectorView !== 'properties' || inspectorKind !== 'box';
   document.querySelector('#section-selection').hidden = inspectorView !== 'sections';
@@ -765,6 +788,7 @@ function renderInspector() {
   document.querySelector('#swatch-manager').hidden = inspectorView !== 'manage';
   document.querySelector('#color-editor').hidden = inspectorView !== 'edit';
   document.querySelector('#color-picker').hidden = inspectorView !== 'picker';
+  document.querySelector('#box-color-picker').hidden = inspectorView !== 'box-color';
   for (const section of propertySections) section.element.hidden = section.id !== activePropertySection;
   renderInspectorHeader();
   if (inspectorView === 'edit') {
@@ -853,9 +877,10 @@ function renderInspector() {
     const canvasProperty = button.dataset.canvasColorProperty;
     const displayed = canvasColor(canvasProperty);
     button.setAttribute('aria-label', `${colorLabel(canvasProperty)}: ${displayed.toUpperCase()}`);
-    button.replaceChildren(colorChip(displayed), document.createTextNode(colorLabel(canvasProperty)));
+    MockoutColorBlock.render(button, { color: displayed, label: colorLabel(canvasProperty) });
   }
   if (inspectorView === 'choose' || inspectorView === 'manage') renderSwatchList();
+  if (inspectorView === 'box-color') boxColorPicker.render();
   positionInspector();
 }
 
@@ -866,7 +891,7 @@ const colorLabel = property => ({
 
 function renderColorEditorPreview() {
   const light = document.querySelector('#swatch-light');
-  light.replaceChildren(colorChip(editorLight.color), document.createTextNode(editorLight.color.toUpperCase()));
+  MockoutColorBlock.render(light, { color: editorLight.color, label: editorLight.color.toUpperCase() });
   light.setAttribute('aria-label', `Edit light color: ${editorLight.color.toUpperCase()}`);
   const darkColor = MockoutProject.resolveColor(editorLight.color, editorDark, 'dark');
   const custom = editorDark.mode === 'custom';
@@ -875,7 +900,7 @@ function renderColorEditorPreview() {
   darkButton.hidden = !custom;
   darkPreview.hidden = custom;
   const darkValue = custom ? darkButton : darkPreview;
-  darkValue.replaceChildren(colorChip(darkColor), document.createTextNode(darkColor.toUpperCase()));
+  MockoutColorBlock.render(darkValue, { color: darkColor, label: darkColor.toUpperCase() });
   if (custom) darkButton.setAttribute('aria-label', `Edit dark color: ${darkColor.toUpperCase()}`);
 }
 
@@ -884,13 +909,12 @@ function renderBoxColorButton(button, boxes) {
   const value = MockoutSelection.commonValue(boxes, box => boxProperty(box, button.dataset.colorProperty, side));
   const mixed = value === undefined;
   const item = swatch(value);
-  const chip = colorChip(item ? resolvedColor(item.color, item.dark) : null);
-  chip.classList.toggle('mixed', mixed);
-  button.parentElement.firstElementChild.classList.toggle('mixed', mixed);
   if (mixed) button.setAttribute('aria-description', 'Mixed values');
   else button.removeAttribute('aria-description');
-  button.setAttribute('aria-label', `${colorLabel(button.dataset.colorProperty)}: ${mixed ? 'Mixed' : item?.name || 'Transparent'}`);
-  button.replaceChildren(chip, document.createTextNode(mixed ? 'Mixed' : item?.name || 'Transparent'));
+  const name = mixed ? 'Mixed' : item?.name || 'Transparent';
+  const property = colorLabel(button.dataset.colorProperty);
+  button.setAttribute('aria-label', `${property}: ${name}`);
+  MockoutColorBlock.render(button, { color: item && !mixed ? colorOf(value) : null, mixed, label: name });
 }
 
 function resetInspectorView() {
@@ -939,13 +963,15 @@ function renderInspectorHeader() {
     : propertySections[propertySectionIndex()];
   document.querySelector('#delete-swatch').hidden = inspectorView !== 'edit' || !colorTarget?.editId
     || state.swatches.length <= 1 || state.boxes.some(item => boxStyle.usesColor(item, colorTarget.editId));
-  const parts = inspectorView === 'sections' ? [{ label: menuTitle }] : properties
+  const parts = inspectorView === 'box-color'
+    ? [{ label: colorTarget.side === undefined ? colorLabel(colorTarget.property) : `${borderTarget.name} border` }]
+    : inspectorView === 'sections' ? [{ label: menuTitle }] : properties
     ? [{ label: section.label }, ...(styleSections.includes(section.id) ? [{ label: styleTarget().name }] : [])]
     : inspectorKind === 'canvas'
       ? [{ label: 'Colors', view: 'properties' },
         { label: colorLabel(colorTarget.property), ...(inspectorView === 'picker' ? { view: 'edit' } : {}) },
         ...(inspectorView === 'picker' ? [{ label: editorSide === 'light' ? 'Light' : 'Dark' }] : [])]
-      : inspectorView === 'choose'
+      : inspectorView === 'choose' || inspectorView === 'box-color'
         ? [{ label: activePropertySection === 'border' ? 'Border' : 'Colors', view: 'properties' },
           ...(colorTarget.side !== undefined ? [{ label: borderTarget.name }] : []),
           { label: colorTarget.side !== undefined ? 'Color' : colorLabel(colorTarget.property) }]
@@ -991,14 +1017,11 @@ function renderSwatchList() {
     ? [{ id: null, name: 'Transparent' }, ...state.swatches] : state.swatches;
   list.replaceChildren();
   for (const item of items) {
-    const choice = swatchChoiceTemplate.content.firstElementChild.cloneNode(true);
+    const choice = document.createElement('button');
+    choice.type = 'button'; choice.className = 'dialog-choice';
     choice.dataset.swatchId = item.id ?? '';
-    const chip = choice.querySelector('.chip');
-    if (item.id) chip.style.setProperty('--chip-color', resolvedColor(item.color, item.dark));
-    else chip.classList.add('transparent');
-    choice.querySelector('.swatch-name').textContent = item.name;
-    const action = choice.querySelector('.swatch-action');
-    action.querySelector('use').setAttribute('href', `assets/material-symbols/sprite.svg#${choosing ? 'check' : 'edit'}`);
+    MockoutColorBlock.render(choice, { color: item.id ? colorOf(item.id) : null, label: item.name,
+      selected: choosing && selected === item.id, action: choosing ? null : 'edit' });
     choice.setAttribute('aria-label', `${choosing ? 'Use' : 'Edit'} ${item.name}`);
     if (choosing) {
       choice.setAttribute('role', 'option');
@@ -1014,7 +1037,7 @@ function renderSwatchList() {
   if (focused) active?.focus();
 }
 
-for (const list of document.querySelectorAll('.dialog-choice-list')) {
+for (const list of document.querySelectorAll('.dialog-choice-list:not([data-color-grid])')) {
   list.addEventListener('keydown', event => {
     const direction = { ArrowDown: 1, ArrowUp: -1, Home: 'first', End: 'last' }[event.key];
     if (!direction) return;
@@ -1056,15 +1079,6 @@ function revealInspector() {
 }
 
 window.addEventListener('resize', positionInspector);
-
-function colorChip(color) {
-  const chip = document.createElement('span');
-  chip.className = 'chip';
-  chip.setAttribute('aria-hidden', 'true');
-  if (color) chip.style.setProperty('--chip-color', color);
-  else chip.classList.add('transparent');
-  return chip;
-}
 
 function point(event) {
   return MockoutPlacement.worldPoint(event, workspace.getBoundingClientRect(), view);
@@ -2050,8 +2064,8 @@ document.addEventListener('keydown', event => {
     change(() => { state.grid = MockoutProject.gridSizes(state)[Number(digit) - 1]; });
     return;
   }
-  if (!ctrl && !event.altKey && event.code === 'KeyV') { event.preventDefault(); setTool('select'); return; }
-  if (!ctrl && !event.altKey && event.code === 'KeyB') { event.preventDefault(); setTool('box'); return; }
+  if (!ctrl && !event.altKey && event.code === 'KeyS') { event.preventDefault(); setTool('select'); return; }
+  if (!ctrl && !event.altKey && event.code === 'KeyX') { event.preventDefault(); setTool('box'); return; }
   if (!ctrl && !event.altKey && !event.shiftKey && event.code === 'Slash') {
     event.preventDefault();
     if (inspectorOpen) closeInspector();
@@ -2166,7 +2180,7 @@ function showColor() {
     channelValues[i].value = values[i] ?? 0;
   });
   updateChannelGradients();
-  document.querySelector('#color-preview').style.setProperty('--preview-color', editorColor);
+  MockoutColorBlock.render(document.querySelector('#color-preview'), { color: editorColor, label: editorColor.toUpperCase() });
   document.querySelector('#color-hex').value = editorColor.slice(1).toUpperCase();
   document.querySelector('#color-error').hidden = true;
   render();
@@ -2194,11 +2208,12 @@ function openManageSwatches(event) {
 
 function openColor(property, side) {
   colorTarget = { property, side };
-  pushInspectorView('choose', focusColorField);
+  const id = MockoutSelection.commonValue(selectedBoxes(), box => boxProperty(box, property, side));
+  pushInspectorView('box-color', focusColorField);
+  boxColorPicker.open(id);
   renderInspector();
   revealInspector();
-  (document.querySelector('#choice-swatch-list [aria-selected="true"]')
-    || document.querySelector('#choice-swatch-list button'))?.focus();
+  boxColorPicker.focus();
 }
 
 function applyColor(id) {
@@ -2312,7 +2327,7 @@ function updateFromChannels(source, index) {
   editorColor = rgbToHex(...(colorMode === 'gray' ? [value, value, value]
     : colorMode === 'hsb' ? hsbToRgb(...values) : values));
   updateChannelGradients();
-  document.querySelector('#color-preview').style.setProperty('--preview-color', editorColor);
+  MockoutColorBlock.render(document.querySelector('#color-preview'), { color: editorColor, label: editorColor.toUpperCase() });
   document.querySelector('#color-hex').value = editorColor.slice(1).toUpperCase();
   document.querySelector('#color-error').hidden = true;
   render();

@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const project = require('../public/project.js');
+const colors = require('../public/colors.js');
 
 const publicDir = join(__dirname, '../public');
 const read = path => JSON.parse(readFileSync(join(publicDir, path), 'utf8'));
@@ -25,7 +26,10 @@ test('Welcome uses the editable logo geometry and both color palettes', () => {
     for (const theme of ['light', 'dark']) {
       const source = logo.swatches.find(swatch => swatch.id === box.fill);
       const target = welcome.swatches.find(swatch => swatch.id === embedded.fill);
-      assert.equal(project.resolveColor(source.color, source.dark, theme), project.resolveColor(target.color, target.dark, theme));
+      const palette = welcome.palettes?.find(item => item.colors.includes(target.id));
+      const displayed = palette ? colors.toHex(colors.paletteValue(palette, palette.colors.indexOf(target.id), theme))
+        : project.resolveColor(target.color, target.dark, theme);
+      assert.equal(project.resolveColor(source.color, source.dark, theme).toLowerCase(), displayed.toLowerCase());
     }
   }
 });

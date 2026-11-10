@@ -14,6 +14,7 @@ existing document before editing it; never substitute an example for live work.
 | `gridDivisions` | Optional number of active grid cells between major lines, a whole number from `2` to `100`; omitted means `10`. |
 | `nextId` | Next available integer used by the editor to allocate box IDs and new swatch IDs of the form `sN`. Advance it when allocating IDs. |
 | `swatches` | Named color roles with a light color and optional dark behavior. |
+| `palettes` | Optional named OKLCH recipes and their ordered swatch IDs. |
 | `boxes` | Flat array of elements, ordered from back to front. |
 | `canvasColors` | Required light colors for `background`, `gridMajor`, and `gridMinor`. |
 | `canvasColorModes` | Optional color-picker modes for the three canvas colors. |
@@ -137,6 +138,43 @@ can save either representation. `custom` requires a six-digit hex color.
 Optional `colorMode` is a picker mode: `hsb`, `rgb`, or `gray`.
 These colors belong in `swatches` or canvas settings, not directly on boxes.
 Do not duplicate light/dark boxes or create separate light/dark layouts.
+
+### Formula palettes
+
+The optional `palettes` array contains named recipes. Each has a stable string
+`id`, a `name`, a `count` of `3`, `6`, or `9`, a `base` OKLCH object, a `step`
+object, and an ordered `colors` array of swatch IDs with exactly `count` entries.
+
+Example: `{ "id": "p4", "name": "Surface", "count": 3,
+"base": { "l": 65, "c": 0.14, "h": 250 },
+"step": { "l": -8, "c": 0, "h": 10 }, "colors": ["s5", "s6", "s7"] }`.
+
+Slot zero is the base. Slot `i` uses `base + i × step` on all three coordinates.
+Base lightness is `0–100`, chroma `0–0.4`, and hue `0–360`. Steps are signed,
+bounded by `±100`, `±0.4`, and `±360` respectively. Rendering wraps hue and maps
+the displayed color into sRGB without changing the saved recipe.
+
+An optional `dark` object has `mode` (`inverse`, `same`, or `custom`). New palettes
+default to `{ "mode": "inverse" }`. Inverse reverses OKLCH lightness: dark base
+`l = 100 - light base l`, dark step `l = -light step l`; chroma and hue are unchanged.
+Same uses the light recipe. Custom requires its own `base` and `step`.
+The other modes may retain a paired `base` and `step` as an inactive custom recipe
+for later editing. All modes share the palette's name, count, and ordered color IDs.
+Existing palettes without a dark object keep their per-swatch theme behavior.
+
+Every slot has a swatch entry with its current light fallback `color` hex. Inverse
+and Custom palettes also store the generated dark fallback in the swatch's
+`dark: { "mode": "custom", "color": "#rrggbb", "colorMode": "rgb" }`.
+Explicit Same uses `dark: { "mode": "same" }`. Without a palette-level dark
+recipe, preserve any existing per-swatch dark settings.
+Boxes continue to reference swatch IDs. Preserve
+slot IDs and order when editing a recipe; update the fallback hexes too. A swatch
+can belong to only one palette. Never remove a slot referenced by a box, a border
+side, the last drawing style, or another color.
+
+Projects without palettes remain usable through their existing swatches; opening
+them does not convert or rewrite their colors. Earlier pilot swatches with optional
+`oklch` or `relative` records also remain readable, separately from formula palettes.
 
 Removing a swatch requires updating all matching references, including `borderColors`,
 `lastStyle.fill`, `lastStyle.textColor`, and `lastStyle.borderColor` if present.

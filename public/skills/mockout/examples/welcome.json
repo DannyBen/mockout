@@ -1,143 +1,171 @@
 {
   "version": 1,
   "grid": 5,
-  "nextId": 99,
+  "nextId": 101,
   "swatches": [
     {
       "id": "s1",
-      "name": "Surface",
-      "color": "#ffffff",
-      "mode": "gray",
+      "name": "Background 1",
+      "color": "#dde6ee",
+      "mode": "rgb",
       "dark": {
         "mode": "custom",
-        "color": "#252c43",
-        "colorMode": "hsb"
+        "color": "#000204",
+        "colorMode": "rgb"
       }
     },
     {
       "id": "s2",
-      "name": "Text",
-      "color": "#202741",
-      "mode": "hsb",
+      "name": "Background 6",
+      "color": "#0a1016",
+      "mode": "rgb",
       "dark": {
         "mode": "custom",
-        "color": "#f1f3ff",
-        "colorMode": "hsb"
+        "color": "#c0c8d1",
+        "colorMode": "rgb"
       }
     },
     {
       "id": "s7",
-      "name": "Muted text",
-      "color": "#737d94",
-      "mode": "hsb",
+      "name": "Background 5",
+      "color": "#2d343a",
+      "mode": "rgb",
       "dark": {
         "mode": "custom",
-        "color": "#aab4c9",
-        "colorMode": "hsb"
+        "color": "#9299a1",
+        "colorMode": "rgb"
       }
     },
     {
       "id": "s3",
-      "name": "Border",
-      "color": "#dfe2eb",
-      "mode": "hsb",
+      "name": "Background 3",
+      "color": "#80878f",
+      "mode": "rgb",
       "dark": {
         "mode": "custom",
-        "color": "#49536b",
-        "colorMode": "hsb"
+        "color": "#3c434a",
+        "colorMode": "rgb"
       }
     },
     {
       "id": "s5",
-      "name": "Accent",
-      "color": "#7255d5",
-      "mode": "hsb",
+      "name": "Accent 5",
+      "color": "#355bbd",
+      "mode": "rgb",
       "dark": {
         "mode": "custom",
-        "color": "#b39aff",
-        "colorMode": "hsb"
+        "color": "#86acff",
+        "colorMode": "rgb"
       }
     },
     {
       "id": "s6",
-      "name": "Accent background",
-      "color": "#eee9ff",
-      "mode": "hsb",
+      "name": "Background 2",
+      "color": "#adb5be",
+      "mode": "rgb",
       "dark": {
         "mode": "custom",
-        "color": "#3a3459",
-        "colorMode": "hsb"
+        "color": "#181e24",
+        "colorMode": "rgb"
       }
     },
     {
       "id": "s12",
-      "name": "Accent detail",
-      "color": "#a993f6",
-      "mode": "hsb",
+      "name": "Accent 6",
+      "color": "#8e3b94",
+      "mode": "rgb",
       "dark": {
         "mode": "custom",
-        "color": "#c0adff",
-        "colorMode": "hsb"
+        "color": "#da8dde",
+        "colorMode": "rgb"
       }
     },
     {
       "id": "s8",
-      "name": "Accent 2",
-      "color": "#bcebd8",
-      "mode": "hsb",
+      "name": "Accent 3",
+      "color": "#00791e",
+      "mode": "rgb",
       "dark": {
         "mode": "custom",
-        "color": "#24564e",
-        "colorMode": "hsb"
+        "color": "#71c575",
+        "colorMode": "rgb"
       }
     },
     {
       "id": "s9",
-      "name": "Accent 3",
-      "color": "#ffb298",
-      "mode": "hsb",
+      "name": "Accent 1",
+      "color": "#ac3031",
+      "mode": "rgb",
       "dark": {
-        "mode": "same"
-      }
-    },
-    {
-      "id": "s4",
-      "name": "Banner background",
-      "color": "#19213d",
-      "mode": "hsb",
-      "dark": {
-        "mode": "same"
-      }
-    },
-    {
-      "id": "s15",
-      "name": "Banner text",
-      "color": "#ffffff",
-      "mode": "gray",
-      "dark": {
-        "mode": "same"
+        "mode": "custom",
+        "color": "#fa8880",
+        "colorMode": "rgb"
       }
     },
     {
       "id": "brand",
-      "name": "Brand",
-      "color": "#CA5E11",
-      "mode": "hsb",
+      "name": "Special 2",
+      "color": "#ca5e11",
+      "mode": "rgb",
       "dark": {
         "mode": "custom",
-        "color": "#F58220",
-        "colorMode": "hsb"
+        "color": "#f58220",
+        "colorMode": "rgb"
       }
     },
     {
       "id": "brand-mark",
-      "name": "Brand mark",
+      "name": "Special 3",
       "color": "#ffffff",
-      "mode": "gray",
+      "mode": "rgb",
       "dark": {
-        "mode": "same",
+        "mode": "custom",
         "color": "#ffffff",
-        "colorMode": "gray"
+        "colorMode": "rgb"
+      }
+    },
+    {
+      "id": "s16",
+      "name": "Background 4",
+      "color": "#555c63",
+      "mode": "rgb",
+      "dark": {
+        "mode": "custom",
+        "color": "#656d74",
+        "colorMode": "rgb"
+      }
+    },
+    {
+      "id": "s20",
+      "name": "Accent 2",
+      "color": "#7e5e00",
+      "mode": "rgb",
+      "dark": {
+        "mode": "custom",
+        "color": "#d6a62e",
+        "colorMode": "rgb"
+      }
+    },
+    {
+      "id": "s21",
+      "name": "Accent 4",
+      "color": "#00717a",
+      "mode": "rgb",
+      "dark": {
+        "mode": "custom",
+        "color": "#00c5d4",
+        "colorMode": "rgb"
+      }
+    },
+    {
+      "id": "s100",
+      "name": "Special 1",
+      "color": "#0a1016",
+      "mode": "rgb",
+      "dark": {
+        "mode": "custom",
+        "color": "#0a1016",
+        "colorMode": "rgb"
       }
     }
   ],
@@ -379,9 +407,9 @@
       "y": 425,
       "w": 55,
       "h": 35,
-      "text": "B",
+      "text": "X",
       "fill": "s6",
-      "textColor": "s5",
+      "textColor": "s2",
       "borderColor": null,
       "borderWidth": 0,
       "radius": 7,
@@ -444,7 +472,7 @@
       "h": 35,
       "text": "Enter",
       "fill": "s6",
-      "textColor": "s5",
+      "textColor": "s2",
       "borderColor": null,
       "borderWidth": 0,
       "radius": 7,
@@ -507,7 +535,7 @@
       "h": 35,
       "text": "/",
       "fill": "s6",
-      "textColor": "s5",
+      "textColor": "s2",
       "borderColor": null,
       "borderWidth": 0,
       "radius": 7,
@@ -570,7 +598,7 @@
       "h": 35,
       "text": "Ctrl+D",
       "fill": "s6",
-      "textColor": "s5",
+      "textColor": "s2",
       "borderColor": null,
       "borderWidth": 0,
       "radius": 7,
@@ -633,7 +661,7 @@
       "h": 35,
       "text": "?",
       "fill": "s6",
-      "textColor": "s5",
+      "textColor": "s2",
       "borderColor": null,
       "borderWidth": 0,
       "radius": 7,
@@ -694,7 +722,7 @@
       "y": 660,
       "w": 215,
       "h": 55,
-      "text": "Try moving a box.\nPress Ctrl+P to preview.\nSave JSON with Ctrl+S.",
+      "text": "Press T for light and dark.\nCtrl+P previews your mock.\nCtrl+S saves your project.",
       "fill": null,
       "textColor": "s7",
       "borderColor": null,
@@ -716,7 +744,7 @@
       "w": 760,
       "h": 150,
       "text": "",
-      "fill": "s4",
+      "fill": "s100",
       "textColor": "s2",
       "borderColor": null,
       "borderWidth": 0,
@@ -738,7 +766,7 @@
       "h": 20,
       "text": "RAPID UI MOCKUPS",
       "fill": null,
-      "textColor": "s12",
+      "textColor": "brand-mark",
       "borderColor": null,
       "borderWidth": 0,
       "radius": 0,
@@ -759,7 +787,7 @@
       "h": 45,
       "text": "Think inside the box.",
       "fill": null,
-      "textColor": "s15",
+      "textColor": "brand-mark",
       "borderColor": null,
       "borderWidth": 0,
       "radius": 0,
@@ -780,7 +808,7 @@
       "h": 35,
       "text": "Buttons, cards, icons, whole screens —\nall made from editable boxes.",
       "fill": null,
-      "textColor": "s15",
+      "textColor": "brand-mark",
       "borderColor": null,
       "borderWidth": 0,
       "radius": 0,
@@ -927,7 +955,7 @@
       "h": 15,
       "text": "✦",
       "fill": "s9",
-      "textColor": "s4",
+      "textColor": "s1",
       "borderColor": null,
       "borderWidth": 0,
       "radius": 7,
@@ -1513,7 +1541,7 @@
       "y": 470,
       "w": 230,
       "h": 20,
-      "text": "03  /  SHARED COLORS",
+      "text": "03  /  COLOR PALETTES",
       "fill": null,
       "textColor": "s5",
       "borderColor": null,
@@ -1534,7 +1562,7 @@
       "y": 495,
       "w": 245,
       "h": 30,
-      "text": "One swatch, everywhere",
+      "text": "One color. A whole palette.",
       "fill": null,
       "textColor": "s2",
       "borderColor": null,
@@ -1555,7 +1583,7 @@
       "y": 535,
       "w": 245,
       "h": 45,
-      "text": "The palette adapts to light and dark.\nEdit a swatch once; linked boxes update.",
+      "text": "Shape the range with sliders.\nLight and dark, automatically.",
       "fill": null,
       "textColor": "s7",
       "borderColor": null,
@@ -1577,7 +1605,7 @@
       "w": 20,
       "h": 20,
       "text": "",
-      "fill": "s5",
+      "fill": "s9",
       "textColor": "s2",
       "borderColor": null,
       "borderWidth": 0,
@@ -1598,7 +1626,7 @@
       "w": 20,
       "h": 20,
       "text": "",
-      "fill": "s8",
+      "fill": "s20",
       "textColor": "s2",
       "borderColor": null,
       "borderWidth": 0,
@@ -1619,7 +1647,7 @@
       "w": 20,
       "h": 20,
       "text": "",
-      "fill": "s9",
+      "fill": "s8",
       "textColor": "s2",
       "borderColor": null,
       "borderWidth": 0,
@@ -1637,14 +1665,14 @@
       "id": 66,
       "x": 550,
       "y": 520,
-      "w": 75,
-      "h": 5,
+      "w": 20,
+      "h": 20,
       "text": "",
-      "fill": "s3",
+      "fill": "s21",
       "textColor": "s2",
       "borderColor": null,
       "borderWidth": 0,
-      "radius": 3,
+      "radius": 6,
       "paddingX": 0,
       "paddingY": 0,
       "alignX": "left",
@@ -1656,16 +1684,37 @@
     },
     {
       "id": 67,
-      "x": 550,
-      "y": 535,
-      "w": 50,
-      "h": 5,
+      "x": 575,
+      "y": 520,
+      "w": 20,
+      "h": 20,
       "text": "",
-      "fill": "s3",
+      "fill": "s5",
       "textColor": "s2",
       "borderColor": null,
       "borderWidth": 0,
-      "radius": 3,
+      "radius": 6,
+      "paddingX": 0,
+      "paddingY": 0,
+      "alignX": "left",
+      "alignY": "center",
+      "fontFamily": "",
+      "fontSize": 13,
+      "fontWeight": 400,
+      "fontStyle": "normal"
+    },
+    {
+      "id": 99,
+      "x": 600,
+      "y": 520,
+      "w": 20,
+      "h": 20,
+      "text": "",
+      "fill": "s12",
+      "textColor": "s2",
+      "borderColor": null,
+      "borderWidth": 0,
+      "radius": 6,
       "paddingX": 0,
       "paddingY": 0,
       "alignX": "left",
@@ -1788,7 +1837,7 @@
       "h": 15,
       "text": "PARENT",
       "fill": null,
-      "textColor": "s5",
+      "textColor": "s2",
       "borderColor": null,
       "borderWidth": 0,
       "radius": 0,
@@ -2124,7 +2173,7 @@
       "h": 25,
       "text": "favorite",
       "fill": "s8",
-      "textColor": "s5",
+      "textColor": "s1",
       "borderColor": null,
       "borderWidth": 0,
       "radius": 7,
@@ -2217,30 +2266,127 @@
     "fontStyle": "normal"
   },
   "canvasColors": {
-    "background": "#f0f1f6",
-    "gridMajor": "#c9cedb",
-    "gridMinor": "#e0e4ed"
+    "background": "#d8dfe6",
+    "gridMajor": "#c5cbd2",
+    "gridMinor": "#d2d8df"
   },
   "canvasColorModes": {
-    "background": "hsb",
-    "gridMajor": "hsb",
-    "gridMinor": "hsb"
+    "background": "rgb",
+    "gridMajor": "rgb",
+    "gridMinor": "rgb"
   },
   "canvasDark": {
     "background": {
       "mode": "custom",
-      "color": "#141a29",
-      "colorMode": "hsb"
+      "color": "#000000",
+      "colorMode": "rgb"
     },
     "gridMajor": {
       "mode": "custom",
-      "color": "#303b52",
-      "colorMode": "hsb"
+      "color": "#0e1217",
+      "colorMode": "rgb"
     },
     "gridMinor": {
       "mode": "custom",
-      "color": "#20293b",
-      "colorMode": "hsb"
+      "color": "#020406",
+      "colorMode": "rgb"
     }
-  }
+  },
+  "palettes": [
+    {
+      "id": "palette-background",
+      "name": "Background",
+      "count": 6,
+      "base": {
+        "l": 92,
+        "c": 0.015,
+        "h": 250
+      },
+      "step": {
+        "l": -15,
+        "c": 0,
+        "h": 0
+      },
+      "colors": [
+        "s1",
+        "s6",
+        "s3",
+        "s16",
+        "s7",
+        "s2"
+      ],
+      "dark": {
+        "mode": "inverse"
+      }
+    },
+    {
+      "id": "palette-accent",
+      "name": "Accent",
+      "count": 6,
+      "base": {
+        "l": 50,
+        "c": 0.16,
+        "h": 25
+      },
+      "step": {
+        "l": 0,
+        "c": 0,
+        "h": 60
+      },
+      "colors": [
+        "s9",
+        "s20",
+        "s8",
+        "s21",
+        "s5",
+        "s12"
+      ],
+      "dark": {
+        "mode": "custom",
+        "base": {
+          "l": 75,
+          "c": 0.14,
+          "h": 25
+        },
+        "step": {
+          "l": 0,
+          "c": 0,
+          "h": 60
+        }
+      }
+    },
+    {
+      "id": "palette-special",
+      "name": "Special",
+      "count": 3,
+      "base": {
+        "l": 17,
+        "c": 0.015,
+        "h": 250
+      },
+      "step": {
+        "l": 43.52823907206061,
+        "c": 0.1427577768638224,
+        "h": 158.43575716573451
+      },
+      "colors": [
+        "s100",
+        "brand",
+        "brand-mark"
+      ],
+      "dark": {
+        "mode": "custom",
+        "base": {
+          "l": 17,
+          "c": 0.015,
+          "h": 250
+        },
+        "step": {
+          "l": 55.219075778823864,
+          "c": 0.1562703412283052,
+          "h": 163.91895206629806
+        }
+      }
+    }
+  ]
 }

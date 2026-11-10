@@ -112,6 +112,12 @@
     },
     "lastStyle": {
       "$ref": "#/$defs/style"
+    },
+    "palettes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/palette"
+      }
     }
   },
   "$defs": {
@@ -193,7 +199,19 @@
         },
         "dark": {
           "$ref": "#/$defs/dark"
+        },
+        "oklch": {
+          "$ref": "#/$defs/oklch"
+        },
+        "relative": {
+          "$ref": "#/$defs/relativeColor"
         }
+      },
+      "not": {
+        "required": [
+          "oklch",
+          "relative"
+        ]
       }
     },
     "style": {
@@ -489,6 +507,219 @@
           "description": "Top, right, bottom, left. Overrides paddingX and paddingY."
         }
       }
+    },
+    "oklch": {
+      "type": "object",
+      "required": [
+        "l",
+        "c",
+        "h"
+      ],
+      "properties": {
+        "l": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "c": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.4
+        },
+        "h": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360
+        }
+      },
+      "additionalProperties": false
+    },
+    "relativeColor": {
+      "type": "object",
+      "required": [
+        "base",
+        "l",
+        "c",
+        "h"
+      ],
+      "properties": {
+        "l": {
+          "type": "number",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "c": {
+          "type": "number",
+          "minimum": -0.4,
+          "maximum": 0.4
+        },
+        "h": {
+          "type": "number",
+          "minimum": -360,
+          "maximum": 360
+        },
+        "base": {
+          "type": "string",
+          "description": "ID of an independent base color; references to relative colors are not supported."
+        }
+      },
+      "additionalProperties": false
+    },
+    "paletteStep": {
+      "type": "object",
+      "required": [
+        "l",
+        "c",
+        "h"
+      ],
+      "properties": {
+        "l": {
+          "type": "number",
+          "minimum": -100,
+          "maximum": 100
+        },
+        "c": {
+          "type": "number",
+          "minimum": -0.4,
+          "maximum": 0.4
+        },
+        "h": {
+          "type": "number",
+          "minimum": -360,
+          "maximum": 360
+        }
+      },
+      "additionalProperties": false
+    },
+    "paletteDark": {
+      "type": "object",
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "inverse",
+            "same",
+            "custom"
+          ]
+        },
+        "base": {
+          "$ref": "#/$defs/oklch"
+        },
+        "step": {
+          "$ref": "#/$defs/paletteStep"
+        }
+      },
+      "dependentRequired": {
+        "base": ["step"],
+        "step": ["base"]
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "const": "custom" } } },
+          "then": { "required": ["base", "step"] }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "palette": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "count",
+        "base",
+        "step",
+        "colors"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "count": {
+          "enum": [
+            3,
+            6,
+            9
+          ]
+        },
+        "base": {
+          "$ref": "#/$defs/oklch"
+        },
+        "step": {
+          "$ref": "#/$defs/paletteStep"
+        },
+        "dark": {
+          "$ref": "#/$defs/paletteDark"
+        },
+        "colors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true,
+          "minItems": 3,
+          "maxItems": 9
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "count": {
+                "const": 3
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "colors": {
+                "minItems": 3,
+                "maxItems": 3
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "count": {
+                "const": 6
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "colors": {
+                "minItems": 6,
+                "maxItems": 6
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "count": {
+                "const": 9
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "colors": {
+                "minItems": 9,
+                "maxItems": 9
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

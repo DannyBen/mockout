@@ -43,7 +43,7 @@
     stylesheet.href = `style.css?v=${assetVersion}`;
     document.head.append(stylesheet);
     document.addEventListener('DOMContentLoaded', () => {
-      for (const file of ['selection.js', 'placement.js', 'fonts.js', 'box-style.js', 'project.js', 'app.js']) {
+      for (const file of ['selection.js', 'placement.js', 'fonts.js', 'box-style.js', 'colors.js', 'project.js', 'color-block.js', 'color-picker.js', 'app.js']) {
         const script = document.createElement('script');
         script.async = false;
         script.src = `${file}?v=${assetVersion}`;
@@ -60,8 +60,8 @@
   </main>
 
   <div class="corner" aria-label="Canvas controls">
-    <button type="button" tabindex="-1" data-tool="select" aria-label="Select tool"><svg class="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#arrow_selector_tool"></use></svg></button>
-    <button type="button" tabindex="-1" data-tool="box" aria-label="Box tool"><svg class="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#crop_square"></use></svg></button>
+    <button type="button" tabindex="-1" data-tool="select" aria-label="Select tool" aria-keyshortcuts="S"><svg class="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#arrow_selector_tool"></use></svg></button>
+    <button type="button" tabindex="-1" data-tool="box" aria-label="Box tool" aria-keyshortcuts="X"><svg class="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#crop_square"></use></svg></button>
     <span class="divider"></span>
     <span class="small-label">Grid</span>
     <div class="grid-buttons" role="group" aria-label="Grid size">
@@ -100,8 +100,8 @@
     <section>
       <h2>Draw and select</h2>
       <dl>
-        <div><dt>Select tool</dt><dd><kbd>V</kbd></dd></div>
-        <div><dt>Box tool</dt><dd><kbd>B</kbd></dd></div>
+        <div><dt>Select tool</dt><dd><kbd>S</kbd></dd></div>
+        <div><dt>Box tool</dt><dd><kbd>X</kbd></dd></div>
         <div><dt>Select/deselect multiple boxes</dt><dd><kbd>Shift</kbd> + click</dd></div>
         <div><dt>Select an area</dt><dd>Drag empty space</dd></div>
         <div><dt>Add an area to selection</dt><dd><kbd>Shift</kbd> + drag anywhere</dd></div>
@@ -280,9 +280,6 @@
         <div class="field"><label for="fill-color">Fill</label><button type="button" id="fill-color" data-color-property="fill"></button></div>
         <div class="field"><label for="text-color">Text</label><button type="button" id="text-color" data-color-property="textColor"></button></div>
         <div class="field"><label for="border-color">Border</label><button type="button" id="border-color" data-color-property="borderColor"></button></div>
-        <footer class="dialog-footer">
-          <button type="button" id="manage-swatches" data-manage-swatches>Manage swatches</button>
-        </footer>
       </div>
       <div id="text-properties" class="section-content" hidden>
         <label class="field">Text <input id="box-text" type="text" placeholder="Optional text"></label>
@@ -360,6 +357,83 @@
         <input id="grid-divisions" type="number" min="2" max="100" step="1">
       </label>
     </section>
+    <section id="box-color-picker" hidden aria-label="Choose palette color">
+      <div class="palette-layout">
+        <div class="palette-list">
+          <button type="button" data-palette-name aria-label="Choose palette" aria-haspopup="listbox" aria-controls="palette-choices" aria-expanded="false"><span data-palette-label></span><svg class="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#keyboard_arrow_down"></use></svg></button>
+          <input data-palette-title type="text" maxlength="60" aria-label="Palette name" placeholder="Palette name" hidden>
+          <button type="button" data-transparent aria-pressed="false">Transparent</button>
+          <p data-palette-hint hidden>Choose palette</p>
+          <div data-palette-colors data-color-grid class="dialog-choice-list" role="listbox" aria-label="Palette colors"></div>
+          <div id="palette-choices" data-palette-choices data-color-grid class="dialog-choice-list" role="listbox" aria-label="Choose palette" hidden>
+            <button type="button" data-new-palette class="dialog-choice" role="option" aria-selected="false">New palette</button>
+          </div>
+        </div>
+        <div data-palette-editor hidden>
+          <header class="palette-editor-header">
+            <input data-palette-hex type="text" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Base hex color" placeholder="#RRGGBB">
+            <div data-palette-sides class="palette-theme" role="group" aria-label="Palette theme" hidden>
+              <button type="button" data-palette-side="light" class="icon-button" aria-label="Edit light palette" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#light_mode"></use></svg></button>
+              <button type="button" data-palette-side="dark" class="icon-button" aria-label="Edit dark palette" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#dark_mode"></use></svg></button>
+            </div>
+            <div class="align-buttons" role="group" aria-label="Number of colors">
+              <button type="button" data-count="3" aria-pressed="false">3</button>
+              <button type="button" data-count="6" aria-pressed="true">6</button>
+              <button type="button" data-count="9" aria-pressed="false">9</button>
+            </div>
+          </header>
+          <div class="palette-editor-body">
+            <div class="palette-channel">
+              <div class="palette-slider" data-axis="l" data-group="base">
+                <label for="palette-base-l">Lightness</label>
+                <div class="palette-track"><input id="palette-base-l" type="range"><span class="palette-marks" aria-hidden="true"></span></div>
+                <input type="number" aria-label="Lightness base value">
+              </div>
+              <div class="palette-slider" data-axis="l" data-group="step">
+                <label for="palette-step-l">Step</label>
+                <div class="palette-track"><input id="palette-step-l" type="range"><span class="palette-marks" aria-hidden="true"></span></div>
+                <input type="number" aria-label="Lightness step value">
+              </div>
+            </div>
+            <div class="palette-channel">
+              <div class="palette-slider" data-axis="c" data-group="base">
+                <label for="palette-base-c">Chroma</label>
+                <div class="palette-track"><input id="palette-base-c" type="range"><span class="palette-marks" aria-hidden="true"></span></div>
+                <input type="number" aria-label="Chroma base value">
+              </div>
+              <div class="palette-slider" data-axis="c" data-group="step">
+                <label for="palette-step-c">Step</label>
+                <div class="palette-track"><input id="palette-step-c" type="range"><span class="palette-marks" aria-hidden="true"></span></div>
+                <input type="number" aria-label="Chroma step value">
+              </div>
+            </div>
+            <div class="palette-channel">
+              <div class="palette-slider" data-axis="h" data-group="base">
+                <label for="palette-base-h">Hue</label>
+                <div class="palette-track"><input id="palette-base-h" type="range"><span class="palette-marks" aria-hidden="true"></span></div>
+                <input type="number" aria-label="Hue base value">
+              </div>
+              <div class="palette-slider" data-axis="h" data-group="step">
+                <label for="palette-step-h">Step</label>
+                <div class="palette-track"><input id="palette-step-h" type="range"><span class="palette-marks" aria-hidden="true"></span></div>
+                <input type="number" aria-label="Hue step value">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p role="alert" hidden></p>
+      <footer class="dialog-footer">
+        <button type="button" data-delete-palette class="icon-button" aria-label="Delete palette"><svg class="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#delete"></use></svg></button>
+        <button type="button" data-edit-palette class="icon-button" aria-label="Edit palette"><svg class="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#edit"></use></svg></button>
+        <div class="palette-theme-actions" data-palette-theme-actions hidden>
+          <select data-palette-dark aria-label="Dark palette behavior"><option value="inverse">Dark: Inverse</option><option value="same">Dark: Same</option><option value="custom">Dark: Custom</option></select>
+          <button type="button" data-copy-palette hidden>Copy from light</button>
+        </div>
+        <button type="button" data-cancel-palette hidden>Cancel</button>
+        <button type="button" data-save-palette class="primary" hidden>Save</button>
+      </footer>
+    </section>
     <section id="swatch-chooser" hidden aria-label="Choose swatch">
       <div id="choice-swatch-list" class="dialog-choice-list" role="listbox" aria-label="Swatches"></div>
       <footer class="dialog-footer">
@@ -398,10 +472,6 @@
       </footer>
     </section>
   </aside>
-
-  <template id="swatch-choice-template">
-    <button type="button" class="dialog-choice"><span class="chip" aria-hidden="true"></span><span class="swatch-name"></span><svg class="icon swatch-action" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#edit"></use></svg></button>
-  </template>
 
   <input id="open-file" type="file" accept=".json,application/json" hidden>
   <div id="file-area">
