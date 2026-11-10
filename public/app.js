@@ -2065,7 +2065,7 @@ document.addEventListener('keydown', event => {
     return;
   }
   if (!ctrl && !event.altKey && event.code === 'KeyS') { event.preventDefault(); setTool('select'); return; }
-  if (!ctrl && !event.altKey && event.code === 'KeyX') { event.preventDefault(); setTool('box'); return; }
+  if (!ctrl && !event.altKey && event.code === 'KeyD') { event.preventDefault(); setTool('box'); return; }
   if (!ctrl && !event.altKey && !event.shiftKey && event.code === 'Slash') {
     event.preventDefault();
     if (inspectorOpen) closeInspector();

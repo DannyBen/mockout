@@ -23,7 +23,7 @@ AI assistant. The editable Welcome project shows what you can make.
 
 ## Start sketching
 
-1. Press **X** and drag to draw a box.
+1. Press **D** and drag to draw a box.
 2. Select a box and press **Enter** to edit its text.
 3. Right click a box to change its shape, colors, text, or font.
 4. Press **?** to see all keyboard and mouse controls.
