@@ -23,6 +23,7 @@ export function Toolbar({ ui }) {
         {Boolean(window.showSaveFilePicker) && <button type="button" id="save-as-button" disabled={placing} onClick={() => ui.commands.saveProject(true)}><span>Save as…</span><span className="menu-hint">Ctrl+Shift+S</span></button>}
         <button type="button" id="open-button" disabled={placing} onClick={() => ui.commands.chooseProjectFile()}><span>Load JSON</span><span className="menu-hint">Ctrl+O</span></button>
         <button type="button" id="preview-button" disabled={placing} onClick={() => ui.commands.openPreview()}><span>Preview</span><span className="menu-hint">Ctrl+P</span></button>
+        <button type="button" id="export-png-button" disabled={placing || t?.exportingPNG} onClick={() => ui.commands.exportPNG()}><span>{t?.exportingPNG ? 'Exporting PNG…' : 'Export PNG…'}</span><span className="menu-hint">Ctrl+E</span></button>
         <hr />
         <button type="button" id="new-blank-button" disabled={placing} onClick={() => ui.commands.newBlank()}><span>New blank</span><span className="menu-hint">Shift+N</span></button>
         <hr />

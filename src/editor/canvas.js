@@ -1,6 +1,7 @@
 import { editorSnapshot } from './snapshot.js';
 
 export function createCanvas({ model, elements, actions, ui }) {
+  const fontLoads = new Map();
   function renderStyleMarkers() {
     const box = actions.inspectedBox(), visible = Boolean(actions.styleEditing() && box);
     const padding = model.activePropertySection === 'padding', items = [];
@@ -60,13 +61,20 @@ export function createCanvas({ model, elements, actions, ui }) {
   }
   function syncFontStylesheets() {
     const urls = actions.fonts.stylesheets(model.project.boxes), links = [...document.querySelectorAll('link[data-mockout-font]')];
-    for (const link of links) { if (!urls.includes(link.href)) link.remove(); }
+    for (const link of links) {
+      if (!urls.includes(link.href)) { fontLoads.delete(link.href); link.remove(); }
+    }
     for (const url of urls) {
       if (links.some(link => link.isConnected && link.href === url)) continue;
       const link = document.createElement('link');
-      link.rel = 'stylesheet'; link.href = url; link.dataset.mockoutFont = '';
+      link.rel = 'stylesheet'; link.href = url; link.crossOrigin = 'anonymous'; link.dataset.mockoutFont = '';
+      fontLoads.set(url, new Promise(resolve => { link.onload = link.onerror = resolve; }));
       document.head.append(link);
     }
   }
-  return { actions: { render }, init() {} };
+  async function waitForFonts() {
+    await Promise.all(fontLoads.values());
+    await document.fonts.ready;
+  }
+  return { actions: { render, waitForFonts }, init() {} };
 }

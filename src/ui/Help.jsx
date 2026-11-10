@@ -74,6 +74,7 @@ export function Help({ ui }) {
         <div><dt>Open JSON</dt><dd><div><kbd>Ctrl</kbd> + <kbd>O</kbd></div><div>Drop JSON file</div></dd></div>
         <div><dt>New blank project</dt><dd><kbd>Shift</kbd> + <kbd>N</kbd></dd></div>
         <div><dt>Preview</dt><dd><kbd>Ctrl</kbd> + <kbd>P</kbd></dd></div>
+        <div><dt>Export PNG</dt><dd><kbd>Ctrl</kbd> + <kbd>E</kbd></dd></div>
         <div><dt>Toggle theme</dt><dd><kbd>T</kbd></dd></div>
         <div><dt>Reset app and load Welcome</dt><dd>Hold Reset app</dd></div>
         <div><dt>Help</dt><dd><kbd>?</kbd></dd></div>

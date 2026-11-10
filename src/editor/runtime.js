@@ -50,6 +50,7 @@ export function startEditor(ui) {
     newBlank: () => actions.newBlank(),
     loadWelcome: () => actions.loadWelcome(),
     openPreview: () => actions.openPreview(),
+    exportPNG: () => actions.exportPNG(),
     saveProject: as => actions.saveProject(as),
     chooseProjectFile: () => actions.chooseProjectFile(),
     closeInspector: () => actions.closeInspector(),

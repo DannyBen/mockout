@@ -1,4 +1,5 @@
 import previewCss from '../style.css?inline';
+import { toBlob } from 'html-to-image';
 import MockoutProject from '../core/project.js';
 import MockoutSelection from '../core/selection.js';
 import MockoutPlacement from '../core/placement.js';
@@ -6,6 +7,7 @@ import MockoutPlacement from '../core/placement.js';
 export function createController({ model, elements, actions, events, ui }) {
   const themeMedia = matchMedia('(prefers-color-scheme: dark)');
   const modalOpen = () => model.dialog !== null;
+  let exportingPNG = false;
   const toolbarMenus = [
     { menu: elements.projectMenu, holder: elements.projectMenuHolder },
   ];
@@ -24,7 +26,7 @@ export function createController({ model, elements, actions, events, ui }) {
     (item.menu.querySelector('[aria-pressed="true"]') || item.menu.querySelector('button:not(:disabled)'))?.focus();
   }
   function publishToolbar() {
-    ui.update({ toolbar: { menuOpen: model.projectMenuOpen, helpOpen: model.helpOpen, theme: document.documentElement.dataset.uiTheme || 'light' } });
+    ui.update({ toolbar: { menuOpen: model.projectMenuOpen, helpOpen: model.helpOpen, exportingPNG, theme: document.documentElement.dataset.uiTheme || 'light' } });
   }
   function syncThemeButton() {
     publishToolbar();
@@ -427,25 +429,32 @@ export function createController({ model, elements, actions, events, ui }) {
     persist();
     actions.render();
   }
-  function previewHTML(css) {
+  function mockNode() {
     const margin = 20;
     const left = Math.min(...model.project.boxes.map(box => box.x));
     const top = Math.min(...model.project.boxes.map(box => box.y));
     const right = Math.max(...model.project.boxes.map(box => box.x + box.w));
     const bottom = Math.max(...model.project.boxes.map(box => box.y + box.h));
-    const boxes = [...elements.canvas.querySelectorAll('.box')].map(element => {
+    const mock = document.createElement('main');
+    mock.id = 'mock';
+    Object.assign(mock.style, {
+      position: 'relative', flex: 'none', width: `${right - left + margin * 2}px`,
+      height: `${bottom - top + margin * 2}px`, backgroundColor: actions.canvasColor('background'),
+    });
+    for (const element of elements.canvas.querySelectorAll('.box')) {
       const box = model.project.boxes.find(item => item.id === Number(element.dataset.id));
       const copy = element.cloneNode(true);
       copy.classList.remove('selected', 'drawing', 'placing', 'editing-style');
       copy.querySelectorAll('.handle').forEach(handle => handle.remove());
       copy.style.left = `${box.x - left + margin}px`;
       copy.style.top = `${box.y - top + margin}px`;
-      return copy.outerHTML;
-    }).join('\n');
-    const width = right - left + margin * 2;
-    const height = bottom - top + margin * 2;
+      mock.append(copy);
+    }
+    return mock;
+  }
+  function previewHTML(css) {
     const fontLinks = actions.fonts.stylesheets(model.project.boxes)
-      .map(url => `<link rel="stylesheet" href="${url.replaceAll('&', '&amp;')}">`).join('\n');
+      .map(url => `<link rel="stylesheet" crossorigin="anonymous" href="${url.replaceAll('&', '&amp;')}">`).join('\n');
     return `<!doctype html>
   <html lang="en">
   <head>
@@ -457,11 +466,11 @@ export function createController({ model, elements, actions, events, ui }) {
   <style>
     :root, body { background: ${actions.canvasColor('background')}; }
     body { min-height: 100vh; display: flex; }
-    #mock { position: relative; flex: none; width: ${width}px; height: ${height}px; margin: auto; }
+    #mock { margin: auto; }
     .box { cursor: default; }
   </style>
   </head>
-  <body><main id="mock" style="background-color: ${actions.canvasColor('background')}">${boxes}</main></body>
+  <body>${mockNode().outerHTML}</body>
   </html>`;
   }
   async function openPreview() {
@@ -482,6 +491,53 @@ export function createController({ model, elements, actions, events, ui }) {
     } catch (error) {
       tab.close();
       actions.showNotice(`Could not open preview: ${error.message}`);
+    }
+  }
+
+  async function exportPNG() {
+    if (exportingPNG) return;
+    if (!model.project.boxes.length) {
+      actions.showNotice('Draw a box before exporting a PNG.');
+      return;
+    }
+    exportingPNG = true;
+    closeProjectMenu();
+    let container;
+    try {
+      const mock = mockNode();
+      const name = MockoutProject.suggestedFileName().replace(/\.json$/, '.png');
+      // Request the picker before rendering so the click's user activation is kept.
+      const handle = window.showSaveFilePicker ? await window.showSaveFilePicker({
+        suggestedName: name,
+        types: [{ description: 'PNG image', accept: { 'image/png': ['.png'] } }],
+      }) : null;
+      container = document.createElement('div');
+      Object.assign(container.style, { position: 'fixed', left: '-100000px', top: '0' });
+      container.setAttribute('aria-hidden', 'true');
+      container.append(mock);
+      document.body.append(container);
+      // Stylesheets must arrive before fonts.ready can account for their fonts.
+      await actions.waitForFonts();
+      const blob = await toBlob(mock, { pixelRatio: 2, skipAutoScale: true });
+      if (!blob) throw new Error('The browser could not render the image.');
+      if (handle) {
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+      } else {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = name;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') actions.showNotice(`Could not export PNG: ${error.message}`);
+    } finally {
+      container?.remove();
+      exportingPNG = false;
+      publishToolbar();
     }
   }
 
@@ -522,7 +578,7 @@ export function createController({ model, elements, actions, events, ui }) {
     actions: {
       modalOpen, toolbarMenus, closeProjectMenu, toggleToolbarMenu, toggleTheme, focusProject, commit,
       change, finishPlacement, setTool, toggleHelp, loadWelcome, undo, redo, newBlank, resetEverything,
-      openPreview, openAI, copyAIPrompt, downloadSavedData
+      openPreview, exportPNG, openAI, copyAIPrompt, downloadSavedData
     },
     init() {
       events.on(themeMedia, 'change', event => {
@@ -732,7 +788,7 @@ export function createController({ model, elements, actions, events, ui }) {
       });
       events.on(document, 'keydown', event => {
         if (modalOpen()) {
-          if ((event.ctrlKey || event.metaKey) && ['KeyS', 'KeyO', 'KeyP', 'KeyD'].includes(event.code)) event.preventDefault();
+          if ((event.ctrlKey || event.metaKey) && ['KeyS', 'KeyO', 'KeyP', 'KeyD', 'KeyE'].includes(event.code)) event.preventDefault();
           return;
         }
         const openMenu = model.projectMenuOpen ? toolbarMenus[0] : null;
@@ -770,7 +826,7 @@ export function createController({ model, elements, actions, events, ui }) {
             event.preventDefault(); model.view.x -= direction[0] * 40; model.view.y -= direction[1] * 40; actions.render(); return;
           }
           const viewing = event.key === 'Escape' || event.code === 'Space' || zoomInKey || zoomOutKey
-            || (ctrl && (['KeyO', 'KeyP', 'KeyC', 'KeyA'].includes(event.code) || digit === '0' || (event.code === 'KeyS' && event.shiftKey)))
+            || (ctrl && (['KeyO', 'KeyP', 'KeyC', 'KeyA', 'KeyE'].includes(event.code) || digit === '0' || (event.code === 'KeyS' && event.shiftKey)))
             || (!ctrl && !event.altKey && (event.code === 'KeyT' || (event.shiftKey && ['Slash', 'KeyN'].includes(event.code))));
           if (!viewing) { event.preventDefault(); return; }
         }
@@ -804,6 +860,11 @@ export function createController({ model, elements, actions, events, ui }) {
         if (ctrl && event.code === 'KeyS') { event.preventDefault(); actions.saveProject(event.shiftKey); return; }
         if (ctrl && event.code === 'KeyO') { event.preventDefault(); actions.chooseProjectFile(); return; }
         if (ctrl && event.code === 'KeyP') { event.preventDefault(); openPreview(); return; }
+        if (ctrl && !event.shiftKey && !event.altKey && event.code === 'KeyE') {
+          event.preventDefault();
+          if (!event.repeat) exportPNG();
+          return;
+        }
         if (ctrl && event.code === 'KeyD') {
           event.preventDefault();
           if (!model.textEditor) {

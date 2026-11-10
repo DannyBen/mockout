@@ -70,6 +70,10 @@ to keep a portable copy, and **Load JSON** to reopen it. When saving from Local
 Session, choose **Save once** to write a file and keep working locally, or
 **Save and connect** to automatically save edits and load external changes.
 **Preview** opens your mock without the editor controls or grid.
+**Export PNG…** (**Ctrl+E**) saves the entire mockup at 2× resolution with
+a 20 px margin, using the current theme and canvas background. Choose a location
+in the native Save As dialog; browsers without file picker support download the
+image instead.
 
 When loading or dropping a project, choose **Open a local copy** to explore it
 without changing the original. Edits stay in Local Session; **Ctrl+S** lets you

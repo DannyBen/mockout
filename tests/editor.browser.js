@@ -215,7 +215,10 @@ test('reset hold cancels on release and completes once; AI copy feedback clears 
   await b.wait("document.activeElement.id === 'workspace'");
   await click(b, '#ai-button');
   assert.equal(await b.evaluate("document.querySelector('#ai-copy-status').textContent"), '');
+  // Native focus restoration precedes the close event and its focus handler.
+  await b.evaluate("window.__aiClosed = new Promise(resolve => document.querySelector('#ai-dialog').addEventListener('close', () => resolve(true), { once: true })); void 0");
   await b.key('Escape');
+  await b.evaluate('window.__aiClosed');
   await b.wait("document.activeElement.id === 'workspace'");
   await click(b, '#project-menu-button');
   await b.evaluate("document.querySelector('#reset-button').focus()");
@@ -469,6 +472,111 @@ test('standalone Preview includes bundled styles, theme colors and clean box mar
   assert.match(html, /First/);
   assert.match(html, /Second/);
   assert.doesNotMatch(html, /class="handle"|class="box selected"|src\/main|index-.*\.css/);
+});
+
+test('PNG Save As renders all boxes at 2× with margins, opacity and current theme, without changing the project', async t => {
+  const project = structuredClone(fixture);
+  project.boxes[0].x = -37;
+  project.boxes[0].opacity = .5;
+  project.boxes[1].x = 1200;
+  project.canvasColors.background = '#123456';
+  project.canvasDark = { background: { mode: 'custom', color: '#abcdef' } };
+  const storage = JSON.stringify(project);
+  const b = await setup(t, { storage, script: `
+    window.__writes = 0;
+    window.showSaveFilePicker = async options => {
+      window.__pickerOptions = options;
+      window.__pickerActive = navigator.userActivation.isActive;
+      return { createWritable: async () => ({
+        write: async blob => { window.__png = blob; }, close: async () => { window.__writes++; }
+      }) };
+    };` });
+  // Selection, zoom and pan must not appear in the image or change its bounds.
+  await b.evaluate("document.querySelector('#workspace').focus()");
+  await b.key('a', { code: 'KeyA', modifiers: 2 });
+  await b.evaluate("document.querySelector('#workspace').dispatchEvent(new WheelEvent('wheel', { bubbles: true, ctrlKey: true, deltaY: 200, clientX: 400, clientY: 300 }))");
+  for (const [index, background] of [[0, [18, 52, 86, 255]], [1, [171, 205, 239, 255]]]) {
+    if (index) await click(b, '#theme-button');
+    if (index) await b.key('e', { code: 'KeyE', modifiers: 2 });
+    else {
+      await click(b, '#project-menu-button');
+      assert.equal(await b.evaluate(`(() => {
+        const range = document.createRange();
+        range.selectNodeContents(document.querySelector('#export-png-button span'));
+        return range.getClientRects().length;
+      })()`), 1, 'Export PNG should stay on one line');
+      await click(b, '#export-png-button');
+    }
+    await b.wait(`window.__writes === ${index + 1} && !document.querySelector('#export-png-button').disabled`);
+    const image = await b.evaluate(`(async () => {
+      const bitmap = await createImageBitmap(window.__png);
+      const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(bitmap, 0, 0); bitmap.close();
+      const pixel = (x, y) => [...ctx.getImageData(x, y, 1, 1).data];
+      const fill = getComputedStyle(document.querySelector('.box-content')).backgroundColor;
+      const reference = document.createElement('canvas').getContext('2d');
+      reference.fillStyle = ${JSON.stringify(project.canvasColors.background)};
+      if (${index}) reference.fillStyle = ${JSON.stringify(project.canvasDark.background.color)};
+      reference.fillRect(0, 0, 1, 1); reference.globalAlpha = .5; reference.fillStyle = fill; reference.fillRect(0, 0, 1, 1);
+      return { type: window.__png.type, width: canvas.width, height: canvas.height,
+        margin: pixel(10, 10), fill: pixel(60, 70), expectedFill: [...reference.getImageData(0, 0, 1, 1).data],
+        farBox: pixel(2600, 70), clean: !document.querySelector('#mock'), options: window.__pickerOptions, active: window.__pickerActive };
+    })()`);
+    assert.equal(image.type, 'image/png');
+    assert.deepEqual([image.width, image.height], [2914, 280]);
+    assert.deepEqual(image.margin, background);
+    image.fill.forEach((channel, i) => assert.ok(Math.abs(channel - image.expectedFill[i]) <= 1));
+    assert.notDeepEqual(image.farBox, background);
+    assert.equal(image.clean, true);
+    assert.equal(image.active, true);
+    assert.match(image.options.suggestedName, /^mockout-\d{6}-\d{6}\.png$/);
+    assert.deepEqual(image.options.types[0].accept, { 'image/png': ['.png'] });
+    assert.equal(await b.evaluate("localStorage.getItem('mockout-project')"), storage);
+    assert.equal(await b.evaluate("document.querySelector('#file-status').dataset.state"), 'local');
+  }
+});
+
+test('PNG export shortcut downloads when Save As is unavailable', async t => {
+  const b = await setup(t, { script: `window.showSaveFilePicker = undefined;
+    HTMLAnchorElement.prototype.click = function () {
+      if (this.download.endsWith('.png')) {
+        window.__downloadName = this.download;
+        window.__download = fetch(this.href).then(response => response.blob()).then(createImageBitmap).then(image => {
+          const size = [image.width, image.height]; image.close(); return size;
+        });
+      }
+    };` });
+  assert.equal(await b.evaluate("document.querySelector('#export-png-button .menu-hint').textContent"), 'Ctrl+E');
+  await b.evaluate("document.querySelector('#workspace').focus()");
+  await b.key('e', { code: 'KeyE', modifiers: 2 });
+  await b.wait('window.__download && !document.querySelector("#export-png-button").disabled');
+  assert.deepEqual(await b.evaluate('window.__download'), [966, 280]);
+  assert.match(await b.evaluate('window.__downloadName'), /\.png$/);
+  assert.equal(await b.evaluate("localStorage.getItem('mockout-project')"), raw);
+});
+
+test('PNG picker cancellation, write errors and empty boards leave the editor usable', async t => {
+  const b = await setup(t, { script: `window.__mode = 'pending'; window.__pickerCalls = 0;
+    window.showSaveFilePicker = () => {
+      window.__pickerCalls++;
+      if (window.__mode === 'pending') return new Promise((resolve, reject) => { window.__cancel = () => reject(new DOMException('Canceled', 'AbortError')); });
+      return Promise.resolve({ createWritable: async () => { throw new Error('Write failed'); } });
+    };` });
+  await click(b, '#project-menu-button'); await click(b, '#export-png-button');
+  assert.equal(await b.evaluate("document.querySelector('#export-png-button').disabled"), true);
+  await b.evaluate('window.__cancel()');
+  await b.wait("!document.querySelector('#export-png-button').disabled");
+  assert.equal(await b.evaluate("document.querySelector('#notice').hidden"), true);
+  await b.evaluate("window.__mode = 'error'");
+  await click(b, '#project-menu-button'); await click(b, '#export-png-button');
+  await b.wait("document.querySelector('#notice-message').textContent.includes('Write failed')");
+  assert.equal(await b.evaluate("document.querySelector('#mock')"), null);
+  assert.equal(await b.evaluate("localStorage.getItem('mockout-project')"), raw);
+  await click(b, '#project-menu-button'); await click(b, '#new-blank-button');
+  await b.wait("document.querySelectorAll('.box').length === 0");
+  await click(b, '#project-menu-button'); await click(b, '#export-png-button');
+  assert.match(await b.evaluate("document.querySelector('#notice-message').textContent"), /Draw a box/);
+  assert.equal(await b.evaluate('window.__pickerCalls'), 2);
 });
 
 test('border and padding point shortcuts preserve field focus and group undo', async t => {
