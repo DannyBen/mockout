@@ -1,5 +1,4 @@
 import { createPaletteEditor } from '../editor/palette.js';
-import { renderColorBlock } from './color-block.js';
 import MockoutProject from '../core/project.js';
 import MockoutColors from '../core/colors.js';
 import MockoutSelection from '../core/selection.js';
@@ -24,23 +23,9 @@ export function createInspector({ model, elements, actions, events, ui }) {
   });
   function renderInspector() {
     const box = actions.inspectedBox();
-    const boxes = actions.selectedBoxes();
     const visible = model.inspectorOpen && (model.inspectorKind === 'canvas' || box);
     renderInspectorHeader(visible);
     if (!visible) return;
-    if (model.inspectorView === 'edit') {
-      document.querySelector('#dark-behavior').value = model.editorDark.mode;
-      document.querySelector('#swatch-name-field').hidden = !!model.colorTarget?.direct;
-      renderColorEditorPreview();
-    }
-    if (model.inspectorKind === 'box') for (const button of elements.boxColorButtons) renderBoxColorButton(button, boxes);
-    if (model.inspectorKind === 'canvas') for (const button of elements.canvasColorButtons) {
-      const canvasProperty = button.dataset.canvasColorProperty;
-      const displayed = actions.canvasColor(canvasProperty);
-      button.setAttribute('aria-label', `${colorLabel(canvasProperty)}: ${displayed.toUpperCase()}`);
-      renderColorBlock(button, { color: displayed, label: colorLabel(canvasProperty) });
-    }
-    if (model.inspectorView === 'choose' || model.inspectorView === 'manage') renderSwatchList();
     if (model.inspectorView === 'box-color') boxColorPicker.render();
     positionInspector();
   }
@@ -48,31 +33,29 @@ export function createInspector({ model, elements, actions, events, ui }) {
     fill: 'Fill', textColor: 'Text', borderColor: 'Border',
     background: 'Background', gridMajor: 'Major grid', gridMinor: 'Minor grid',
   })[property];
-  function renderColorEditorPreview() {
-    const light = document.querySelector('#swatch-light');
-    renderColorBlock(light, { color: model.editorLight.color, label: model.editorLight.color.toUpperCase() });
-    light.setAttribute('aria-label', `Edit light color: ${model.editorLight.color.toUpperCase()}`);
-    const darkColor = MockoutProject.resolveColor(model.editorLight.color, model.editorDark, 'dark');
-    const custom = model.editorDark.mode === 'custom';
-    const darkButton = document.querySelector('#swatch-dark');
-    const darkPreview = document.querySelector('#swatch-dark-preview');
-    darkButton.hidden = !custom;
-    darkPreview.hidden = custom;
-    const darkValue = custom ? darkButton : darkPreview;
-    renderColorBlock(darkValue, { color: darkColor, label: darkColor.toUpperCase() });
-    if (custom) darkButton.setAttribute('aria-label', `Edit dark color: ${darkColor.toUpperCase()}`);
-  }
-  function renderBoxColorButton(button, boxes) {
-    const side = button.hasAttribute('data-border-side') ? model.borderTarget.index : undefined;
-    const value = MockoutSelection.commonValue(boxes, box => actions.boxProperty(box, button.dataset.colorProperty, side));
-    const mixed = value === undefined;
-    const item = actions.swatch(value);
-    if (mixed) button.setAttribute('aria-description', 'Mixed values');
-    else button.removeAttribute('aria-description');
-    const name = mixed ? 'Mixed' : item?.name || 'Transparent';
-    const property = colorLabel(button.dataset.colorProperty);
-    button.setAttribute('aria-label', `${property}: ${name}`);
-    renderColorBlock(button, { color: item && !mixed ? actions.colorOf(value) : null, mixed, label: name });
+  function legacyColorData() {
+    const boxes = actions.selectedBoxes();
+    const boxColors = Object.fromEntries(['fill', 'textColor', 'borderColor', 'borderSide'].map(key => {
+      const property = key === 'borderSide' ? 'borderColor' : key;
+      const value = MockoutSelection.commonValue(boxes, box => actions.boxProperty(box, property, key === 'borderSide' ? model.borderTarget.index : undefined));
+      const mixed = value === undefined, item = actions.swatch(value);
+      const label = mixed ? 'Mixed' : item?.name || 'Transparent';
+      return [key, { label, mixed, color: item && !mixed ? actions.colorOf(value) : null, description: `${colorLabel(property)}: ${label}` }];
+    }));
+    const choosing = model.inspectorView === 'choose';
+    const selected = choosing ? MockoutSelection.commonValue(boxes, box => actions.boxProperty(box, model.colorTarget.property, model.colorTarget.side)) : null;
+    const items = choosing && model.colorTarget.property !== 'textColor' ? [{ id: null, name: 'Transparent' }, ...model.project.swatches] : model.project.swatches;
+    return {
+      boxColors,
+      canvasColors: Object.fromEntries(['background', 'gridMinor', 'gridMajor'].map(property => [property, { label: colorLabel(property), color: actions.canvasColor(property) }])),
+      swatches: items.map(item => ({ id: item.id, name: item.name, color: item.id ? actions.colorOf(item.id) : null, selected: choosing && selected === item.id })),
+      direct: Boolean(model.colorTarget?.direct), name: model.swatchName || '', swatchError: model.swatchError || '',
+      canDelete: Boolean(model.colorTarget?.editId && model.project.swatches.length > 1 && !model.project.boxes.some(box => actions.boxStyle.usesColor(box, model.colorTarget.editId))),
+      light: model.editorLight.color, dark: MockoutProject.resolveColor(model.editorLight.color, model.editorDark, 'dark'),
+      darkMode: model.editorDark.mode, mode: model.colorMode, color: model.editorColor,
+      hex: model.colorHex ?? model.editorColor.slice(1).toUpperCase(), error: model.colorError || '',
+      channels: channelData(),
+    };
   }
   function resetInspectorView() {
     model.inspectorHistory.length = 0;
@@ -110,8 +93,6 @@ export function createInspector({ model, elements, actions, events, ui }) {
     const section = model.inspectorKind === 'canvas'
       ? elements.canvasSections.find(item => item.id === model.activeCanvasSection)
       : elements.propertySections[actions.propertySectionIndex()];
-    document.querySelector('#delete-swatch').hidden = model.inspectorView !== 'edit' || !model.colorTarget?.editId
-      || model.project.swatches.length <= 1 || model.project.boxes.some(item => actions.boxStyle.usesColor(item, model.colorTarget.editId));
     const parts = !visible ? [] : model.inspectorView === 'box-color'
       ? [{ label: model.colorTarget.side === undefined ? colorLabel(model.colorTarget.property) : `${model.borderTarget.name} border` }]
       : model.inspectorView === 'sections' ? [{ label: menuTitle }] : properties
@@ -136,36 +117,7 @@ export function createInspector({ model, elements, actions, events, ui }) {
       visible: Boolean(visible), view: model.inspectorView, kind: model.inspectorKind,
       section: model.activePropertySection, canvasSection: model.activeCanvasSection,
       hasParent, menuTitle, parts, locked: model.fileLocked,
-    }, properties: actions.propertyData() });
-  }
-  function renderSwatchList() {
-    const choosing = model.inspectorView === 'choose';
-    const list = document.querySelector(choosing ? '#choice-swatch-list' : '#swatch-list');
-    const focused = list.contains(document.activeElement) ? document.activeElement : null;
-    const focusedId = focused?.dataset.swatchId;
-    const selected = choosing ? MockoutSelection.commonValue(actions.selectedBoxes(), box => actions.boxProperty(box, model.colorTarget.property, model.colorTarget.side)) : null;
-    const items = choosing && model.colorTarget.property !== 'textColor'
-      ? [{ id: null, name: 'Transparent' }, ...model.project.swatches] : model.project.swatches;
-    list.replaceChildren();
-    for (const item of items) {
-      const choice = document.createElement('button');
-      choice.type = 'button'; choice.className = 'dialog-choice';
-      choice.dataset.swatchId = item.id ?? '';
-      renderColorBlock(choice, { color: item.id ? actions.colorOf(item.id) : null, label: item.name,
-        selected: choosing && selected === item.id, action: choosing ? null : 'edit' });
-      choice.setAttribute('aria-label', `${choosing ? 'Use' : 'Edit'} ${item.name}`);
-      if (choosing) {
-        choice.setAttribute('role', 'option');
-        choice.setAttribute('aria-selected', String(selected === item.id));
-      }
-      events.on(choice, 'click', () => choosing ? assignColor(item.id) : openSwatchEditor(item.id));
-      list.append(choice);
-    }
-    const buttons = [...list.querySelectorAll('button')];
-    const active = buttons.find(button => button.dataset.swatchId === focusedId)
-      || (choosing && selected !== undefined && buttons.find(button => button.dataset.swatchId === (selected ?? '')))
-      || buttons[0];
-    if (focused) active?.focus();
+    }, properties: actions.propertyData(), colors: legacyColorData() });
   }
   function positionInspector() {
     if (elements.inspector.hidden) return;
@@ -301,44 +253,23 @@ export function createInspector({ model, elements, actions, events, ui }) {
       : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
     return parts.map(n => Math.round((n + m) * 255));
   }
-  function updateChannelGradients() {
-    const values = elements.channels.map(input => Number(input.value));
-    let stops;
-    if (model.colorMode === 'gray') stops = [['#000000', '#ffffff']];
-    else if (model.colorMode === 'rgb') {
-      stops = values.map((_, channel) => [0, 255].map(value =>
-        rgbToHex(...values.map((current, i) => i === channel ? value : current))));
-    } else {
-      const [hue, saturation, brightness] = values;
-      stops = [
-        ['#ff0000', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#ff00ff', '#ff0000'],
-        [rgbToHex(...hsbToRgb(hue, 0, brightness)), rgbToHex(...hsbToRgb(hue, 100, brightness))],
-        ['#000000', rgbToHex(...hsbToRgb(hue, saturation, 100))],
-      ];
-    }
-    elements.channels.forEach((input, i) => input.style.setProperty('--channel-gradient',
-      stops[i] ? `linear-gradient(to right, ${stops[i].join(', ')})` : 'none'));
+  function channelData() {
+    const values = model.editorChannels || [0, 0, 0];
+    const gray = model.colorMode === 'gray', rgb = model.colorMode === 'rgb';
+    const labels = gray ? ['Gray', '', ''] : rgb ? ['Red', 'Green', 'Blue'] : ['Hue', 'Saturation', 'Brightness'];
+    const stops = gray ? [['#000000', '#ffffff']] : rgb
+      ? values.map((_, channel) => [0, 255].map(value => rgbToHex(...values.map((current, i) => i === channel ? value : current))))
+      : [['#ff0000', '#ffff00', '#00ff00', '#00ffff', '#0000ff', '#ff00ff', '#ff0000'],
+        [rgbToHex(...hsbToRgb(values[0], 0, values[2])), rgbToHex(...hsbToRgb(values[0], 100, values[2]))],
+        ['#000000', rgbToHex(...hsbToRgb(values[0], values[1], 100))]];
+    return labels.map((label, index) => ({ label, value: values[index] ?? 0, max: gray || rgb ? 255 : [360, 100, 100][index],
+      hidden: gray && index > 0, gradient: stops[index] ? `linear-gradient(to right, ${stops[index].join(', ')})` : 'none' }));
   }
   function showColor() {
-    const rgb = model.colorMode === 'rgb';
-    const gray = model.colorMode === 'gray';
-    const values = gray ? [grayValue(model.editorColor)]
-      : rgb ? hexToRgb(model.editorColor) : rgbToHsb(...hexToRgb(model.editorColor));
-    elements.channels.forEach((input, i) => {
-      input.closest('.slider-field').hidden = gray && i > 0;
-      const label = (gray ? ['Gray', '', ''] : rgb ? ['Red', 'Green', 'Blue'] : ['Hue', 'Saturation', 'Brightness'])[i];
-      const max = rgb || gray ? 255 : [360, 100, 100][i];
-      input.max = max;
-      elements.channelValues[i].max = max;
-      document.getElementById(`channel-${i + 1}-label`).textContent = label;
-      elements.channelValues[i].setAttribute('aria-label', `${gray ? 'Gray' : rgb ? ['Red', 'Green', 'Blue'][i] : ['Hue', 'Saturation', 'Brightness'][i]} value`);
-      input.value = values[i] ?? 0;
-      elements.channelValues[i].value = values[i] ?? 0;
-    });
-    updateChannelGradients();
-    renderColorBlock(document.querySelector('#color-preview'), { color: model.editorColor, label: model.editorColor.toUpperCase() });
-    document.querySelector('#color-hex').value = model.editorColor.slice(1).toUpperCase();
-    document.querySelector('#color-error').hidden = true;
+    model.editorChannels = model.colorMode === 'gray' ? [grayValue(model.editorColor), 0, 0]
+      : model.colorMode === 'rgb' ? hexToRgb(model.editorColor) : rgbToHsb(...hexToRgb(model.editorColor));
+    model.colorHex = model.editorColor.slice(1).toUpperCase();
+    model.colorError = '';
     actions.render();
   }
   function openColorPicker(color, mode, onAccept) {
@@ -346,7 +277,6 @@ export function createInspector({ model, elements, actions, events, ui }) {
     model.colorMode = mode;
     model.pickerOnAccept = onAccept;
     pushInspectorView('picker', () => document.querySelector(`[data-editor-side="${model.editorSide}"]`).focus());
-    document.querySelector('#color-mode').value = model.colorMode;
     showColor();
     revealInspector();
     document.querySelector('#color-hex').focus();
@@ -381,7 +311,7 @@ export function createInspector({ model, elements, actions, events, ui }) {
   }
   function openCanvasColorEditor(property) {
     model.colorTarget = { property, direct: true };
-    document.querySelector('#swatch-error').hidden = true;
+    model.swatchError = '';
     model.editorLight = { color: model.project.canvasColors[property], mode: model.project.canvasColorModes?.[property] ?? 'gray' };
     model.editorDark = { mode: 'invert', color: null, colorMode: model.editorLight.mode,
       ...model.project.canvasDark?.[property] };
@@ -409,8 +339,8 @@ export function createInspector({ model, elements, actions, events, ui }) {
       mode: item?.mode ?? 'hsb' };
     model.editorDark = { mode: 'invert', color: null, colorMode: model.editorLight.mode, ...item?.dark };
     model.editorSide = 'light';
-    document.querySelector('#swatch-name').value = item?.name || '';
-    document.querySelector('#swatch-error').hidden = true;
+    model.swatchName = item?.name || '';
+    model.swatchError = '';
     pushInspectorView('edit', focusSwatchEditorOpener);
     renderInspector();
     revealInspector();
@@ -428,26 +358,21 @@ export function createInspector({ model, elements, actions, events, ui }) {
       model.editorDark = next.dark;
     });
   }
-  function updateFromChannels(source, index) {
-    const value = Math.max(0, Math.min(Number(source.max), Number(source.value) || 0));
-    elements.channels[index].value = value;
-    elements.channelValues[index].value = value;
-    const values = elements.channels.map(input => Number(input.value));
+  function updateFromChannels(index, raw) {
+    const value = Math.max(0, Math.min(channelData()[index].max, Number(raw) || 0));
+    const values = model.editorChannels;
+    values[index] = value;
     model.editorColor = rgbToHex(...(model.colorMode === 'gray' ? [value, value, value]
       : model.colorMode === 'hsb' ? hsbToRgb(...values) : values));
-    updateChannelGradients();
-    renderColorBlock(document.querySelector('#color-preview'), { color: model.editorColor, label: model.editorColor.toUpperCase() });
-    document.querySelector('#color-hex').value = model.editorColor.slice(1).toUpperCase();
-    document.querySelector('#color-error').hidden = true;
+    model.colorHex = model.editorColor.slice(1).toUpperCase();
+    model.colorError = '';
     actions.render();
   }
   function readHex() {
-    const input = document.querySelector('#color-hex');
-    const value = input.value.trim().replace(/^#/, '');
+    const value = model.colorHex.trim().replace(/^#/, '');
     if (!/^[0-9a-f]{6}$/i.test(value)) {
-      const error = document.querySelector('#color-error');
-      error.textContent = 'Enter six hex digits (RRGGBB).';
-      error.hidden = false;
+      model.colorError = 'Enter six hex digits (RRGGBB).';
+      actions.render();
       return false;
     }
     if (`#${value.toLowerCase()}` !== model.editorColor) useHex(value);
@@ -457,22 +382,97 @@ export function createInspector({ model, elements, actions, events, ui }) {
     model.editorColor = `#${value.toLowerCase()}`;
     if (model.colorMode === 'gray' && new Set(hexToRgb(model.editorColor)).size > 1) {
       model.colorMode = 'rgb';
-      document.querySelector('#color-mode').value = model.colorMode;
+      }
+    showColor();
+  }
+
+  function setDarkBehavior(mode) {
+    model.editorDark.mode = mode;
+    if (mode === 'custom' && !model.editorDark.color) {
+      model.editorDark.color = MockoutProject.invertColor(model.editorLight.color);
+      model.editorDark.colorMode = model.editorLight.mode;
+    }
+    actions.render();
+  }
+  function setColorMode(mode) {
+    model.colorMode = mode;
+    if (mode === 'gray') {
+      const value = grayValue(model.editorColor);
+      model.editorColor = rgbToHex(value, value, value);
     }
     showColor();
+    revealInspector();
+  }
+  function setColorHex(text) {
+    model.colorHex = text;
+    const value = text.trim().replace(/^#/, '');
+    if (/^[0-9a-f]{6}$/i.test(value)) useHex(value);
+    else actions.render();
+  }
+  function setSwatchName(name) { model.swatchName = name; model.swatchError = ''; renderInspector(); }
+  function acceptColor() {
+    if (!model.pickerOnAccept || !readHex()) return;
+    model.pickerOnAccept(model.editorColor, model.colorMode);
+    model.pickerOnAccept = null;
+    showInspectorParent('edit');
+  }
+  function deleteSwatch() {
+        const id = model.colorTarget?.editId;
+        if (!id || model.project.swatches.length <= 1 || model.project.boxes.some(box => actions.boxStyle.usesColor(box, id))) return;
+        actions.change(() => {
+          model.project.swatches = model.project.swatches.filter(item => item.id !== id);
+          if (model.project.lastStyle) actions.boxStyle.replaceColor(model.project.lastStyle, id, model.project.swatches[0].id);
+        });
+        model.colorTarget.editId = null;
+        showInspectorParent('manage');
+  }
+  function saveColor() {
+        if (!model.colorTarget) return;
+        if (model.colorTarget.direct) {
+          actions.change(() => {
+            model.project.canvasColors[model.colorTarget.property] = model.editorLight.color;
+            model.project.canvasColorModes = { ...model.project.canvasColorModes, [model.colorTarget.property]: model.editorLight.mode };
+            model.project.canvasDark = { ...model.project.canvasDark, [model.colorTarget.property]: { ...model.editorDark } };
+          });
+          showInspectorParent('properties');
+          return;
+        }
+        const name = model.swatchName.trim();
+        if (!name) {
+          model.swatchError = 'Give the swatch a name.';
+          actions.render();
+          document.querySelector('#swatch-name').focus();
+          return;
+        }
+        const dark = { mode: model.editorDark.mode };
+        if (model.editorDark.color) dark.color = model.editorDark.color;
+        if (model.editorDark.colorMode) dark.colorMode = model.editorDark.colorMode;
+        if (model.colorTarget.editId) {
+          actions.change(() => { Object.assign(actions.swatch(model.colorTarget.editId),
+            { name, color: model.editorLight.color, mode: model.editorLight.mode, dark }); });
+        } else {
+          actions.change(() => {
+            const id = `s${model.project.nextId++}`;
+            model.project.swatches.push({ id, name, color: model.editorLight.color, mode: model.editorLight.mode, dark });
+            model.colorTarget.editId = id;
+            if (model.colorTarget.property && model.selectedIds.size) applyColor(id);
+          });
+        }
+        const managerIndex = model.inspectorHistory.findLastIndex(entry => entry.view === 'manage');
+        showInspectorParent(model.inspectorHistory[managerIndex - 1].view);
   }
 
   return {
     actions: {
-      boxColorPicker, renderInspector, colorLabel, renderColorEditorPreview, renderBoxColorButton,
+      boxColorPicker, renderInspector, colorLabel, legacyColorData,
       resetInspectorView, pushInspectorView, showInspectorParent, openSectionSelection, focusSectionSelection,
-      renderInspectorHeader, renderSwatchList, positionInspector, revealInspector, focusPropertySection,
+      renderInspectorHeader, positionInspector, revealInspector, focusPropertySection,
       closeInspector, selectStyleTarget, openInspector, openCanvasInspector, finishStyleEdit,
       finishOpacityEdit, assignFontFamily, rgbToHex, hexToRgb, grayValue,
-      rgbToHsb, hsbToRgb, updateChannelGradients, showColor, openColorPicker,
+      rgbToHsb, hsbToRgb, channelData, showColor, openColorPicker,
       openManageSwatches, openColor, applyColor, assignColor, openCanvasColorEditor,
       focusColorField, focusSwatchEditorOpener, openSwatchEditor, openEditorColorPicker, updateFromChannels,
-      readHex, useHex,
+      readHex, useHex, setDarkBehavior, setColorMode, setColorHex, setSwatchName, acceptColor, deleteSwatch, saveColor,
     },
     init() {
       for (const list of document.querySelectorAll('.dialog-choice-list:not([data-color-grid])')) {
@@ -497,7 +497,6 @@ export function createInspector({ model, elements, actions, events, ui }) {
         if (model.inspectorHistory.length) showInspectorParent();
         else if (model.inspectorView !== 'sections') openSectionSelection();
       });
-      for (const button of document.querySelectorAll('[data-inspector-back]')) events.on(button, 'click', () => showInspectorParent());
       for (const button of document.querySelectorAll('[data-property-section]')) events.on(button, 'click', () => {
         if (model.inspectorKind === 'canvas') model.activeCanvasSection = button.dataset.propertySection;
         else {
@@ -532,93 +531,6 @@ export function createInspector({ model, elements, actions, events, ui }) {
         if (!fields.length || (index >= 0 && (event.shiftKey ? index !== 0 : index !== fields.length - 1))) return;
         event.preventDefault();
         fields[event.shiftKey ? fields.length - 1 : 0].focus();
-      });
-      for (const button of elements.boxColorButtons) events.on(button, 'click', () =>
-        openColor(button.dataset.colorProperty, button.hasAttribute('data-border-side') ? model.borderTarget.index : undefined));
-      for (const button of elements.canvasColorButtons) events.on(button, 'click', () =>
-        openCanvasColorEditor(button.dataset.canvasColorProperty));
-      for (const button of document.querySelectorAll('[data-manage-swatches]')) events.on(button, 'click', openManageSwatches);
-      for (const button of document.querySelectorAll('[data-editor-side]')) events.on(button, 'click', () =>
-        openEditorColorPicker(button.dataset.editorSide));
-      events.on(document.querySelector('#dark-behavior'), 'change', event => {
-        model.editorDark.mode = event.target.value;
-        if (model.editorDark.mode === 'custom' && !model.editorDark.color) {
-          model.editorDark.color = MockoutProject.invertColor(model.editorLight.color);
-          model.editorDark.colorMode = model.editorLight.mode;
-        }
-        actions.render();
-      });
-      events.on(document.querySelector('#new-swatch'), 'click', () => openSwatchEditor());
-      events.on(document.querySelector('#delete-swatch'), 'click', () => {
-        const id = model.colorTarget?.editId;
-        if (!id || model.project.swatches.length <= 1 || model.project.boxes.some(box => actions.boxStyle.usesColor(box, id))) return;
-        actions.change(() => {
-          model.project.swatches = model.project.swatches.filter(item => item.id !== id);
-          if (model.project.lastStyle) actions.boxStyle.replaceColor(model.project.lastStyle, id, model.project.swatches[0].id);
-        });
-        model.colorTarget.editId = null;
-        showInspectorParent('manage');
-      });
-      events.on(document.querySelector('#color-mode'), 'change', event => {
-        model.colorMode = event.target.value;
-        if (model.colorMode === 'gray') {
-          const value = grayValue(model.editorColor);
-          model.editorColor = rgbToHex(value, value, value);
-        }
-        showColor();
-        revealInspector();
-      });
-      elements.channels.forEach((input, i) => events.on(input, 'input', () => updateFromChannels(input, i)));
-      elements.channelValues.forEach((input, i) => events.on(input, 'input', () => updateFromChannels(input, i)));
-      events.on(document.querySelector('#color-hex'), 'change', readHex);
-      events.on(document.querySelector('#color-hex'), 'input', event => {
-        const value = event.target.value.trim().replace(/^#/, '');
-        if (/^[0-9a-f]{6}$/i.test(value)) useHex(value);
-      });
-      events.on(document.querySelector('#swatch-name'), 'input', () => {
-        document.querySelector('#swatch-error').hidden = true;
-      });
-      events.on(document.querySelector('#use-color'), 'click', () => {
-        if (!model.pickerOnAccept || !readHex()) return;
-        model.pickerOnAccept(model.editorColor, model.colorMode);
-        model.pickerOnAccept = null;
-        showInspectorParent('edit');
-      });
-      events.on(document.querySelector('#save-color'), 'click', () => {
-        if (!model.colorTarget) return;
-        if (model.colorTarget.direct) {
-          actions.change(() => {
-            model.project.canvasColors[model.colorTarget.property] = model.editorLight.color;
-            model.project.canvasColorModes = { ...model.project.canvasColorModes, [model.colorTarget.property]: model.editorLight.mode };
-            model.project.canvasDark = { ...model.project.canvasDark, [model.colorTarget.property]: { ...model.editorDark } };
-          });
-          showInspectorParent('properties');
-          return;
-        }
-        const name = document.querySelector('#swatch-name').value.trim();
-        if (!name) {
-          const error = document.querySelector('#swatch-error');
-          error.textContent = 'Give the swatch a name.';
-          error.hidden = false;
-          document.querySelector('#swatch-name').focus();
-          return;
-        }
-        const dark = { mode: model.editorDark.mode };
-        if (model.editorDark.color) dark.color = model.editorDark.color;
-        if (model.editorDark.colorMode) dark.colorMode = model.editorDark.colorMode;
-        if (model.colorTarget.editId) {
-          actions.change(() => { Object.assign(actions.swatch(model.colorTarget.editId),
-            { name, color: model.editorLight.color, mode: model.editorLight.mode, dark }); });
-        } else {
-          actions.change(() => {
-            const id = `s${model.project.nextId++}`;
-            model.project.swatches.push({ id, name, color: model.editorLight.color, mode: model.editorLight.mode, dark });
-            model.colorTarget.editId = id;
-            if (model.colorTarget.property && model.selectedIds.size) applyColor(id);
-          });
-        }
-        const managerIndex = model.inspectorHistory.findLastIndex(entry => entry.view === 'manage');
-        showInspectorParent(model.inspectorHistory[managerIndex - 1].view);
       });
     },
   };

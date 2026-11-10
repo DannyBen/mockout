@@ -226,6 +226,48 @@ test('property fields retain unfinished input and selection through rerenders; f
   assert.deepEqual(await b.evaluate("[document.querySelector('#box-text').selectionStart, document.querySelector('#box-text').selectionEnd]"), [1, 3]);
 });
 
+test('canvas color drafts, legacy channels, validation, independent dark colors and undo', async t => {
+  const b = await setup(t);
+  await b.evaluate("document.querySelector('#workspace').focus()");
+  await b.key('/', { code: 'Slash' });
+  await click(b, '[data-property-section="canvas"]');
+  await click(b, '[data-canvas-color-property="background"]');
+  await click(b, '#swatch-light');
+  assert.equal(await b.evaluate('document.activeElement.id'), 'color-hex');
+  await input(b, '#color-hex', '112233');
+  assert.equal(await b.evaluate("document.querySelector('#color-mode').value"), 'rgb');
+  assert.equal(await b.evaluate("document.querySelector('#workspace').style.backgroundColor"), 'rgb(17, 34, 51)');
+  assert.equal(await b.evaluate("localStorage.getItem('mockout-project')"), raw);
+  await input(b, '#color-hex', 'bad', 'change');
+  await click(b, '#use-color');
+  assert.equal(await b.evaluate("document.querySelector('#color-error').hidden"), false);
+  await input(b, '#color-hex', '112233');
+  await click(b, '#use-color');
+  await input(b, '#dark-behavior', 'custom', 'change');
+  await click(b, '#swatch-dark');
+  await input(b, '#color-mode', 'hsb', 'change');
+  await input(b, '#channel-1', 180);
+  assert.equal(await b.evaluate("document.querySelector('#channel-1-value').value"), '180');
+  await input(b, '#color-hex', 'aabbcc');
+  await click(b, '#use-color');
+  await click(b, '#save-color');
+  assert.equal((await saved(b)).canvasColors.background, '#112233');
+  assert.equal((await saved(b)).canvasDark.background.color, '#aabbcc');
+  await b.key('Escape', { modifiers: 8 });
+  await b.key('z', { code: 'KeyZ', modifiers: 2 });
+  assert.deepEqual((await saved(b)).canvasColors, fixture.canvasColors);
+  await b.key('/', { code: 'Slash' });
+  await click(b, '[data-property-section="canvas"]');
+  await click(b, '[data-canvas-color-property="background"]');
+  await click(b, '#swatch-light');
+  await input(b, '#color-hex', '445566');
+  await b.key('Escape');
+  assert.equal(await b.evaluate('document.activeElement.id'), 'swatch-light');
+  await b.key('Escape');
+  assert.equal(await b.evaluate("document.querySelector('#workspace').style.backgroundColor"), 'rgb(255, 255, 255)');
+  assert.deepEqual((await saved(b)).canvasColors, fixture.canvasColors);
+});
+
 test('connected file autosave, unfocused polling, undo, malformed updates and conflicts', async t => {
   const b = await setup(t, { script: `window.FileSystemObserver = undefined;
     window.__fileReady = navigator.storage.getDirectory().then(async dir => {

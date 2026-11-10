@@ -33,6 +33,7 @@ export function createProperties({ model, actions }) {
       materialOnly: boxes.length > 0 && boxes.every(box => actions.fonts.isMaterial(actions.fonts.familyOf(box))),
       symbol: actions.fonts.isSymbol(family), classic: actions.fonts.isClassicIcon(family),
       corner: Boolean(model.borderTarget.corner),
+      borderSide: model.borderTarget.index,
       alignX: common(box => box.alignX), alignY: common(box => box.alignY),
       gridBase: model.project.gridBase ?? 5, gridDivisions: model.project.gridDivisions ?? 10,
     };

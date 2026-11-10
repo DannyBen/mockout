@@ -63,6 +63,21 @@ export function startEditor(ui) {
     setAlignment: (axis, value) => actions.setAlignment(axis, value),
     assignFontFamily: family => actions.assignFontFamily(family),
     setGoogleFont: value => actions.setGoogleFont(value),
+    openColor: (property, side) => actions.openColor(property, side),
+    openCanvasColor: property => actions.openCanvasColorEditor(property),
+    openManageSwatches: event => actions.openManageSwatches(event),
+    assignColor: id => actions.assignColor(id),
+    openSwatchEditor: id => actions.openSwatchEditor(id),
+    openEditorColorPicker: side => actions.openEditorColorPicker(side),
+    setDarkBehavior: mode => actions.setDarkBehavior(mode),
+    setColorMode: mode => actions.setColorMode(mode),
+    setColorHex: text => actions.setColorHex(text),
+    readColorHex: () => actions.readHex(),
+    setSwatchName: name => actions.setSwatchName(name),
+    setColorChannel: (index, value) => actions.updateFromChannels(index, value),
+    acceptColor: () => actions.acceptColor(),
+    deleteSwatch: () => actions.deleteSwatch(),
+    saveColor: () => actions.saveColor(),
   };
   for (const module of modules) module.init();
   return {

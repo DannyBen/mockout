@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { flushSync } from 'react-dom';
 import { Input } from './Input.jsx';
+import { ColorBlock } from './ColorBlock.jsx';
+import { BoxColorField } from './LegacyColors.jsx';
 
-export function Properties({ ui, inspector: i, data }) {
+export function Properties({ ui, inspector: i, data, colors }) {
   const p = data || { values: {}, familyChoice: '', gridBase: 5, gridDivisions: 10 };
   const [googleDraft, setGoogleDraft] = useState(false);
   const category = googleDraft ? 'google' : p.familyChoice;
@@ -53,16 +55,16 @@ export function Properties({ ui, inspector: i, data }) {
       </div>
       <div id="border-properties" className="section-content" hidden={i.section !== 'border'}>
         <div className={mixedClass(p.values['border-width'] === undefined)} id="border-width-field" hidden={p.corner}><label htmlFor="border-width">Width</label><Input {...styleField('border-width')} id="border-width" type="number" min="0" max="10000" step="1" /></div>
-        <div className="field" id="border-color-field" hidden={p.corner}><label htmlFor="border-side-color">Color</label><button type="button" id="border-side-color" data-color-property="borderColor" data-border-side=""></button></div>
+        <div className="field" id="border-color-field" hidden={p.corner}><label htmlFor="border-side-color">Color</label><BoxColorField ui={ui} colors={colors} id="border-side-color" property="borderColor" side /></div>
         <div className={mixedClass(p.values['border-radius'] === undefined)} id="border-radius-field" hidden={!p.corner}><label htmlFor="border-radius">Radius</label><Input {...styleField('border-radius')} id="border-radius" type="number" min="0" max="10000" step="1" /></div>
       </div>
       <div id="padding-properties" className="section-content" hidden={i.section !== 'padding'}>
         <div className={mixedClass(p.values['side-padding'] === undefined)}><label htmlFor="side-padding">Padding</label><Input {...styleField('side-padding')} id="side-padding" type="number" min="0" max="10000" step="1" /></div>
       </div>
       <div id="color-properties" className="section-content" hidden={i.section !== 'colors'}>
-        <div className="field"><label htmlFor="fill-color">Fill</label><button type="button" id="fill-color" data-color-property="fill"></button></div>
-        <div className="field"><label htmlFor="text-color">Text</label><button type="button" id="text-color" data-color-property="textColor"></button></div>
-        <div className="field"><label htmlFor="border-color">Border</label><button type="button" id="border-color" data-color-property="borderColor"></button></div>
+        <div className="field"><label htmlFor="fill-color">Fill</label><BoxColorField ui={ui} colors={colors} id="fill-color" property="fill" /></div>
+        <div className="field"><label htmlFor="text-color">Text</label><BoxColorField ui={ui} colors={colors} id="text-color" property="textColor" /></div>
+        <div className="field"><label htmlFor="border-color">Border</label><BoxColorField ui={ui} colors={colors} id="border-color" property="borderColor" /></div>
       </div>
       <div id="text-properties" className="section-content" hidden={i.section !== 'text'}>
         <label className={mixedClass(p.values['box-text'] === undefined)}>Text <Input {...field('box-text')} id="box-text" type="text" placeholder={p.values['box-text'] === undefined ? 'Mixed values' : p.materialOnly ? 'Icon name, e.g. arrow_forward' : 'Optional text'} onKeyDown={event => { if (['Backspace', 'Delete'].includes(event.key) && event.currentTarget.value === '' && p.values['box-text'] === undefined) { event.preventDefault(); ui.commands.setBoxField('box-text', ''); } }} /></label>
@@ -128,9 +130,9 @@ export function Properties({ ui, inspector: i, data }) {
       </div>
     </section>
     <section id="canvas-properties" className="dialog-choice-list" hidden={i.view !== 'properties' || i.kind !== 'canvas' || i.canvasSection !== 'canvas'} aria-label="Canvas colors">
-      <button type="button" className="dialog-choice" data-canvas-color-property="background"></button>
-      <button type="button" className="dialog-choice" data-canvas-color-property="gridMinor"></button>
-      <button type="button" className="dialog-choice" data-canvas-color-property="gridMajor"></button>
+      <ColorBlock className="dialog-choice" data-canvas-color-property="background" {...colors?.canvasColors.background} aria-label={`${colors?.canvasColors.background.label}: ${colors?.canvasColors.background.color.toUpperCase()}`} onClick={() => ui.commands.openCanvasColor('background')} />
+      <ColorBlock className="dialog-choice" data-canvas-color-property="gridMinor" {...colors?.canvasColors.gridMinor} aria-label={`${colors?.canvasColors.gridMinor.label}: ${colors?.canvasColors.gridMinor.color.toUpperCase()}`} onClick={() => ui.commands.openCanvasColor('gridMinor')} />
+      <ColorBlock className="dialog-choice" data-canvas-color-property="gridMajor" {...colors?.canvasColors.gridMajor} aria-label={`${colors?.canvasColors.gridMajor.label}: ${colors?.canvasColors.gridMajor.color.toUpperCase()}`} onClick={() => ui.commands.openCanvasColor('gridMajor')} />
     </section>
     <section id="grid-properties" hidden={i.view !== 'properties' || i.kind !== 'canvas' || i.canvasSection !== 'grid'} aria-label="Grid settings">
       <label className="field">Smallest grid size (px)
