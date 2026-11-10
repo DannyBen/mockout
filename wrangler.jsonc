@@ -1,7 +1,10 @@
 {
   "name": "mockout",
   "compatibility_date": "2026-10-27",
+  "build": {
+    "command": "pnpm run build"
+  },
   "assets": {
-    "directory": "./public"
+    "directory": "./dist"
   }
 }

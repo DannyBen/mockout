@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
-const project = require('../public/project.js');
+const project = require('../src/core/project.js').default;
 
 const directory = join(__dirname, '../public/skills/mockout');
 const read = name => JSON.parse(readFileSync(join(directory, name), 'utf8'));

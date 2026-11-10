@@ -95,4 +95,4 @@ const MockoutBoxStyle = (() => {
     },
   };
 })();
-if (typeof module !== 'undefined') module.exports = MockoutBoxStyle;
+export default MockoutBoxStyle;

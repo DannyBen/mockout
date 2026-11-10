@@ -98,13 +98,56 @@ To explore the Welcome project again, choose **New blank**, then
 
 ## Run locally
 
-Serve the `public` folder with any static web server, or run `op serve` with
-[httpme](https://github.com/DannyBen/httpme) installed. There is no build step.
+Use Node.js 22.18 or later and pnpm (the version is pinned in `package.json`).
+Run `op serve` or `pnpm run dev` to start Vite at `http://0.0.0.0:3000`.
+Development and preview use a strict port; development watches shared folders
+with polling.
 
-Run `op test` for the project checks. Run `op screenshots` to refresh both README
-screenshots from the Welcome project. The screenshot script needs Node.js 22 or
-later, Chromium, and access to Google Fonts. Set `CHROMIUM_BIN` if your browser
-executable is named differently.
+On this VM, keep `node_modules` outside `/vagrant`. Before installing, create an
+external directory and link it, for example:
+
+```sh
+mkdir -p /home/vagrant/.swap/html/mockout/node_modules
+ln -s /home/vagrant/.swap/html/mockout/node_modules node_modules
+op install
+```
+
+Keep an existing external link. `op install` verifies it, stages the manifest,
+workspace settings and lockfile beside its target, runs pnpm there with one
+dependency operation at a time, then copies the lockfile back. It skips dependency
+scripts. Run installs, builds, tests and file scans serially. Automatic installs
+before pnpm scripts are disabled; use `op install` after dependency changes.
+
+Run `op test` for core and editor-state checks, `op build` to build `dist/`, then
+`op test-browser` for Chromium interaction and file-sync tests against that build.
+`op check` runs those three steps serially. The browser tests use an isolated
+profile and browser-owned files; they do not touch your saved projects.
+
+Run `op preview` to serve the build at `http://0.0.0.0:3000`. Run `op screenshots`
+to build and refresh both README screenshots from Welcome. Browser checks need
+Chromium; screenshots also need access to Google Fonts. Set `CHROMIUM_BIN` if
+your browser executable is named differently.
+
+Wrangler builds with `pnpm run build` and serves only `dist/`. Deployment is a
+separate, manual action (`pnpm dlx wrangler deploy`); local checks do not deploy.
+
+## Source layout
+
+- `src/core/`: project validation, version-1 serialization, geometry, selection,
+  fonts, borders and palette calculations. These are plain ES modules.
+- `src/editor/`: editor state, workspace commands, palette drafts and file
+  synchronization. The runtime wires the modules to a shared command interface
+  and owns native listener/polling cleanup.
+- `src/ui/`: React shell, inspector navigation and palette controls, plus the
+  canvas and property-field adapters. Canvas gestures use native pointer events;
+  the inspector keeps its controls mounted to preserve focus and pointer capture.
+- `public/`: static assets, Welcome and the downloadable AI skill/examples.
+
+React subscribes to inspector and palette view snapshots. Project edits still
+pass through the editor's undo/redo and persistence path; palette previews stay
+in a draft until Save. The storage keys, file-connection database and version-1
+project format are unchanged. Unsupported saved data is left untouched and
+autosave stays paused.
 
 ---
 

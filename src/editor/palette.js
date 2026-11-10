@@ -1,0 +1,154 @@
+import Colors from '../core/colors.js';
+import Project from '../core/project.js';
+
+// Palette drafts stay outside the project until Save. Preview never records
+// history or writes storage; the editor's onSave records one undo operation.
+export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayout, onPick, onSave, onDelete }) {
+  const palettes = () => state().palettes ?? [];
+  const get = id => palettes().find(palette => palette.id === id);
+  const legacyColors = () => {
+    const owned = new Set(palettes().flatMap(palette => palette.colors));
+    return state().swatches.filter(item => !owned.has(item.id));
+  };
+  let paletteId = null, selectedId = null, draft = null, choosing = false, side = 'light';
+  let error = '', hexDirty = false, hexEditing = false, hexText = '', hexError = '';
+  const recipe = () => Colors.paletteRecipe(draft, side);
+  const find = selector => document.querySelector(`#box-color-picker ${selector}`);
+  const increment = axis => axis === 'c' ? .001 : .1;
+  const rounded = (value, axis) => Number((Math.round(value / increment(axis)) * increment(axis)).toFixed(3));
+  const stepPosition = (value, [min, max]) => {
+    const extent = value < 0 ? -min : max;
+    return extent > 0 ? Math.max(-1, Math.min(1, value / extent)) : 0;
+  };
+  const stepValue = (position, [min, max], axis) => rounded(position * (position < 0 ? -min : max), axis);
+
+  function entries() {
+    if (draft) return Array.from({ length: draft.count }, (_, index) => ({
+      id: index, color: Colors.toHex(Colors.paletteValue(recipe(), index)), name: `${draft.name || 'Palette'} ${index + 1}`,
+    }));
+    const palette = get(paletteId);
+    const items = palette ? palette.colors.map(id => state().swatches.find(item => item.id === id)) : legacyColors();
+    return items.map(item => ({ ...item, color: color(item.id) }));
+  }
+
+  function render() {
+    const palette = get(paletteId);
+    const current = draft ? recipe() : null;
+    ui.update({ palette: {
+      api, paletteId, selectedId, draft: draft && structuredClone(draft), choosing, side, error, hexError,
+      hex: hexDirty || hexEditing ? hexText : current ? Colors.toHex(current.base).toUpperCase() : '',
+      label: draft?.name || (draft ? 'New palette' : palette?.name || (legacyColors().length ? 'Existing colors' : 'No palettes')),
+      palettes: [...(legacyColors().length ? [{ id: '', name: 'Existing colors' }] : []), ...palettes()],
+      entries: entries(), canEdit: Boolean(palette), canDelete: Boolean(palette && Colors.canCount(state(), palette, 0)),
+      counts: [3, 6, 9].map(count => ({ count, disabled: Boolean(draft?.id && !Colors.canCount(state(), get(draft.id), count)) })),
+      recipe: current && structuredClone(current),
+    } });
+  }
+
+  function focus() {
+    (selectedId === null ? find('[data-transparent]')
+      : find('[data-palette-colors] [aria-selected="true"]') || find('[data-palette-colors] button') || find('[data-palette-name]'))?.focus();
+  }
+  function begin(edit) {
+    const palette = get(paletteId);
+    if (edit && !palette) return;
+    const selected = state().swatches.find(item => item.id === selectedId);
+    const base = palette?.base ?? Colors.fromHex(selected ? Colors.hexFor(state().swatches, selected.id, palettes()) : '#4393e1');
+    draft = edit ? structuredClone(palette) : {
+      name: 'Palette', count: palette?.count ?? 6, base: { ...base },
+      step: palette ? { ...palette.step } : { l: base.l >= 50 ? -8 : 8, c: 0, h: 0 }, dark: { mode: 'inverse' },
+    };
+    side = draft.dark?.mode === 'custom' ? theme() : 'light';
+    hexDirty = false; hexEditing = false; hexError = ''; choosing = false; error = '';
+    onLayout();
+    find('[data-palette-title]').focus(); find('[data-palette-title]').select();
+  }
+  function cancel() {
+    choosing = !draft.id; draft = null; hexDirty = false; hexEditing = false; hexError = ''; error = '';
+    onLayout();
+    find(choosing ? '[data-new-palette]' : '[data-edit-palette]').focus();
+  }
+  function applyHex(report = false) {
+    if (!hexDirty) return true;
+    const value = hexText.trim().replace(/^#/, '');
+    if (!/^(?:[\da-f]{3}|[\da-f]{6})$/i.test(value)) {
+      hexError = 'Enter three or six hex digits, with or without #.';
+      render();
+      if (report) find('[data-palette-hex]').reportValidity();
+      return false;
+    }
+    const expanded = value.length === 3 ? [...value].map(digit => digit + digit).join('') : value;
+    Object.assign(recipe().base, Colors.fromHex('#' + expanded));
+    hexDirty = false; hexError = ''; error = ''; onPreview();
+    return true;
+  }
+  function save() {
+    if (!applyHex(true)) return;
+    const invalid = [...find('[data-palette-editor]').querySelectorAll('input[type="number"]')]
+      .find(input => input.value === '' || !input.validity.valid);
+    if (invalid) { invalid.reportValidity(); invalid.focus(); return; }
+    if (!draft.name.trim()) { error = 'Enter a palette name.'; render(); find('[data-palette-title]').focus(); return; }
+    try { paletteId = onSave(draft); }
+    catch (issue) { error = issue.message; render(); return; }
+    draft = null; error = ''; onLayout(); focus();
+  }
+  function remove() {
+    if (draft || !get(paletteId)) return;
+    try { onDelete(paletteId); }
+    catch (issue) { error = issue.message; render(); return; }
+    paletteId = palettes()[0]?.id ?? null; choosing = false; error = ''; onLayout(); focus();
+  }
+
+  const api = {
+    render, focus, begin, cancel, save, remove,
+    open(id) {
+      selectedId = id; draft = null; choosing = false; error = '';
+      paletteId = palettes().find(palette => palette.colors.includes(id))?.id ?? get(paletteId)?.id ?? palettes()[0]?.id ?? null;
+      render();
+    },
+    preview(id, activeTheme) {
+      const index = draft?.id && get(draft.id)?.colors.indexOf(id);
+      if (!Number.isInteger(index) || index < 0 || index >= draft.count) return null;
+      const hex = Colors.toHex(Colors.paletteValue(draft, index, activeTheme));
+      return draft.dark ? hex : Project.resolveColor(hex, state().swatches.find(item => item.id === id)?.dark, activeTheme);
+    },
+    pick: onPick,
+    toggleChoices() {
+      choosing = !choosing; onLayout();
+      if (choosing) (find('[data-palette-choices] [aria-selected="true"]') || find('[data-palette-choices] button'))?.focus();
+      else find('[data-palette-name]').focus();
+    },
+    choose(id) { paletteId = id || null; choosing = false; onLayout(); focus(); },
+    rename(name) { draft.name = name; error = ''; render(); },
+    setCount(count) { draft.count = count; error = ''; onLayout(); },
+    setHex(text) { hexEditing = true; hexDirty = true; hexText = text; applyHex(); },
+    acceptHex() { hexEditing = false; if (draft && applyHex()) render(); },
+    setMode(mode) {
+      if (!applyHex(true)) return;
+      const previous = Colors.paletteRecipe(draft, 'dark');
+      draft.dark ??= {};
+      if (mode === 'custom' && !draft.dark.base) Object.assign(draft.dark, { base: { ...previous.base }, step: { ...previous.step } });
+      draft.dark.mode = mode; side = mode === 'custom' ? 'dark' : 'light'; onPreview();
+    },
+    setSide(value) { if (applyHex(true)) { side = value; onPreview(); } },
+    copy() {
+      if (draft?.dark?.mode !== 'custom' || !applyHex(true)) return;
+      const source = Colors.paletteRecipe(draft, side === 'dark' ? 'light' : 'dark');
+      Object.assign(recipe().base, source.base); Object.assign(recipe().step, source.step); error = ''; onPreview();
+    },
+    setChannel(axis, group, value) { recipe()[group][axis] = value; error = ''; onPreview(); },
+    stepPosition, stepValue, increment, rounded,
+    escape(event) {
+      if (event.key === 'Escape' && (draft || choosing)) {
+        event.preventDefault(); event.stopPropagation();
+        // Native window keyboard handling also listens for Escape.
+        event.nativeEvent.stopImmediatePropagation();
+        if (draft) cancel(); else { choosing = false; onLayout(); find('[data-palette-name]').focus(); }
+      } else if (event.key === 'Enter' && draft && event.target.matches('input')) {
+        event.preventDefault();
+        if (event.target.matches('[data-palette-hex]')) applyHex(true); else save();
+      }
+    },
+  };
+  return api;
+}

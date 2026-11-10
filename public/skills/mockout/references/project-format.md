@@ -159,7 +159,7 @@ Boxes continue to reference swatch IDs. Preserve
 slot IDs and order when editing a recipe; update the fallback hexes too. A swatch
 can belong to only one palette. Never remove a slot referenced by a box, a border
 side, the last drawing style, or another color. If the Mockout source is available
-locally, `public/colors.js` exports `savePalette(state, draft)` to generate or
+locally, `src/core/colors.js` has a default export with `savePalette(state, draft)` to generate or
 update the palette slots and fallbacks together.
 
 Start with a neutral Background lightness ramp and an Accent palette. A hue step
@@ -267,4 +267,4 @@ Before publishing each box, check:
 
 JSON Schema checks structure; it cannot enforce references to IDs elsewhere in
 the document or the intended appearance. If the Mockout source is locally
-available, its `public/project.js` exports `validProject` for an additional check.
+available, its `src/core/project.js` has a default export with `validProject` for an additional check.

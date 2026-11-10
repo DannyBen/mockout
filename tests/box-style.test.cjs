@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const style = require('../public/box-style.js');
-const project = require('../public/project.js');
+const style = require('../src/core/box-style.js').default;
+const project = require('../src/core/project.js').default;
 const box = () => ({ id: 1, x: 20, y: 30, w: 400, h: 40, text: 'Progress',
   ...project.freshState().lastStyle });
 

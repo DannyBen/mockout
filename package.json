@@ -1,0 +1,21 @@
+{
+  "name": "mockout",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.17.0",
+  "scripts": {
+    "dev": "vite --configLoader native",
+    "build": "vite build --configLoader native",
+    "preview": "vite preview --configLoader native",
+    "test": "node --test --test-isolation=none --test-concurrency=1 tests/*.test.cjs tests/*.test.js",
+    "test:browser": "node --test --test-concurrency=1 --test-timeout=60000 tests/*.browser.js"
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "vite": "^8.3.4"
+  }
+}

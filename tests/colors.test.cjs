@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const colors = require('../public/colors.js');
-const project = require('../public/project.js');
+const colors = require('../src/core/colors.js').default;
+const project = require('../src/core/project.js').default;
 
 const recipe = (count = 6) => ({ name: 'Surface', count, base: { l: 65, c: .14, h: 250 }, step: { l: -8, c: .01, h: 25 } });
 const emptyState = () => ({ ...project.freshState(), swatches: [], palettes: [], lastStyle: project.initialStyle([]) });

@@ -208,4 +208,4 @@ const MockoutColors = (() => {
   return { fromHex, toHex, maxChroma, contrastingText, baseValue, relativeValue, hexFor, paletteRecipe, paletteValue, stepLimits, valid, canCount, deletePalette, savePalette };
 })();
 
-if (typeof module !== 'undefined') module.exports = MockoutColors;
+export default MockoutColors;

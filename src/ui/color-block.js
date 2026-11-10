@@ -1,5 +1,6 @@
-const MockoutColorBlock = {
-  render(element, { color = null, label, selected = false, mixed = false, action = null }) {
+import MockoutColors from '../core/colors.js';
+
+export function renderColorBlock(element, { color = null, label, selected = false, mixed = false, action = null }) {
     element.classList.add('color-block');
     element.classList.toggle('transparent', !color && !mixed);
     element.classList.toggle('mixed', mixed);
@@ -22,5 +23,4 @@ const MockoutColorBlock = {
       svg.append(use); mark.append(svg);
     } else mark.textContent = selected ? '✓' : '';
     element.replaceChildren(name, mark);
-  },
-};
+}

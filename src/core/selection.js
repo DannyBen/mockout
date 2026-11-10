@@ -55,4 +55,4 @@ const MockoutSelection = {
   },
 };
 
-if (typeof module !== 'undefined') module.exports = MockoutSelection;
+export default MockoutSelection;

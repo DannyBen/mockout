@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const project = require('../public/project.js');
-const fonts = require('../public/fonts.js');
+const project = require('../src/core/project.js').default;
+const fonts = require('../src/core/fonts.js').default;
 const welcome = require('../public/welcome.json');
 
 test('Welcome boxes use the active grid for positions and sizes', () => {

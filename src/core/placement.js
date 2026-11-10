@@ -23,4 +23,4 @@ const MockoutPlacement = {
   },
 };
 
-if (typeof module !== 'undefined') module.exports = MockoutPlacement;
+export default MockoutPlacement;

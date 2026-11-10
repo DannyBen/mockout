@@ -2,7 +2,7 @@ const { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync } = require(
 const { join, resolve } = require('node:path');
 const { tmpdir } = require('node:os');
 const { execFileSync } = require('node:child_process');
-const project = require('../public/project.js');
+const project = require('../src/core/project.js').default;
 
 const root = resolve(__dirname, '..');
 const publicDir = join(root, 'public');

@@ -6,7 +6,7 @@ const { spawn } = require('node:child_process');
 const { once } = require('node:events');
 
 const root = resolve(__dirname, '..');
-const publicDir = join(root, 'public');
+const publicDir = join(root, 'dist');
 const outputDir = join(root, 'support', 'screenshots');
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
   '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };

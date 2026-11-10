@@ -41,4 +41,4 @@ const MockoutFonts = (() => {
     isMaterial, isSymbol, isClassicIcon, categoryOf, validFamily, stylesheets };
 })();
 
-if (typeof module !== 'undefined') module.exports = MockoutFonts;
+export default MockoutFonts;

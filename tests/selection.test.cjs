@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const selection = require('../public/selection.js');
+const selection = require('../src/core/selection.js').default;
 
 test('switching boxes keeps the properties inspector open and shows the new box', () => {
   const boxes = [{ id: 1, text: 'First' }, { id: 2, text: 'Second' }];

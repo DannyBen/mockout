@@ -1,7 +1,8 @@
+import fonts from './fonts.js';
+import boxStyle from './box-style.js';
+import colors from './colors.js';
+
 const MockoutProject = (() => {
-  const fonts = typeof module !== 'undefined' ? require('./fonts.js') : MockoutFonts;
-  const boxStyle = typeof module !== 'undefined' ? require('./box-style.js') : MockoutBoxStyle;
-  const colors = typeof module !== 'undefined' ? require('./colors.js') : MockoutColors;
   const defaultCanvasColors = { background: '#ffffff', gridMajor: '#d0d0d0', gridMinor: '#e8e8e8' };
   const colorModeValues = ['hsb', 'rgb', 'gray'];
   const hexColor = value => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
@@ -145,4 +146,4 @@ const MockoutProject = (() => {
   };
 })();
 
-if (typeof module !== 'undefined') module.exports = MockoutProject;
+export default MockoutProject;

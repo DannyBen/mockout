@@ -2,8 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
-const project = require('../public/project.js');
-const colors = require('../public/colors.js');
+const project = require('../src/core/project.js').default;
+const colors = require('../src/core/colors.js').default;
 
 const publicDir = join(__dirname, '../public');
 const read = path => JSON.parse(readFileSync(join(publicDir, path), 'utf8'));

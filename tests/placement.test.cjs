@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const placement = require('../public/placement.js');
+const placement = require('../src/core/placement.js').default;
 
 test('arrow nudges reach the next grid line in either direction without skipping one', () => {
   for (const [value, left, right] of [
