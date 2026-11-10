@@ -283,8 +283,6 @@ export function createController({ model, elements, actions, events, ui }) {
     model.textEditor = true;
     actions.render();
     const editor = elements.canvas.querySelector(`.box[data-id="${id}"] .box-label`);
-    editor.classList.add('text-editor');
-    editor.contentEditable = 'plaintext-only';
     model.textEditor = editor;
     editor.focus();
     const range = document.createRange();
@@ -571,6 +569,7 @@ export function createController({ model, elements, actions, events, ui }) {
         startCanvasPan(event);
       }, { capture: true });
       events.on(elements.workspace, 'pointerdown', event => {
+        if (event.target.closest('.style-marker') && event.button === 0 && !model.spaceDown) return;
         if (model.fileLocked && event.button !== 1 && !model.spaceDown) { event.preventDefault(); return; }
         if (elements.inspector.contains(document.activeElement)) document.activeElement.blur();
         if (model.placement) {
@@ -727,7 +726,7 @@ export function createController({ model, elements, actions, events, ui }) {
       events.on(document, 'keyup', event => {
         if (event.key === 'Alt') {
           model.altDown = false;
-          elements.workspace.classList.remove('alt-move');
+          actions.render();
         }
         if (event.code === 'Space' && model.spaceDown) {
           model.spaceDown = false;
@@ -736,7 +735,7 @@ export function createController({ model, elements, actions, events, ui }) {
       });
       events.on(window, 'blur', () => {
         model.altDown = false;
-        elements.workspace.classList.remove('alt-move');
+        actions.render();
         if (model.spaceDown) { model.spaceDown = false; actions.render(); }
       });
       events.on(document, 'keydown', event => {
@@ -767,7 +766,7 @@ export function createController({ model, elements, actions, events, ui }) {
         }
         if (event.key === 'Alt') {
           model.altDown = true;
-          elements.workspace.classList.add('alt-move');
+          actions.render();
         }
         const ctrl = event.ctrlKey || event.metaKey;
         const digit = /^(?:Digit|Numpad)([0-9])$/.exec(event.code)?.[1];

@@ -508,21 +508,6 @@ export function createInspector({ model, elements, actions, events, ui }) {
         revealInspector();
         focusPropertySection();
       });
-      for (const target of actions.boxStyle.targets) {
-        const marker = document.createElement('button');
-        marker.type = 'button';
-        marker.className = 'style-marker';
-        marker.dataset.styleTarget = target.id;
-        marker.dataset.kind = target.corner ? 'corner' : 'edge';
-        marker.dataset.axis = target.x === .5 ? 'horizontal' : 'vertical';
-        marker.setAttribute('aria-label', `${target.name} ${target.corner ? 'corner' : 'border'}`);
-        marker.setAttribute('aria-controls', 'inspector');
-        events.on(marker, 'pointerdown', event => {
-          if (event.button === 0 && !model.spaceDown) event.stopPropagation();
-        });
-        events.on(marker, 'click', () => { if (!model.spaceDown) selectStyleTarget(target); });
-        elements.styleMarkers.append(marker);
-      }
       events.on(elements.inspector, 'keydown', event => {
         if (event.key !== 'Tab' || event.ctrlKey || event.altKey || event.metaKey) return;
         const fields = [...elements.inspector.querySelectorAll('button, input, select, a[href]')]

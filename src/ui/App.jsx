@@ -7,7 +7,7 @@ import { Status } from './Status.jsx';
 
 export function App({ ui }) {
   return <>
-    <Canvas />
+    <Canvas ui={ui} />
     <Toolbar ui={ui} />
     <Help ui={ui} />
     <Dialogs ui={ui} />

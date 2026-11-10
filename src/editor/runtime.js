@@ -1,7 +1,7 @@
 import { createEditorState } from './state.js';
 import { findElements } from './elements.js';
 import { createSelectors } from './selectors.js';
-import { createCanvas } from '../ui/canvas-renderer.js';
+import { createCanvas } from './canvas.js';
 import { createInspector } from '../ui/inspector-controller.js';
 import { createFileSync } from './file-sync.js';
 import { createController } from './controller.js';
@@ -92,6 +92,7 @@ export function startEditor(ui) {
     saveOurs: () => { if (model.fileConflict && model.filePendingStamp !== null) actions.saveProject(false, model.filePendingStamp); },
     resetEverything: () => actions.resetEverything(),
     downloadSavedData: () => actions.downloadSavedData(),
+    selectStyleTarget: id => { if (!model.spaceDown) actions.selectStyleTarget(actions.boxStyle.targets.find(target => target.id === id)); },
   };
   for (const module of modules) module.init();
   return {

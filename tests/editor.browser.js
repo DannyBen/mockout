@@ -146,6 +146,35 @@ test('canvas pointer capture, grid nudges, duplicate cancellation and text editi
   assert.equal((await saved(b)).boxes[0].text, 'Edited text');
 });
 
+test('keyed canvas nodes preserve pointer capture and editable drafts through rerenders', async t => {
+  const b = await setup(t);
+  await b.evaluate("document.querySelector('#workspace').focus(); window.__box = document.querySelector('.box'); void 0");
+  await b.key('Tab');
+  await b.key('Enter');
+  await b.page('Input.insertText', { text: 'Unfinished draft' });
+  await b.evaluate('window.__editor = document.activeElement; window.__anchor = getSelection().anchorNode; window.__offset = getSelection().anchorOffset');
+  await b.key('Alt');
+  assert.equal(await b.evaluate('document.activeElement === window.__editor && getSelection().anchorNode === window.__anchor && getSelection().anchorOffset === window.__offset'), true);
+  assert.equal(await b.evaluate("document.querySelector('.box') === window.__box"), true);
+  assert.equal((await saved(b)).boxes[0].text, 'First');
+  await b.key('Escape');
+  assert.equal(await b.evaluate("document.querySelector('.box-label').textContent"), 'First');
+  await b.key('Enter');
+  await b.page('Input.insertText', { text: 'Saved draft' });
+  await b.key('Tab');
+  assert.equal((await saved(b)).boxes[0].text, 'Saved draft');
+  assert.equal(await b.evaluate("document.querySelector('.box.selected').dataset.id"), '51');
+  await b.key('a', { code: 'KeyA', modifiers: 2 });
+  const rect = await b.evaluate("(() => { const r = document.querySelector('.selection-bounds [data-handle=se]').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()");
+  await b.mouse('mousePressed', rect.x, rect.y, { button: 'left', buttons: 1, clickCount: 1 });
+  await b.mouse('mouseMoved', rect.x + 20, rect.y + 20, { buttons: 1 });
+  assert.equal(await b.evaluate("document.querySelector('#workspace').hasPointerCapture(1)"), true);
+  await b.mouse('mouseReleased', rect.x + 20, rect.y + 20, { button: 'left', buttons: 0, clickCount: 1 });
+  assert.deepEqual((await saved(b)).boxes.map(box => box.w), [223, 200]);
+  await b.key('z', { code: 'KeyZ', modifiers: 2 });
+  assert.deepEqual((await saved(b)).boxes.map(box => box.w), [200, 180]);
+});
+
 test('canvas inspector dismisses outside; Save choices wrap focus and restore it', async t => {
   const b = await setup(t);
   await b.evaluate("document.querySelector('#workspace').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 50, clientY: 500 }))");
