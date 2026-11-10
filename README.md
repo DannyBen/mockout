@@ -133,21 +133,24 @@ separate, manual action (`pnpm dlx wrangler deploy`); local checks do not deploy
 
 ## Source layout
 
-- `src/core/`: project validation, version-1 serialization, geometry, selection,
-  fonts, borders and palette calculations. These are plain ES modules.
-- `src/editor/`: editor state, workspace commands, palette drafts and file
-  synchronization. The runtime wires the modules to a shared command interface
-  and owns native listener/polling cleanup.
-- `src/ui/`: React shell, inspector navigation and palette controls, plus the
-  canvas and property-field adapters. Canvas gestures use native pointer events;
-  the inspector keeps its controls mounted to preserve focus and pointer capture.
+- `src/core/`: DOM-free project validation, version-1 serialization, geometry,
+  selection, fonts, borders and palette calculations.
+- `src/editor/`: document/history commands, transient editor state, view snapshots,
+  color drafts and file synchronization. The runtime exposes explicit UI commands
+  and owns native listener, timer and file-observer cleanup. Native DOM anchors
+  support pointer capture, text selection, focus restoration and layout measurement.
+- `src/ui/`: React owns the canvas boxes/handles/guides, inspector forms and color
+  editors, toolbar, help, dialogs and status. Keyed boxes preserve node identity;
+  active text editors and unfinished field input stay intact through rerenders.
 - `public/`: static assets, Welcome and the downloadable AI skill/examples.
 
-React subscribes to inspector and palette view snapshots. Project edits still
-pass through the editor's undo/redo and persistence path; palette previews stay
-in a draft until Save. The storage keys, file-connection database and version-1
-project format are unchanged. Unsupported saved data is left untouched and
-autosave stays paused.
+React subscribes to cached view snapshots through `useSyncExternalStore` and
+invokes editor commands rather than mutating the document. Project edits pass
+through the editor's undo/redo and persistence path; color previews stay in a
+draft until Save. Browser file handles, permissions, polling and revision guards
+remain in the native file service. The storage keys, file-connection database and
+version-1 project format are unchanged. Unsupported saved data is left untouched
+and autosave stays paused.
 
 ---
 

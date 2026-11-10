@@ -1,8 +1,8 @@
 import { createEditorState } from './state.js';
-import { findElements } from './elements.js';
+import { editorDOM } from './dom.js';
 import { createSelectors } from './selectors.js';
 import { createCanvas } from './canvas.js';
-import { createInspector } from '../ui/inspector-controller.js';
+import { createInspector } from './inspector.js';
 import { createFileSync } from './file-sync.js';
 import { createController } from './controller.js';
 import { createProperties } from './properties.js';
@@ -30,13 +30,12 @@ export function startEditor(ui) {
       return timer;
     },
   };
-  const context = { model, elements: findElements(), actions, events, ui };
+  const context = { model, elements: editorDOM(), actions, events, ui };
   const modules = [createSelectors, createProperties, createPresentation, createCanvas, createInspector, createFileSync, createController].map(create => {
     const module = create(context);
     Object.assign(actions, module.actions);
     return module;
   });
-  ui.actions = actions;
   // UI commands deliberately expose editor operations rather than the mutable
   // model or the internal cross-service action registry.
   ui.commands = {
@@ -54,6 +53,9 @@ export function startEditor(ui) {
     saveProject: as => actions.saveProject(as),
     chooseProjectFile: () => actions.chooseProjectFile(),
     closeInspector: () => actions.closeInspector(),
+    navigateInspector: () => actions.navigateInspector(),
+    choosePropertySection: section => actions.choosePropertySection(section),
+    rememberPropertyFocus: field => actions.rememberPropertyFocus(field),
     showInspectorParent: view => actions.showInspectorParent(view),
     setBoxField: (id, value) => actions.setBoxField(id, value),
     previewStyleField: (id, value) => actions.previewStyleField(id, value),

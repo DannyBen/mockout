@@ -376,10 +376,8 @@ export function createFileSync({ model, elements, actions, events }) {
 
   return {
     actions: {
-      updateFileStatus, clearFileSaveError, queueFileSave, setProjectFileHandle, rememberFileConnection,
-      storedFileConnection, checkFileConnection, restoreFileConnection, showFileUpdate, clearFileUpdate,
-      pauseFileEditing, checkExternalFile, loadExternalFile, downloadProject, saveProject,
-      chooseProjectFile, openProjectFile, finishOpeningProject,
+      updateFileStatus, queueFileSave, setProjectFileHandle, checkFileConnection, restoreFileConnection,
+      checkExternalFile, saveProject, chooseProjectFile, openProjectFile, finishOpeningProject
     },
     init() {
       events.on(window, 'focus', () => checkExternalFile());

@@ -81,12 +81,10 @@ export function createSelectors({ model, elements, actions }) {
 
   return {
     actions: {
-      STORAGE_KEY, initialStyle, boxStyle, fonts, freshState,
-      validProject, snapshot, selectedBox, selectedBoxes, propertySectionIndex,
-      paddingX, paddingY, boxProperty, styleSections, styleTarget,
-      styleTargets, styleEditing, styleOf, rememberStyle, selectOnly,
-      inspectedBox, swatch, activeTheme, resolvedColor, draftColor,
-      colorOf, canvasColor, boxColor, snap, minimum,
+      STORAGE_KEY, initialStyle, boxStyle, fonts, freshState, validProject, snapshot, selectedBox,
+      selectedBoxes, propertySectionIndex, boxProperty, styleSections, styleTarget, styleTargets,
+      styleEditing, styleOf, rememberStyle, selectOnly, inspectedBox, swatch, activeTheme, colorOf,
+      canvasColor, boxColor, snap, minimum
     },
     init() {
     },

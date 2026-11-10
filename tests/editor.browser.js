@@ -175,6 +175,63 @@ test('keyed canvas nodes preserve pointer capture and editable drafts through re
   assert.deepEqual((await saved(b)).boxes.map(box => box.w), [200, 180]);
 });
 
+test('drawing, marquee, zoom and native pointer cancellation retain gesture boundaries', async t => {
+  const b = await setup(t);
+  await b.evaluate("document.querySelector('#workspace').focus()");
+  await b.key('d', { code: 'KeyD' });
+  await b.mouse('mousePressed', 100, 180, { button: 'left', buttons: 1, clickCount: 1 });
+  await b.mouse('mouseMoved', 250, 260, { buttons: 1 });
+  assert.equal(await b.evaluate("document.querySelectorAll('.box.drawing').length"), 1);
+  assert.equal((await saved(b)).boxes.length, 2);
+  await b.mouse('mouseReleased', 250, 260, { button: 'left', buttons: 0, clickCount: 1 });
+  assert.equal((await saved(b)).boxes.length, 3);
+  await b.key('z', { code: 'KeyZ', modifiers: 2 });
+  assert.deepEqual((await saved(b)).boxes, fixture.boxes);
+  await b.key('s', { code: 'KeyS' });
+  const rect = await b.evaluate("(() => { const r = document.querySelector('.box').getBoundingClientRect(); return { x: r.x, y: r.y }; })()");
+  await b.mouse('mousePressed', rect.x + 20, rect.y + 20, { button: 'left', buttons: 1, clickCount: 1 });
+  await b.mouse('mouseMoved', rect.x + 50, rect.y + 50, { buttons: 1 });
+  await b.evaluate("document.querySelector('#workspace').dispatchEvent(new PointerEvent('pointercancel', { pointerId: 1, bubbles: true }))");
+  await b.mouse('mouseReleased', rect.x + 50, rect.y + 50, { button: 'left', buttons: 0, clickCount: 1 });
+  assert.deepEqual((await saved(b)).boxes, fixture.boxes);
+  await b.mouse('mousePressed', rect.x - 10, rect.y - 10, { button: 'left', buttons: 1, clickCount: 1 });
+  await b.mouse('mouseMoved', rect.x + 210, rect.y + 110, { buttons: 1 });
+  assert.equal(await b.evaluate("document.querySelectorAll('.marquee').length"), 1);
+  await b.mouse('mouseReleased', rect.x + 210, rect.y + 110, { button: 'left', buttons: 0, clickCount: 1 });
+  assert.equal(await b.evaluate("document.querySelectorAll('.box.selected').length"), 1);
+  await b.key('+', { code: 'Equal', modifiers: 2 });
+  assert.equal(await b.evaluate("document.querySelector('#canvas').style.transform.includes('scale(1.2)')"), true);
+  await b.key('0', { code: 'Digit0', modifiers: 2 });
+  assert.equal(await b.evaluate("document.querySelector('#canvas').style.transform.includes('scale(1)')"), true);
+});
+
+test('reset hold cancels on release and completes once; AI copy feedback clears on close', async t => {
+  const b = await setup(t, { script: `Object.defineProperty(navigator, 'clipboard', { value: { writeText: async text => { window.__copied = text; } } });` });
+  await click(b, '#ai-button');
+  await click(b, '[data-ai-prompt="quick"]');
+  await b.wait("document.querySelector('#ai-copy-status').textContent.startsWith('Copied.')");
+  assert.match(await b.evaluate('window.__copied'), /mockout/i);
+  await click(b, '#close-ai-dialog');
+  await b.wait("document.activeElement.id === 'workspace'");
+  await click(b, '#ai-button');
+  assert.equal(await b.evaluate("document.querySelector('#ai-copy-status').textContent"), '');
+  await b.key('Escape');
+  await b.wait("document.activeElement.id === 'workspace'");
+  await click(b, '#project-menu-button');
+  await b.evaluate("document.querySelector('#reset-button').focus()");
+  await b.key('Enter');
+  await b.evaluate('new Promise(resolve => setTimeout(resolve, 1300))');
+  assert.equal(await b.evaluate("localStorage.getItem('mockout-project')"), raw);
+  assert.equal(await b.evaluate('document.activeElement.id'), 'reset-button');
+  await b.page('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+  await b.wait("document.querySelector('#reset-button').classList.contains('holding')");
+  await b.wait("JSON.parse(localStorage.getItem('mockout-project')).boxes.length > 2");
+  await b.page('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+  assert.equal(await b.evaluate("document.querySelector('.holding')"), null);
+  await b.key('z', { code: 'KeyZ', modifiers: 2 });
+  assert.ok((await saved(b)).boxes.length > 2);
+});
+
 test('canvas inspector dismisses outside; Save choices wrap focus and restore it', async t => {
   const b = await setup(t);
   await b.evaluate("document.querySelector('#workspace').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 50, clientY: 500 }))");

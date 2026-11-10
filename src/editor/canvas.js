@@ -68,5 +68,5 @@ export function createCanvas({ model, elements, actions, ui }) {
       document.head.append(link);
     }
   }
-  return { actions: { renderStyleMarkers, render, syncFontStylesheets }, init() {} };
+  return { actions: { render }, init() {} };
 }

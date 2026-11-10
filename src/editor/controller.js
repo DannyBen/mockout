@@ -5,10 +5,9 @@ import MockoutPlacement from '../core/placement.js';
 
 export function createController({ model, elements, actions, events, ui }) {
   const themeMedia = matchMedia('(prefers-color-scheme: dark)');
-  const modalDialogs = [elements.aiDialog, elements.openProjectDialog, elements.saveProjectDialog];
   const modalOpen = () => model.dialog !== null;
   const toolbarMenus = [
-    { menu: elements.projectMenu, button: elements.projectMenuButton, holder: elements.projectMenuHolder },
+    { menu: elements.projectMenu, holder: elements.projectMenuHolder },
   ];
   function closeToolbarMenu(item, focusCanvas = false) {
     model.projectMenuOpen = false;
@@ -521,16 +520,9 @@ export function createController({ model, elements, actions, events, ui }) {
 
   return {
     actions: {
-      themeMedia, modalDialogs, modalOpen, toolbarMenus,
-      closeToolbarMenu, closeProjectMenu, toggleToolbarMenu, syncThemeButton, setTheme,
-      toggleTheme, focusProject, persist, commit, change,
-      point, newBox, dragTargets, startCopyPlacement, startDuplicatePlacement,
-      copySelection, startPastePlacement, shiftPlacement, movePlacement, finishPlacement,
-      containsBox, overlapsBox, arrangeStack, setTool, toggleHelp,
-      aiPrompts, fetchWelcomeProject, loadWelcome, startCanvasPan, endGesture,
-      editText, deleteSelected, undo, redo, zoomAt,
-      cycleSelection, panCanvasWithWheel, newBlank, resetEverything, previewHTML,
-      openPreview, openAI, copyAIPrompt, downloadSavedData,
+      modalOpen, toolbarMenus, closeProjectMenu, toggleToolbarMenu, toggleTheme, focusProject, commit,
+      change, finishPlacement, setTool, toggleHelp, loadWelcome, undo, redo, newBlank, resetEverything,
+      openPreview, openAI, copyAIPrompt, downloadSavedData
     },
     init() {
       events.on(themeMedia, 'change', event => {
@@ -743,7 +735,7 @@ export function createController({ model, elements, actions, events, ui }) {
           if ((event.ctrlKey || event.metaKey) && ['KeyS', 'KeyO', 'KeyP', 'KeyD'].includes(event.code)) event.preventDefault();
           return;
         }
-        const openMenu = toolbarMenus.find(item => !item.menu.hidden);
+        const openMenu = model.projectMenuOpen ? toolbarMenus[0] : null;
         if (openMenu && openMenu.holder.contains(document.activeElement)) {
           if (event.key === 'Escape' || event.key === 'Tab') {
             event.preventDefault();

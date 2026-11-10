@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import { Input } from './Input.jsx';
 import { ColorBlock } from './ColorBlock.jsx';
 import { BoxColorField } from './LegacyColors.jsx';
+import { moveInList } from './keyboard.js';
 
 export function Properties({ ui, inspector: i, data, colors }) {
   const p = data || { values: {}, familyChoice: '', gridBase: 5, gridDivisions: 10 };
@@ -33,7 +34,7 @@ export function Properties({ ui, inspector: i, data, colors }) {
     }
   }
   return <>
-    <section id="box-properties" hidden={i.view !== 'properties' || i.kind !== 'box'}>
+    <section id="box-properties" onFocus={event => ui.commands.rememberPropertyFocus(event.target)} hidden={i.view !== 'properties' || i.kind !== 'box'}>
       <div id="box-appearance-properties" className="section-content" hidden={i.section !== 'box'}>
         <div className="two-fields">
           <label className={mixedClass(p.values['box-width'] === undefined)}>Width <Input {...field('box-width')} id="box-width" type="number" min="1" step="1" /></label>
@@ -129,7 +130,7 @@ export function Properties({ ui, inspector: i, data, colors }) {
         <footer className="dialog-footer font-links"><a href="https://fonts.google.com/" target="_blank" rel="noopener noreferrer">Browse fonts <svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#open_in_new"></use></svg></a><a id="browse-icons" href={p.classic ? 'https://fonts.google.com/icons?icon.set=Material+Icons' : 'https://fonts.google.com/icons'} target="_blank" rel="noopener noreferrer" hidden={category !== 'material'}>Browse icons <svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#open_in_new"></use></svg></a></footer>
       </div>
     </section>
-    <section id="canvas-properties" className="dialog-choice-list" hidden={i.view !== 'properties' || i.kind !== 'canvas' || i.canvasSection !== 'canvas'} aria-label="Canvas colors">
+    <section id="canvas-properties" onKeyDown={moveInList} className="dialog-choice-list" hidden={i.view !== 'properties' || i.kind !== 'canvas' || i.canvasSection !== 'canvas'} aria-label="Canvas colors">
       <ColorBlock className="dialog-choice" data-canvas-color-property="background" {...colors?.canvasColors.background} aria-label={`${colors?.canvasColors.background.label}: ${colors?.canvasColors.background.color.toUpperCase()}`} onClick={() => ui.commands.openCanvasColor('background')} />
       <ColorBlock className="dialog-choice" data-canvas-color-property="gridMinor" {...colors?.canvasColors.gridMinor} aria-label={`${colors?.canvasColors.gridMinor.label}: ${colors?.canvasColors.gridMinor.color.toUpperCase()}`} onClick={() => ui.commands.openCanvasColor('gridMinor')} />
       <ColorBlock className="dialog-choice" data-canvas-color-property="gridMajor" {...colors?.canvasColors.gridMajor} aria-label={`${colors?.canvasColors.gridMajor.label}: ${colors?.canvasColors.gridMajor.color.toUpperCase()}`} onClick={() => ui.commands.openCanvasColor('gridMajor')} />

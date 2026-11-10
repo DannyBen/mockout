@@ -1,6 +1,7 @@
 import { ColorBlock } from './ColorBlock.jsx';
 import { Input } from './Input.jsx';
 import { Icon } from './Icon.jsx';
+import { moveInList } from './keyboard.js';
 
 export function BoxColorField({ ui, colors, property, side = false, ...props }) {
   const value = colors?.boxColors[side ? 'borderSide' : property];
@@ -13,7 +14,7 @@ export function LegacyColors({ ui, inspector: i, colors: c }) {
   const choosing = i.view === 'choose';
   return <>
     <section id="swatch-chooser" hidden={!choosing} aria-label="Choose swatch">
-      <div id="choice-swatch-list" className="dialog-choice-list" role="listbox" aria-label="Swatches">
+      <div id="choice-swatch-list" onKeyDown={moveInList} className="dialog-choice-list" role="listbox" aria-label="Swatches">
         {c?.swatches.map(item => <ColorBlock key={item.id ?? ''} className="dialog-choice" data-swatch-id={item.id ?? ''}
           color={item.color} label={item.name} selected={item.selected} role="option" aria-selected={item.selected}
           aria-label={`Use ${item.name}`} onClick={() => ui.commands.assignColor(item.id)} />)}
@@ -21,7 +22,7 @@ export function LegacyColors({ ui, inspector: i, colors: c }) {
       <footer className="dialog-footer"><button type="button" id="choice-manage-swatches" data-manage-swatches="" onClick={ui.commands?.openManageSwatches}>Manage swatches</button></footer>
     </section>
     <section id="swatch-manager" hidden={i.view !== 'manage'} aria-label="Manage swatches">
-      <div id="swatch-list" className="dialog-choice-list" aria-label="Project swatches">
+      <div id="swatch-list" onKeyDown={moveInList} className="dialog-choice-list" aria-label="Project swatches">
         {c?.swatches.filter(item => item.id !== null).map(item => <ColorBlock key={item.id} className="dialog-choice" data-swatch-id={item.id}
           color={item.color} label={item.name} action="edit" aria-label={`Edit ${item.name}`} onClick={() => ui.commands.openSwatchEditor(item.id)} />)}
       </div>

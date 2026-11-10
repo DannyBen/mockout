@@ -2,16 +2,7 @@ import { useLayoutEffect, useRef, useSyncExternalStore, useMemo } from 'react';
 import Colors from '../core/colors.js';
 import { ColorBlock } from './ColorBlock.jsx';
 import { Icon } from './Icon.jsx';
-
-function moveInList(event) {
-  const direction = { ArrowDown: 1, ArrowUp: -1, ArrowRight: 1, ArrowLeft: -1, Home: 'first', End: 'last' }[event.key];
-  if (!direction) return;
-  event.preventDefault();
-  const buttons = [...event.currentTarget.querySelectorAll('button')];
-  const index = buttons.indexOf(document.activeElement);
-  const next = direction === 'first' ? 0 : direction === 'last' ? buttons.length - 1 : (index + direction + buttons.length) % buttons.length;
-  buttons[next]?.focus(); buttons[next]?.scrollIntoView({ block: 'nearest' });
-}
+import { moveInList } from './keyboard.js';
 
 // Keep unfinished and invalid numeric input intact while a field has focus.
 function NumberInput({ value, ...props }) {
@@ -91,12 +82,12 @@ export function PalettePicker({ ui }) {
         <input data-palette-title="" type="text" maxLength="60" aria-label="Palette name" placeholder="Palette name" hidden={!draft} value={draft?.name || ''} onChange={event => api.rename(event.target.value)} />
         <ColorBlock data-transparent="" hidden={Boolean(draft) || choosing} aria-pressed={p.selectedId === null} selected={p.selectedId === null} label="Transparent" onClick={() => api.pick(null)} />
         <p data-palette-hint="" hidden={Boolean(draft) || !choosing}>Choose palette</p>
-        <div data-palette-colors="" data-color-grid="" className="dialog-choice-list" role="listbox" aria-label="Palette colors" hidden={choosing} onKeyDown={moveInList}>
+        <div data-palette-colors="" data-color-grid="" className="dialog-choice-list" role="listbox" aria-label="Palette colors" hidden={choosing} onKeyDown={event => moveInList(event, true)}>
           {p.entries.map(item => <ColorBlock key={`${draft ? 'draft' : 'color'}-${item.id}`} as={draft ? 'output' : 'button'} color={item.color} label={item.name}
             {...(!draft ? { 'data-color-id': item.id, role: 'option', 'aria-selected': item.id === p.selectedId, onClick: () => api.pick(item.id) } : {})}
             selected={!draft && item.id === p.selectedId} aria-label={`${item.name}: ${item.color.toUpperCase()}`} />)}
         </div>
-        <div id="palette-choices" data-palette-choices="" data-color-grid="" className="dialog-choice-list" role="listbox" aria-label="Choose palette" hidden={!choosing} onKeyDown={moveInList}>
+        <div id="palette-choices" data-palette-choices="" data-color-grid="" className="dialog-choice-list" role="listbox" aria-label="Choose palette" hidden={!choosing} onKeyDown={event => moveInList(event, true)}>
           {p.palettes.map(item => <button key={item.id} type="button" className="dialog-choice" data-palette-id={item.id} role="option" aria-selected={item.id === (p.paletteId ?? '')} onClick={() => api.choose(item.id)}>{item.name}</button>)}
           <button type="button" data-new-palette="" className="dialog-choice" role="option" aria-selected="false" disabled={Boolean(draft)} onClick={() => api.begin(false)}>New palette</button>
         </div>

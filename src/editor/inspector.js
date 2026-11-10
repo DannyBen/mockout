@@ -1,4 +1,4 @@
-import { createPaletteEditor } from '../editor/palette.js';
+import { createPaletteEditor } from './palette.js';
 import MockoutProject from '../core/project.js';
 import MockoutColors from '../core/colors.js';
 import MockoutSelection from '../core/selection.js';
@@ -122,8 +122,9 @@ export function createInspector({ model, elements, actions, events, ui }) {
   function positionInspector() {
     if (elements.inspector.hidden) return;
     if (model.inspectorKind === 'canvas') {
-      elements.inspector.style.left = `${Math.max(12, Math.min(model.inspectorPoint.x, window.innerWidth - elements.inspector.offsetWidth - 12))}px`;
-      elements.inspector.style.top = `${Math.max(12, Math.min(model.inspectorPoint.y, window.innerHeight - elements.inspector.offsetHeight - 12))}px`;
+      const left = `${Math.max(12, Math.min(model.inspectorPoint.x, window.innerWidth - elements.inspector.offsetWidth - 12))}px`;
+      const top = `${Math.max(12, Math.min(model.inspectorPoint.y, window.innerHeight - elements.inspector.offsetHeight - 12))}px`;
+      ui.update({ inspectorPosition: { left, top } });
       return;
     }
     const box = actions.inspectedBox();
@@ -132,8 +133,7 @@ export function createInspector({ model, elements, actions, events, ui }) {
     if (!boxRect) return;
     const frame = actions.styleEditing() ? actions.boxStyle.markerFrame(boxRect) : null;
     const position = frame ? { left: frame.right + 20, top: frame.top } : MockoutSelection.inspectorPosition(boxRect);
-    elements.inspector.style.left = `${position.left}px`;
-    elements.inspector.style.top = `${position.top}px`;
+    ui.update({ inspectorPosition: { left: `${position.left}px`, top: `${position.top}px` } });
   }
   function revealInspector() {
     if (elements.inspector.hidden || model.inspectorKind !== 'box') return;
@@ -382,7 +382,7 @@ export function createInspector({ model, elements, actions, events, ui }) {
     model.editorColor = `#${value.toLowerCase()}`;
     if (model.colorMode === 'gray' && new Set(hexToRgb(model.editorColor)).size > 1) {
       model.colorMode = 'rgb';
-      }
+    }
     showColor();
   }
 
@@ -417,106 +417,76 @@ export function createInspector({ model, elements, actions, events, ui }) {
     showInspectorParent('edit');
   }
   function deleteSwatch() {
-        const id = model.colorTarget?.editId;
-        if (!id || model.project.swatches.length <= 1 || model.project.boxes.some(box => actions.boxStyle.usesColor(box, id))) return;
-        actions.change(() => {
-          model.project.swatches = model.project.swatches.filter(item => item.id !== id);
-          if (model.project.lastStyle) actions.boxStyle.replaceColor(model.project.lastStyle, id, model.project.swatches[0].id);
-        });
-        model.colorTarget.editId = null;
-        showInspectorParent('manage');
+    const id = model.colorTarget?.editId;
+    if (!id || model.project.swatches.length <= 1 || model.project.boxes.some(box => actions.boxStyle.usesColor(box, id))) return;
+    actions.change(() => {
+      model.project.swatches = model.project.swatches.filter(item => item.id !== id);
+      if (model.project.lastStyle) actions.boxStyle.replaceColor(model.project.lastStyle, id, model.project.swatches[0].id);
+    });
+    model.colorTarget.editId = null;
+    showInspectorParent('manage');
   }
   function saveColor() {
-        if (!model.colorTarget) return;
-        if (model.colorTarget.direct) {
-          actions.change(() => {
-            model.project.canvasColors[model.colorTarget.property] = model.editorLight.color;
-            model.project.canvasColorModes = { ...model.project.canvasColorModes, [model.colorTarget.property]: model.editorLight.mode };
-            model.project.canvasDark = { ...model.project.canvasDark, [model.colorTarget.property]: { ...model.editorDark } };
-          });
-          showInspectorParent('properties');
-          return;
-        }
-        const name = model.swatchName.trim();
-        if (!name) {
-          model.swatchError = 'Give the swatch a name.';
-          actions.render();
-          document.querySelector('#swatch-name').focus();
-          return;
-        }
-        const dark = { mode: model.editorDark.mode };
-        if (model.editorDark.color) dark.color = model.editorDark.color;
-        if (model.editorDark.colorMode) dark.colorMode = model.editorDark.colorMode;
-        if (model.colorTarget.editId) {
-          actions.change(() => { Object.assign(actions.swatch(model.colorTarget.editId),
-            { name, color: model.editorLight.color, mode: model.editorLight.mode, dark }); });
-        } else {
-          actions.change(() => {
-            const id = `s${model.project.nextId++}`;
-            model.project.swatches.push({ id, name, color: model.editorLight.color, mode: model.editorLight.mode, dark });
-            model.colorTarget.editId = id;
-            if (model.colorTarget.property && model.selectedIds.size) applyColor(id);
-          });
-        }
-        const managerIndex = model.inspectorHistory.findLastIndex(entry => entry.view === 'manage');
-        showInspectorParent(model.inspectorHistory[managerIndex - 1].view);
+    if (!model.colorTarget) return;
+    if (model.colorTarget.direct) {
+      actions.change(() => {
+        model.project.canvasColors[model.colorTarget.property] = model.editorLight.color;
+        model.project.canvasColorModes = { ...model.project.canvasColorModes, [model.colorTarget.property]: model.editorLight.mode };
+        model.project.canvasDark = { ...model.project.canvasDark, [model.colorTarget.property]: { ...model.editorDark } };
+      });
+      showInspectorParent('properties');
+      return;
+    }
+    const name = model.swatchName.trim();
+    if (!name) {
+      model.swatchError = 'Give the swatch a name.';
+      actions.render();
+      document.querySelector('#swatch-name').focus();
+      return;
+    }
+    const dark = { mode: model.editorDark.mode };
+    if (model.editorDark.color) dark.color = model.editorDark.color;
+    if (model.editorDark.colorMode) dark.colorMode = model.editorDark.colorMode;
+    if (model.colorTarget.editId) {
+      actions.change(() => { Object.assign(actions.swatch(model.colorTarget.editId),
+        { name, color: model.editorLight.color, mode: model.editorLight.mode, dark }); });
+    } else {
+      actions.change(() => {
+        const id = `s${model.project.nextId++}`;
+        model.project.swatches.push({ id, name, color: model.editorLight.color, mode: model.editorLight.mode, dark });
+        model.colorTarget.editId = id;
+        if (model.colorTarget.property && model.selectedIds.size) applyColor(id);
+      });
+    }
+    const managerIndex = model.inspectorHistory.findLastIndex(entry => entry.view === 'manage');
+    showInspectorParent(model.inspectorHistory[managerIndex - 1].view);
+  }
+
+  function choosePropertySection(section) {
+    if (model.inspectorKind === 'canvas') model.activeCanvasSection = section;
+    else {
+      model.activePropertySection = section;
+      if (actions.styleSections.includes(section)) model.tool = 'select';
+    }
+    resetInspectorView(); actions.render(); revealInspector(); focusPropertySection();
+  }
+  function navigateInspector() {
+    if (model.inspectorHistory.length) showInspectorParent();
+    else if (model.inspectorView !== 'sections') openSectionSelection();
+  }
+  function rememberPropertyFocus(field) {
+    if (model.inspectorKind === 'box' && model.inspectorView === 'properties') model.lastPropertyFocus.set(model.activePropertySection, field);
   }
 
   return {
     actions: {
-      boxColorPicker, renderInspector, colorLabel, legacyColorData,
-      resetInspectorView, pushInspectorView, showInspectorParent, openSectionSelection, focusSectionSelection,
-      renderInspectorHeader, positionInspector, revealInspector, focusPropertySection,
-      closeInspector, selectStyleTarget, openInspector, openCanvasInspector, finishStyleEdit,
-      finishOpacityEdit, assignFontFamily, rgbToHex, hexToRgb, grayValue,
-      rgbToHsb, hsbToRgb, channelData, showColor, openColorPicker,
-      openManageSwatches, openColor, applyColor, assignColor, openCanvasColorEditor,
-      focusColorField, focusSwatchEditorOpener, openSwatchEditor, openEditorColorPicker, updateFromChannels,
-      readHex, useHex, setDarkBehavior, setColorMode, setColorHex, setSwatchName, acceptColor, deleteSwatch, saveColor,
+      choosePropertySection, navigateInspector, rememberPropertyFocus, boxColorPicker, renderInspector,
+      resetInspectorView, showInspectorParent, focusPropertySection, closeInspector, selectStyleTarget,
+      openInspector, openCanvasInspector, finishStyleEdit, finishOpacityEdit, assignFontFamily,
+      openManageSwatches, openColor, assignColor, openCanvasColorEditor, openSwatchEditor,
+      openEditorColorPicker, updateFromChannels, readHex, setDarkBehavior, setColorMode, setColorHex,
+      setSwatchName, acceptColor, deleteSwatch, saveColor
     },
-    init() {
-      for (const list of document.querySelectorAll('.dialog-choice-list:not([data-color-grid])')) {
-        events.on(list, 'keydown', event => {
-          const direction = { ArrowDown: 1, ArrowUp: -1, Home: 'first', End: 'last' }[event.key];
-          if (!direction) return;
-          event.preventDefault();
-          const buttons = [...list.querySelectorAll('button')].filter(button => !button.hidden && !button.disabled);
-          const index = buttons.indexOf(document.activeElement);
-          const next = direction === 'first' ? 0 : direction === 'last' ? buttons.length - 1
-            : (index + direction + buttons.length) % buttons.length;
-          buttons[next]?.focus();
-          buttons[next]?.scrollIntoView({ block: 'nearest' });
-        });
-      }
-      events.on(window, 'resize', positionInspector);
-      events.on(document.querySelector('#box-properties'), 'focusin', event => {
-        if (model.inspectorKind === 'box' && model.inspectorView === 'properties') model.lastPropertyFocus.set(model.activePropertySection, event.target);
-      });
-      events.on(document.querySelector('#close-inspector'), 'click', closeInspector);
-      events.on(elements.inspectorNav, 'click', () => {
-        if (model.inspectorHistory.length) showInspectorParent();
-        else if (model.inspectorView !== 'sections') openSectionSelection();
-      });
-      for (const button of document.querySelectorAll('[data-property-section]')) events.on(button, 'click', () => {
-        if (model.inspectorKind === 'canvas') model.activeCanvasSection = button.dataset.propertySection;
-        else {
-          model.activePropertySection = button.dataset.propertySection;
-          if (actions.styleSections.includes(model.activePropertySection)) model.tool = 'select';
-        }
-        resetInspectorView();
-        actions.render();
-        revealInspector();
-        focusPropertySection();
-      });
-      events.on(elements.inspector, 'keydown', event => {
-        if (event.key !== 'Tab' || event.ctrlKey || event.altKey || event.metaKey) return;
-        const fields = [...elements.inspector.querySelectorAll('button, input, select, a[href]')]
-          .filter(field => !field.disabled && field.tabIndex >= 0 && field.getClientRects().length);
-        const index = fields.indexOf(document.activeElement);
-        if (!fields.length || (index >= 0 && (event.shiftKey ? index !== 0 : index !== fields.length - 1))) return;
-        event.preventDefault();
-        fields[event.shiftKey ? fields.length - 1 : 0].focus();
-      });
-    },
+    init() { events.on(window, 'resize', positionInspector); },
   };
 }
