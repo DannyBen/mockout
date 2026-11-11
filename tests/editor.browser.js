@@ -57,6 +57,53 @@ test('inspector keyboard navigation, mixed edits, focus restoration, undo and re
   assert.equal(await b.evaluate("document.querySelectorAll('[title]').length"), 0);
 });
 
+test('palette dropdown switches colors in place and creates or cancels a new palette', async t => {
+  const b = await setup(t);
+  await palette(b);
+  const selector = '[data-palette-name]';
+  assert.deepEqual(await b.evaluate(`Array.from(document.querySelector('${selector}').children, item => [item.tagName, item.textContent])`), [
+    ['OPTION', 'Background'], ['OPTION', 'Accent'], ['OPTION', 'New palette…'],
+  ]);
+  await b.evaluate(`document.querySelector('${selector}').focus()`);
+  await b.key('ArrowDown');
+  assert.equal(await b.evaluate(`document.querySelector('${selector}').value`), `palette:${fixture.palettes[1].id}`);
+  assert.equal(await b.evaluate(`document.activeElement.matches('${selector}')`), true);
+  assert.deepEqual(await b.evaluate("Array.from(document.querySelectorAll('[data-palette-colors] button'), item => item.dataset.colorId)"), fixture.palettes[1].colors);
+  assert.equal(await b.evaluate("document.querySelector('[data-transparent]').getClientRects().length > 0"), true);
+  assert.equal(await b.evaluate("localStorage.getItem('mockout-project')"), raw);
+
+  await input(b, selector, 'new', 'change');
+  assert.equal(await b.evaluate("document.activeElement.matches('[data-palette-title]')"), true);
+  await b.key('Escape');
+  assert.equal(await b.evaluate(`document.activeElement.matches('${selector}')`), true);
+  assert.equal(await b.evaluate(`document.querySelector('${selector}').value`), `palette:${fixture.palettes[1].id}`);
+  assert.equal(await b.evaluate("localStorage.getItem('mockout-project')"), raw);
+
+  await input(b, selector, 'new', 'change');
+  await input(b, '[data-palette-title]', 'Test palette');
+  await click(b, '[data-save-palette]');
+  const project = await saved(b);
+  assert.equal(project.version, fixture.version);
+  assert.equal(project.palettes.length, fixture.palettes.length + 1);
+  assert.equal(project.palettes.at(-1).name, 'Test palette');
+  assert.equal(await b.evaluate(`document.querySelector('${selector}').value`), `palette:${project.palettes.at(-1).id}`);
+  await click(b, `[data-color-id="${project.palettes.at(-1).colors[0]}"]`);
+  assert.equal((await saved(b)).boxes[0].fill, project.palettes.at(-1).colors[0]);
+});
+
+test('all dropdowns retain the native Dark selector appearance in both themes', async t => {
+  const b = await setup(t);
+  await palette(b);
+  const styles = await b.evaluate(`['light', 'dark'].map(theme => {
+    document.documentElement.dataset.uiTheme = theme;
+    return Array.from(document.querySelectorAll('select'), select => getComputedStyle(select).appearance);
+  })`);
+  for (const theme of styles) {
+    assert.ok(theme.length > 2, 'check all dropdowns, including font and legacy color fields');
+    for (const appearance of theme) assert.equal(appearance, 'auto');
+  }
+});
+
 test('palette preview, Escape, save, stable inputs, independent dark colors, and one-step undo', async t => {
   const b = await setup(t);
   await palette(b);

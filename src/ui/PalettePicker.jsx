@@ -73,23 +73,23 @@ export function PalettePicker({ ui }) {
   const hexRef = useRef(null);
   useLayoutEffect(() => { hexRef.current?.setCustomValidity(p?.hexError || ''); }, [p?.hexError]);
   if (!p) return <section id="box-color-picker" hidden aria-label="Choose palette color" />;
-  const { api, draft, choosing } = p;
+  const { api, draft } = p;
   const recipe = p.recipe || { base: { l: 60, c: .12, h: 250 }, step: { l: 0, c: 0, h: 0 } };
   return <section id="box-color-picker" hidden={inspector.view !== 'box-color'} aria-label="Choose palette color" onKeyDown={api.escape}>
     <div className="palette-layout">
       <div className="palette-list">
-        <button type="button" data-palette-name="" hidden={Boolean(draft)} disabled={Boolean(draft)} aria-label="Choose palette" aria-haspopup="listbox" aria-controls="palette-choices" aria-expanded={choosing} onClick={api.toggleChoices}><span data-palette-label="">{p.label}</span><Icon name="keyboard_arrow_down" /></button>
+        <select data-palette-name="" hidden={Boolean(draft)} disabled={Boolean(draft)} aria-label="Choose palette" value={`palette:${p.paletteId ?? ''}`}
+          onChange={event => event.target.value === 'new' ? api.begin(false) : api.choose(event.target.value.slice(8))}>
+          {!p.palettes.length && <option value="palette:" disabled>{p.label}</option>}
+          {p.palettes.map(item => <option key={item.id} value={`palette:${item.id}`}>{item.name}</option>)}
+          <option value="new" data-new-palette="">New palette…</option>
+        </select>
         <input data-palette-title="" type="text" maxLength="60" aria-label="Palette name" placeholder="Palette name" hidden={!draft} value={draft?.name || ''} onChange={event => api.rename(event.target.value)} />
-        <ColorBlock data-transparent="" hidden={Boolean(draft) || choosing} aria-pressed={p.selectedId === null} selected={p.selectedId === null} label="Transparent" onClick={() => api.pick(null)} />
-        <p data-palette-hint="" hidden={Boolean(draft) || !choosing}>Choose palette</p>
-        <div data-palette-colors="" data-color-grid="" className="dialog-choice-list" role="listbox" aria-label="Palette colors" hidden={choosing} onKeyDown={event => moveInList(event, true)}>
+        <ColorBlock data-transparent="" hidden={Boolean(draft)} aria-pressed={p.selectedId === null} selected={p.selectedId === null} label="Transparent" onClick={() => api.pick(null)} />
+        <div data-palette-colors="" data-color-grid="" className="dialog-choice-list" role="listbox" aria-label="Palette colors" onKeyDown={event => moveInList(event, true)}>
           {p.entries.map(item => <ColorBlock key={`${draft ? 'draft' : 'color'}-${item.id}`} as={draft ? 'output' : 'button'} color={item.color} label={item.name}
             {...(!draft ? { 'data-color-id': item.id, role: 'option', 'aria-selected': item.id === p.selectedId, onClick: () => api.pick(item.id) } : {})}
             selected={!draft && item.id === p.selectedId} aria-label={`${item.name}: ${item.color.toUpperCase()}`} />)}
-        </div>
-        <div id="palette-choices" data-palette-choices="" data-color-grid="" className="dialog-choice-list" role="listbox" aria-label="Choose palette" hidden={!choosing} onKeyDown={event => moveInList(event, true)}>
-          {p.palettes.map(item => <button key={item.id} type="button" className="dialog-choice" data-palette-id={item.id} role="option" aria-selected={item.id === (p.paletteId ?? '')} onClick={() => api.choose(item.id)}>{item.name}</button>)}
-          <button type="button" data-new-palette="" className="dialog-choice" role="option" aria-selected="false" disabled={Boolean(draft)} onClick={() => api.begin(false)}>New palette</button>
         </div>
       </div>
       <div data-palette-editor="" hidden={!draft}>

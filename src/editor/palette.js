@@ -10,7 +10,7 @@ export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayo
     const owned = new Set(palettes().flatMap(palette => palette.colors));
     return state().swatches.filter(item => !owned.has(item.id));
   };
-  let paletteId = null, selectedId = null, draft = null, choosing = false, side = 'light';
+  let paletteId = null, selectedId = null, draft = null, side = 'light';
   let error = '', hexDirty = false, hexEditing = false, hexText = '', hexError = '';
   const recipe = () => Colors.paletteRecipe(draft, side);
   const find = selector => document.querySelector(`#box-color-picker ${selector}`);
@@ -35,7 +35,7 @@ export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayo
     const palette = get(paletteId);
     const current = draft ? recipe() : null;
     ui.update({ palette: {
-      api, paletteId, selectedId, draft: draft && structuredClone(draft), choosing, side, error, hexError,
+      api, paletteId, selectedId, draft: draft && structuredClone(draft), side, error, hexError,
       hex: hexDirty || hexEditing ? hexText : current ? Colors.toHex(current.base).toUpperCase() : '',
       label: draft?.name || (draft ? 'New palette' : palette?.name || (legacyColors().length ? 'Existing colors' : 'No palettes')),
       palettes: [...(legacyColors().length ? [{ id: '', name: 'Existing colors' }] : []), ...palettes()],
@@ -59,14 +59,15 @@ export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayo
       step: palette ? { ...palette.step } : { l: base.l >= 50 ? -8 : 8, c: 0, h: 0 }, dark: { mode: 'inverse' },
     };
     side = draft.dark?.mode === 'custom' ? theme() : 'light';
-    hexDirty = false; hexEditing = false; hexError = ''; choosing = false; error = '';
+    hexDirty = false; hexEditing = false; hexError = ''; error = '';
     onLayout();
     find('[data-palette-title]').focus(); find('[data-palette-title]').select();
   }
   function cancel() {
-    choosing = !draft.id; draft = null; hexDirty = false; hexEditing = false; hexError = ''; error = '';
+    const editing = Boolean(draft.id);
+    draft = null; hexDirty = false; hexEditing = false; hexError = ''; error = '';
     onLayout();
-    find(choosing ? '[data-new-palette]' : '[data-edit-palette]').focus();
+    find(editing ? '[data-edit-palette]' : '[data-palette-name]').focus();
   }
   function applyHex(report = false) {
     if (!hexDirty) return true;
@@ -96,13 +97,13 @@ export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayo
     if (draft || !get(paletteId)) return;
     try { onDelete(paletteId); }
     catch (issue) { error = issue.message; render(); return; }
-    paletteId = palettes()[0]?.id ?? null; choosing = false; error = ''; onLayout(); focus();
+    paletteId = palettes()[0]?.id ?? null; error = ''; onLayout(); focus();
   }
 
   const api = {
     render, focus, begin, cancel, save, remove,
     open(id) {
-      selectedId = id; draft = null; choosing = false; error = '';
+      selectedId = id; draft = null; error = '';
       paletteId = palettes().find(palette => palette.colors.includes(id))?.id ?? get(paletteId)?.id ?? palettes()[0]?.id ?? null;
       render();
     },
@@ -113,12 +114,7 @@ export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayo
       return draft.dark ? hex : Project.resolveColor(hex, state().swatches.find(item => item.id === id)?.dark, activeTheme);
     },
     pick: onPick,
-    toggleChoices() {
-      choosing = !choosing; onLayout();
-      if (choosing) (find('[data-palette-choices] [aria-selected="true"]') || find('[data-palette-choices] button'))?.focus();
-      else find('[data-palette-name]').focus();
-    },
-    choose(id) { paletteId = id || null; choosing = false; onLayout(); focus(); },
+    choose(id) { paletteId = id || null; onLayout(); },
     rename(name) { draft.name = name; error = ''; render(); },
     setCount(count) { draft.count = count; error = ''; onLayout(); },
     setHex(text) { hexEditing = true; hexDirty = true; hexText = text; applyHex(); },
@@ -139,11 +135,11 @@ export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayo
     setChannel(axis, group, value) { recipe()[group][axis] = value; error = ''; onPreview(); },
     stepPosition, stepValue, increment, rounded,
     escape(event) {
-      if (event.key === 'Escape' && (draft || choosing)) {
+      if (event.key === 'Escape' && draft) {
         event.preventDefault(); event.stopPropagation();
         // Native window keyboard handling also listens for Escape.
         event.nativeEvent.stopImmediatePropagation();
-        if (draft) cancel(); else { choosing = false; onLayout(); find('[data-palette-name]').focus(); }
+        cancel();
       } else if (event.key === 'Enter' && draft && event.target.matches('input')) {
         event.preventDefault();
         if (event.target.matches('[data-palette-hex]')) applyHex(true); else save();
