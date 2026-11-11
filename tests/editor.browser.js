@@ -361,6 +361,112 @@ test('color strip mouse preview, double click, and a click on the selected color
   assert.equal((await saved(b)).boxes[0].fill, null);
 });
 
+test('clicking empty canvas commits the color preview, closes the strip and deselects normally', async t => {
+  const b = await setup(t);
+  await palette(b);
+  await b.key('ArrowDown');
+  await b.mouse('mousePressed', 900, 700, { button: 'left', buttons: 1, clickCount: 1 });
+  await b.mouse('mouseReleased', 900, 700, { button: 'left', buttons: 0, clickCount: 1 });
+  assert.equal((await saved(b)).boxes[0].fill, fixture.palettes[0].colors[1]);
+  assert.equal(await b.evaluate("document.querySelector('#inspector').hidden"), true);
+  assert.equal(await b.evaluate("document.querySelectorAll('.box.selected').length"), 0);
+  assert.equal(await b.evaluate('document.activeElement.id'), 'workspace');
+  await b.key('z', { code: 'KeyZ', modifiers: 2 });
+  assert.deepEqual(await saved(b), fixture);
+});
+
+test('the color strip follows another box after committing the preview and keeps dragging as a separate undo step', async t => {
+  const project = structuredClone(fixture);
+  project.boxes[1].x = 700;
+  project.boxes[1].fill = fixture.palettes[0].colors[3];
+  const b = await setup(t, { storage: JSON.stringify(project) });
+  await palette(b);
+  await b.key('ArrowDown');
+  const rect = await b.evaluate(`(() => {
+    const r = document.querySelector('.box[data-id="51"]').getBoundingClientRect();
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+  })()`);
+  await b.mouse('mousePressed', rect.x, rect.y, { button: 'left', buttons: 1, clickCount: 1 });
+  assert.deepEqual((await saved(b)).boxes.map(box => box.fill), [fixture.palettes[0].colors[1], project.boxes[1].fill]);
+  assert.equal(await b.evaluate("document.querySelector('#inspector').hidden"), false);
+  assert.equal(await b.evaluate("document.querySelector('#inspector').dataset.view"), 'box-color');
+  assert.equal(await b.evaluate('document.activeElement.dataset.colorId'), project.boxes[1].fill);
+  assert.equal(await b.evaluate("document.querySelector('.box.selected').dataset.id"), '51');
+  await b.mouse('mouseMoved', rect.x + 40, rect.y + 40, { buttons: 1 });
+  await b.mouse('mouseReleased', rect.x + 40, rect.y + 40, { button: 'left', buttons: 0 });
+  assert.notEqual((await saved(b)).boxes[1].x, project.boxes[1].x);
+  await b.key('Escape', { modifiers: 8 });
+  await b.key('z', { code: 'KeyZ', modifiers: 2 });
+  assert.equal((await saved(b)).boxes[1].x, project.boxes[1].x);
+  assert.equal((await saved(b)).boxes[0].fill, fixture.palettes[0].colors[1]);
+  await b.key('z', { code: 'KeyZ', modifiers: 2 });
+  assert.deepEqual(await saved(b), project);
+});
+
+test('the color strip keeps its palette across boxes, commits each preview and cancels only the latest preview', async t => {
+  const project = structuredClone(fixture);
+  project.boxes[1].x = 620;
+  const b = await setup(t, { storage: JSON.stringify(project) });
+  const clickBox = async id => {
+    const rect = await b.evaluate(`(() => {
+      const r = document.querySelector('.box[data-id="${id}"]').getBoundingClientRect();
+      return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    })()`);
+    await b.mouse('mousePressed', rect.x, rect.y, { button: 'left', buttons: 1, clickCount: 1 });
+    await b.mouse('mouseReleased', rect.x, rect.y, { button: 'left', buttons: 0, clickCount: 1 });
+  };
+  await palette(b);
+  const paletteId = fixture.palettes[1].id, [first, second, third] = fixture.palettes[1].colors;
+  await input(b, '[data-palette-name]', `palette:${paletteId}`, 'change');
+  await click(b, `[data-color-id="${first}"]`);
+  await clickBox(51);
+  assert.deepEqual((await saved(b)).boxes.map(box => box.fill), [first, project.boxes[1].fill]);
+  assert.equal(await b.evaluate("document.querySelector('[data-palette-name]').value"), `palette:${paletteId}`);
+  assert.equal(await b.evaluate("document.querySelector('#inspector').dataset.view"), 'box-color');
+  assert.equal(await b.evaluate("document.querySelector('[data-palette-colors] [aria-selected=true]') === null"), true);
+  await b.key('ArrowDown');
+  assert.equal(await b.evaluate('document.activeElement.dataset.colorId'), second);
+  await clickBox(50);
+  const committed = await saved(b);
+  assert.deepEqual(committed.boxes.map(box => box.fill), [first, second]);
+  assert.equal(await b.evaluate("document.querySelector('[data-palette-colors] [aria-selected=true]').dataset.colorId"), first);
+  const position = await b.evaluate("document.querySelector('#inspector').getBoundingClientRect().left");
+  assert.equal(position, await b.evaluate("document.querySelector('.box[data-id=\"50\"]').getBoundingClientRect().right + 5"));
+  await click(b, `[data-color-id="${third}"]`);
+  await click(b, '#close-inspector');
+  assert.deepEqual(await saved(b), committed);
+  await b.key('z', { code: 'KeyZ', modifiers: 2 });
+  assert.deepEqual((await saved(b)).boxes.map(box => box.fill), [first, project.boxes[1].fill]);
+  await b.key('z', { code: 'KeyZ', modifiers: 2 });
+  assert.deepEqual(await saved(b), project);
+});
+
+test('panning leaves the color preview open and the close button still cancels it', async t => {
+  const b = await setup(t);
+  await palette(b);
+  const original = await b.evaluate("document.querySelector('.box-content').style.backgroundColor");
+  await b.key('ArrowDown');
+  await b.mouse('mousePressed', 900, 700, { button: 'middle', buttons: 4 });
+  await b.mouse('mouseReleased', 900, 700, { button: 'middle', buttons: 0 });
+  assert.equal(await b.evaluate("document.querySelector('#inspector').hidden"), false);
+  assert.equal(await b.evaluate("localStorage.getItem('mockout-project')"), raw);
+  await click(b, '#close-inspector');
+  assert.equal(await b.evaluate("document.querySelector('.box-content').style.backgroundColor"), original);
+  assert.equal(await b.evaluate("localStorage.getItem('mockout-project')"), raw);
+});
+
+test('clicking the canvas while editing a palette does not save the draft or color preview', async t => {
+  const b = await setup(t);
+  await palette(b);
+  await b.key('ArrowDown');
+  await click(b, '[data-edit-palette]');
+  await input(b, '[data-palette-title]', 'Draft name');
+  await input(b, '[data-palette-hex]', '#123456');
+  await b.mouse('mousePressed', 900, 700, { button: 'left', buttons: 1, clickCount: 1 });
+  await b.mouse('mouseReleased', 900, 700, { button: 'left', buttons: 0, clickCount: 1 });
+  assert.equal(await b.evaluate("localStorage.getItem('mockout-project')"), raw);
+});
+
 test('all dropdowns retain the native Dark selector appearance in both themes', async t => {
   const b = await setup(t);
   await palette(b);
@@ -398,11 +504,13 @@ test('deleting a used palette keeps both themes and repairs a shared Unassigned 
   assert.equal(preview[0], preview[1]);
   assert.notDeepEqual(preview, light);
   assert.deepEqual(await saved(b), detached);
-  await b.key('Enter');
+  await b.mouse('mousePressed', 900, 700, { button: 'left', buttons: 1, clickCount: 1 });
+  await b.mouse('mouseReleased', 900, 700, { button: 'left', buttons: 0, clickCount: 1 });
   const repaired = await saved(b);
   assert.deepEqual(repaired.boxes.map(box => box.fill), [replacement, replacement]);
   assert.equal(repaired.lastStyle.fill, replacement);
   assert.equal(repaired.swatches.some(color => color.id === fixture.palettes[0].colors[0]), false);
+  await b.key('Tab');
   await b.key('2', { code: 'Digit2', modifiers: 1 });
   await click(b, '#fill-color');
   assert.equal(await b.evaluate("document.querySelector('[data-unassigned]') === null"), true);

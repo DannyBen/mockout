@@ -48,6 +48,11 @@ stay linked across your mockup, and light/dark variants are built in. Palettes u
 OKLCH and offer Inverse, Same, and Custom dark modes. Press **T** to switch themes.
 You can also choose fonts and Material icons in box properties.
 
+In the color strip, click a color or use the arrow keys to preview it. Click
+another box to apply and keep the strip open for that box, using the same property
+and palette. Click empty canvas, press Enter, or click the selected color to apply
+and close. Escape or the close button cancels the preview.
+
 Deleting a palette or reducing its color count keeps colors that are still in
 use, including their light and dark appearances. They appear as **Unassigned** in
 the affected color field. Choose a replacement to update every use of that slot.

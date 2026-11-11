@@ -619,6 +619,11 @@ export function createController({ model, elements, actions, events, ui }) {
       events.on(elements.workspace, 'pointerdown', event => {
         if (event.target.closest('.style-marker') && event.button === 0 && !model.spaceDown) return;
         if (model.fileLocked && event.button !== 1 && !model.spaceDown) { event.preventDefault(); return; }
+        const boxElement = event.target.closest('.box');
+        let followColorSelection = false;
+        if (event.button === 0 && !model.spaceDown && model.inspectorOpen && model.inspectorView === 'box-color') {
+          followColorSelection = actions.boxColorPicker.commitPreview(Boolean(boxElement) && model.tool === 'select' && !event.shiftKey);
+        }
         if (elements.inspector.contains(document.activeElement)) document.activeElement.blur();
         if (model.placement) {
           event.preventDefault();
@@ -628,7 +633,6 @@ export function createController({ model, elements, actions, events, ui }) {
           return;
         }
         if (model.textEditor || (event.button !== 0 && event.button !== 1)) return;
-        const boxElement = event.target.closest('.box');
         const handle = event.target.dataset.handle || '';
         const p = point(event);
         const boxId = boxElement ? Number(boxElement.dataset.id) : handle ? model.selectedId : null;
@@ -658,8 +662,12 @@ export function createController({ model, elements, actions, events, ui }) {
             if (!model.selectedIds.has(box.id)) {
               actions.selectOnly(box.id);
               const choosingSection = model.inspectorView === 'sections';
-              actions.resetInspectorView();
+              if (!followColorSelection) actions.resetInspectorView();
               if (choosingSection) model.inspectorView = 'sections';
+            }
+            if (followColorSelection) {
+              actions.refreshColorSelection(true);
+              actions.boxColorPicker.focus();
             }
             model.gesture = {
               kind: resizing ? 'resize' : 'move',

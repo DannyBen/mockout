@@ -3,7 +3,7 @@ import Project from '../core/project.js';
 
 // Palette drafts stay outside the project until Save. Preview never records
 // history or writes storage; the editor's onSave records one undo operation.
-export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayout, onSelect, onPick, onSave, onDelete }) {
+export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayout, onSelect, onPick, onClose, onSave, onDelete }) {
   const palettes = () => state().palettes ?? [];
   const get = id => palettes().find(palette => palette.id === id);
   let paletteId = null, selectedId = null, sourceId = null, draft = null, side = 'light';
@@ -102,9 +102,11 @@ export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayo
 
   const api = {
     render, focus, begin, cancel, save, remove,
-    open(id) {
+    open(id, keepPalette = false) {
       selectedId = sourceId = id; draft = null; error = '';
-      paletteId = palettes().find(palette => palette.colors.includes(id))?.id ?? get(paletteId)?.id ?? palettes()[0]?.id ?? null;
+      if (!keepPalette || !get(paletteId)) {
+        paletteId = palettes().find(palette => palette.colors.includes(id))?.id ?? get(paletteId)?.id ?? palettes()[0]?.id ?? null;
+      }
       render();
     },
     preview(id, activeTheme) {
@@ -114,8 +116,14 @@ export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayo
       return draft.dark ? hex : Project.resolveColor(hex, state().swatches.find(item => item.id === id)?.dark, activeTheme);
     },
     select(id) { if (draft || id === selectedId) return; selectedId = id; onSelect(id); },
-    pick(id) { if (id === selectedId) onPick(id); else api.select(id); },
-    accept: onPick,
+    pick(id) { if (id === selectedId) api.accept(id); else api.select(id); },
+    accept(id) { onPick(id); onClose(); },
+    commitPreview(keepOpen = false) {
+      if (draft) return false;
+      if (selectedId !== sourceId) onPick(selectedId);
+      if (!keepOpen) onClose();
+      return keepOpen;
+    },
     choose(id) { paletteId = id || null; onLayout(); },
     rename(name) { draft.name = name; error = ''; render(); },
     setCount(count) { draft.count = count; error = ''; onLayout(); },

@@ -11,10 +11,8 @@ export function createInspector({ model, elements, actions, events, ui }) {
     onPreview: () => actions.render(),
     onLayout: () => { actions.render(); revealInspector(); },
     onSelect: id => { model.colorTarget.previewId = id; actions.render(); },
-    onPick: id => {
-      actions.change(() => applyColor(id));
-      closeInspector();
-    },
+    onPick: id => actions.change(() => applyColor(id)),
+    onClose: closeInspector,
     onSave: draft => {
       let id;
       delete model.colorTarget.previewId;
@@ -294,12 +292,16 @@ export function createInspector({ model, elements, actions, events, ui }) {
     revealInspector();
     (document.querySelector('#swatch-list .dialog-choice') || document.querySelector('#new-swatch')).focus();
   }
+  function refreshColorSelection(keepPalette = false) {
+    const { property, side } = model.colorTarget;
+    const id = MockoutSelection.commonValue(actions.selectedBoxes(), box => actions.boxProperty(box, property, side));
+    model.colorTarget = { property, side, sourceId: id };
+    boxColorPicker.open(id, keepPalette);
+  }
   function openColor(property, side) {
     model.colorTarget = { property, side };
-    const id = MockoutSelection.commonValue(actions.selectedBoxes(), box => actions.boxProperty(box, property, side));
-    model.colorTarget.sourceId = id;
     pushInspectorView('box-color', focusColorField);
-    boxColorPicker.open(id);
+    refreshColorSelection();
     renderInspector();
     revealInspector();
     boxColorPicker.focus();
@@ -492,7 +494,7 @@ export function createInspector({ model, elements, actions, events, ui }) {
       choosePropertySection, navigateInspector, rememberPropertyFocus, boxColorPicker, renderInspector,
       resetInspectorView, showInspectorParent, focusPropertySection, closeInspector, selectStyleTarget,
       openInspector, openCanvasInspector, finishStyleEdit, finishOpacityEdit, assignFontFamily,
-      openManageSwatches, openColor, assignColor, openCanvasColorEditor, openSwatchEditor,
+      openManageSwatches, openColor, refreshColorSelection, assignColor, openCanvasColorEditor, openSwatchEditor,
       openEditorColorPicker, updateFromChannels, readHex, setDarkBehavior, setColorMode, setColorHex,
       setSwatchName, acceptColor, deleteSwatch, saveColor
     },
