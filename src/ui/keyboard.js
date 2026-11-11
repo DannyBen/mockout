@@ -13,10 +13,25 @@ export function moveInList(event, horizontal = false) {
   buttons[next].focus(); buttons[next].scrollIntoView({ block: 'nearest' });
 }
 
-export function navigateDialog(event) {
+export function navigateDialog(event, accept) {
   if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey) return;
-  if (!['Tab', 'ArrowDown', 'ArrowUp'].includes(event.key)) return;
   const focus = document.activeElement;
+  if (event.key === 'Enter' && focus.tagName === 'INPUT'
+    && ['text', 'number', 'range', 'search', 'email', 'url', 'tel', 'password'].includes(focus.type)) {
+    if (event.nativeEvent.isComposing) return;
+    const primary = focus.closest('section')?.querySelector('[data-dialog-accept]');
+    if (!primary && !accept) return;
+    event.preventDefault(); event.stopPropagation();
+    if (event.repeat || !focus.reportValidity()) return;
+    if (primary) primary.click();
+    else {
+      if (!focus.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }))) return;
+      focus.blur();
+      accept();
+    }
+    return;
+  }
+  if (!['Tab', 'ArrowDown', 'ArrowUp'].includes(event.key)) return;
   const fields = controls(event.currentTarget);
   if (event.key !== 'Tab') {
     if (event.shiftKey || focus.isContentEditable || focus.matches('select, textarea, input[type="number"], input[type="range"]')) return;

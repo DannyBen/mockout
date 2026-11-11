@@ -8,7 +8,7 @@ import { moveInList } from './keyboard.js';
 function NumberInput({ value, ...props }) {
   const ref = useRef(null);
   useLayoutEffect(() => { if (document.activeElement !== ref.current) ref.current.value = value; });
-  return <input ref={ref} type="number" defaultValue={value} {...props} />;
+  return <input ref={ref} type="number" required defaultValue={value} {...props} />;
 }
 
 function PaletteSlider({ axis, group, label, recipe, count, api }) {
@@ -133,7 +133,7 @@ export function PalettePicker({ ui }) {
         <button type="button" data-copy-palette="" hidden={!draft || draft.dark?.mode !== 'custom'} onClick={api.copy}>Copy from {p.side === 'dark' ? 'light' : 'dark'}</button>
       </div>
       <button type="button" data-cancel-palette="" hidden={!draft} onClick={api.cancel}>Cancel</button>
-      <button type="button" data-save-palette="" className="primary" hidden={!draft} onClick={api.save}>Save</button>
+      <button type="button" data-save-palette="" data-dialog-accept="" className="primary" hidden={!draft} onClick={api.save}>Save</button>
     </footer>
   </section>;
 }

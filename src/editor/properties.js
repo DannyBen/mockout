@@ -82,9 +82,10 @@ export function createProperties({ model, actions }) {
     const family = value.trim().replace(/\s+/g, ' ');
     if (!family || !actions.fonts.validFamily(family) || !model.selectedIds.size) {
       if (family) actions.showNotice('Enter the family name as shown on Google Fonts.');
-      return;
+      return false;
     }
     actions.assignFontFamily(family);
+    return true;
   }
   return { actions: { propertyData, setBoxField, previewStyleField, previewOpacity, setGridSetting, setAlignment, setGoogleFont }, init() {} };
 }

@@ -37,7 +37,7 @@ export function LegacyColors({ ui, inspector: i, colors: c }) {
       <footer className="dialog-footer">
         <button type="button" id="delete-swatch" className="icon-button" aria-label="Delete swatch" hidden={!c?.canDelete} onClick={() => ui.commands.deleteSwatch()}><Icon name="delete" /></button>
         <button type="button" data-inspector-back="" onClick={() => ui.commands.showInspectorParent()}>Cancel</button>
-        <button type="button" id="save-color" className="primary" onClick={() => ui.commands.saveColor()}>Save</button>
+        <button type="button" id="save-color" data-dialog-accept="" className="primary" onClick={() => ui.commands.saveColor()}>Save</button>
       </footer>
     </section>
     <section id="color-picker" hidden={i.view !== 'picker'} aria-label="Color picker">
@@ -50,7 +50,7 @@ export function LegacyColors({ ui, inspector: i, colors: c }) {
       </div>)}
       <ColorBlock as="div" id="color-preview" aria-label="Color preview" color={c?.color} label={c?.color.toUpperCase()} />
       <p id="color-error" role="alert" hidden={!c?.error}>{c?.error}</p>
-      <footer className="dialog-footer"><button type="button" data-inspector-back="" onClick={() => ui.commands.showInspectorParent()}>Cancel</button><button type="button" id="use-color" className="primary" onClick={() => ui.commands.acceptColor()}>Save</button></footer>
+      <footer className="dialog-footer"><button type="button" data-inspector-back="" onClick={() => ui.commands.showInspectorParent()}>Cancel</button><button type="button" id="use-color" data-dialog-accept="" className="primary" onClick={() => ui.commands.acceptColor()}>Save</button></footer>
     </section>
   </>;
 }

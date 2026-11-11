@@ -121,6 +121,97 @@ test('dialog arrow navigation reaches color roles and stacked controls while val
   assert.equal(await b.evaluate("document.querySelector('[data-palette-editor]').hidden"), true);
 });
 
+test('Enter validates and commits property fields, closes the inspector, and preserves one-step undo', async t => {
+  const b = await setup(t);
+  await properties(b, 'box');
+  await input(b, '#box-width', '');
+  await b.key('Enter');
+  assert.equal(await b.evaluate('document.activeElement.id'), 'box-width');
+  assert.equal(await b.evaluate('document.activeElement.validity.valueMissing'), true);
+  await input(b, '#box-width', 0);
+  await b.key('Enter');
+  assert.equal(await b.evaluate('document.activeElement.validity.rangeUnderflow'), true);
+  assert.equal(await b.evaluate("localStorage.getItem('mockout-project')"), raw);
+  await input(b, '#box-width', 245);
+  await b.key('Enter');
+  assert.equal((await saved(b)).boxes[0].w, 250);
+  assert.equal(await b.evaluate("document.querySelector('#inspector').hidden"), true);
+  assert.equal(await b.evaluate('document.activeElement.id'), 'workspace');
+  assert.equal(await b.evaluate("document.querySelector('.text-editor') === null"), true);
+  await b.key('z', { code: 'KeyZ', modifiers: 2 });
+  assert.deepEqual(await saved(b), fixture);
+  await b.key('/', { code: 'Slash' });
+  await click(b, '[data-property-section="box"]');
+  await b.evaluate("document.querySelector('#box-opacity-range').focus()");
+  await input(b, '#box-opacity-range', 60);
+  await b.key('Enter');
+  assert.equal((await saved(b)).boxes[0].opacity, .6);
+  assert.equal(await b.evaluate("document.querySelector('#inspector').hidden"), true);
+  await b.key('z', { code: 'KeyZ', modifiers: 2 });
+  assert.deepEqual(await saved(b), fixture);
+});
+
+test('Enter saves palette drafts from name or hex fields and keeps invalid hex input open', async t => {
+  const b = await setup(t);
+  await palette(b); await click(b, '[data-edit-palette]');
+  await input(b, '[data-palette-title]', 'Renamed');
+  await b.key('Enter');
+  assert.equal((await saved(b)).palettes[0].name, 'Renamed');
+  assert.equal(await b.evaluate("document.querySelector('[data-palette-editor]').hidden"), true);
+  assert.equal(await b.evaluate("document.querySelector('#inspector').dataset.view"), 'box-color');
+  const before = await saved(b);
+  await click(b, '[data-edit-palette]');
+  await b.evaluate("document.querySelector('[data-palette-hex]').focus()");
+  await input(b, '[data-palette-hex]', 'invalid');
+  await b.key('Enter');
+  assert.equal(await b.evaluate('document.activeElement.validity.valid'), false);
+  assert.equal(await b.evaluate("document.querySelector('[data-palette-editor]').hidden"), false);
+  assert.deepEqual(await saved(b), before);
+  await input(b, '[data-palette-hex]', '#112233');
+  await b.key('Enter');
+  assert.equal(await b.evaluate("document.querySelector('[data-palette-editor]').hidden"), true);
+  assert.equal((await saved(b)).swatches.find(color => color.id === fixture.palettes[0].colors[0]).color, '#112233');
+  await b.key('Escape', { modifiers: 8 });
+  await b.key('z', { code: 'KeyZ', modifiers: 2 });
+  assert.deepEqual(await saved(b), before);
+});
+
+test('Enter uses the legacy color picker Save action without committing its enclosing draft', async t => {
+  const b = await setup(t);
+  await b.evaluate("document.querySelector('#workspace').focus()");
+  await b.key('/', { code: 'Slash' });
+  await click(b, '[data-property-section="canvas"]');
+  await click(b, '[data-canvas-color-property="background"]');
+  await click(b, '#swatch-light');
+  await input(b, '#color-hex', 'bad');
+  await b.key('Enter');
+  assert.equal(await b.evaluate("document.querySelector('#inspector').dataset.view"), 'picker');
+  assert.equal(await b.evaluate("document.querySelector('#color-error').hidden"), false);
+  await input(b, '#color-hex', '112233');
+  await b.key('Enter');
+  assert.equal(await b.evaluate("document.querySelector('#inspector').dataset.view"), 'edit');
+  assert.equal(await b.evaluate("localStorage.getItem('mockout-project')"), raw);
+});
+
+test('Enter preserves native dropdown activation and rejects invalid font names before closing', async t => {
+  const b = await setup(t);
+  await properties(b, 'font');
+  await b.key('Enter', { text: '\r' });
+  assert.equal(await b.evaluate("document.querySelector('#inspector').hidden"), false);
+  await b.key('Escape');
+  await input(b, '#box-font-family', 'google', 'change');
+  await b.wait("document.activeElement.id === 'box-google-font'");
+  await input(b, '#box-google-font', 'Bad:Font');
+  await b.key('Enter');
+  assert.equal(await b.evaluate('document.activeElement.id'), 'box-google-font');
+  assert.equal(await b.evaluate('document.activeElement.value'), 'Bad:Font');
+  assert.equal(await b.evaluate("localStorage.getItem('mockout-project')"), raw);
+  await input(b, '#box-google-font', 'Roboto');
+  await b.key('Enter');
+  assert.equal((await saved(b)).boxes[0].fontFamily, 'Roboto');
+  assert.equal(await b.evaluate("document.querySelector('#inspector').hidden"), true);
+});
+
 test('palette dropdown switches colors in place and creates or cancels a new palette', async t => {
   const b = await setup(t);
   await palette(b);

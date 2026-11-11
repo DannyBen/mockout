@@ -98,7 +98,7 @@ export function Properties({ ui, inspector: i, data, colors }) {
           </Input>
         </label>
         <label id="google-font-field" className={mixedClass(p.familyChoice === 'google' && p.family === undefined)} hidden={category !== 'google'}>Google family
-          <Input id="box-google-font" value={p.familyChoice === 'google' && p.family !== undefined ? p.family : ''} onCommit={value => { ui.commands.setGoogleFont(value); setGoogleDraft(false); }} onBlur={() => setGoogleDraft(false)} type="text" maxLength="80" autoComplete="off" spellCheck="false" placeholder={p.familyChoice === 'google' && p.family === undefined ? 'Mixed values' : 'e.g. Roboto'} />
+          <Input id="box-google-font" value={p.familyChoice === 'google' && p.family !== undefined ? p.family : ''} onCommit={value => { if (ui.commands.setGoogleFont(value) === false) return false; setGoogleDraft(false); }} onBlur={() => setGoogleDraft(false)} type="text" required maxLength="80" autoComplete="off" spellCheck="false" placeholder={p.familyChoice === 'google' && p.family === undefined ? 'Mixed values' : 'e.g. Roboto'} />
         </label>
         <label id="material-style-field" className={mixedClass(p.familyChoice === 'material' && p.family === undefined)} hidden={category !== 'material'}>Icon style
           <Input as="select" id="box-material-style" value={p.familyChoice === 'material' && p.family !== undefined ? p.family : 'mixed'} onCommit={value => { if (value !== 'mixed') ui.commands.assignFontFamily(value); }}>

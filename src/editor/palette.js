@@ -142,9 +142,6 @@ export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayo
         // Native window keyboard handling also listens for Escape.
         event.nativeEvent.stopImmediatePropagation();
         cancel();
-      } else if (event.key === 'Enter' && draft && event.target.matches('input')) {
-        event.preventDefault();
-        if (event.target.matches('[data-palette-hex]')) applyHex(true); else save();
       }
     },
   };
