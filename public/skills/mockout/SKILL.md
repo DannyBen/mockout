@@ -1,6 +1,6 @@
 ---
 name: mockout
-description: Create and edit Mockout mockups through a shared local JSON file, building visibly box by box. Use when the user asks to start a Mockout project or change an existing Mockout layout.
+description: Create and edit Mockout mockups through a shared local JSON file, building visibly box by box. Use for Mockout layouts, visual inspection, or exporting project JSON to PNG through its browser renderer.
 ---
 
 # Mockout
@@ -111,6 +111,28 @@ DOM scroll-size measurements can flag possible text overflow for closer inspecti
 If visual tools are unavailable, continue using the format checks and
 [text-fitting guidance](references/project-format.md#text-fitting). State that
 the result has not been visually inspected; do not claim a rendered check.
+
+### Get a PNG from project JSON
+
+With browser automation and download access, use Mockout's existing PNG exporter:
+
+1. In the separate inspection context described above, load the JSON as a local
+   copy. Wait until the Open dialog has closed and the project has rendered.
+2. Choose the desired light or dark theme, configure your browser tool to capture
+   downloads, then click **… → Export PNG…** (`#export-png-button`). The export
+   includes the entire mockup at 2× resolution with 20px margins and the active
+   canvas background, without editor controls; it is independent of canvas zoom.
+3. Wait for the download to finish, retrieve the PNG to a path you can read, and
+   inspect it with your image tools or provide it to the user.
+
+If the native Save As picker cannot be automated but page JavaScript is available,
+set `window.showSaveFilePicker = undefined` in that separate inspection page
+before exporting. This uses Mockout's normal download fallback. Keep this change
+out of the user's active browser session.
+
+A headless browser can perform the same workflow. Editing JSON alone cannot
+produce a PNG: without browser rendering and file retrieval, report that export
+is unavailable in your environment rather than claiming an image was generated.
 
 ## Design conventions
 
