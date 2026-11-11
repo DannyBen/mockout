@@ -844,17 +844,22 @@ export function createController({ model, elements, actions, events, ui }) {
           return;
         }
         const focus = document.activeElement;
-        if (!event.altKey && !ctrl && !event.shiftKey && /^[1-4]$/.test(digit || '') && !model.textEditor && model.selectedIds.size
+        const sectionMenu = model.inspectorOpen && model.inspectorView === 'sections' && elements.inspector.contains(focus);
+        if (!ctrl && !event.shiftKey && /^[1-4]$/.test(digit || '') && !model.textEditor && model.selectedIds.size
+          && (event.altKey || sectionMenu)) {
+          event.preventDefault();
+          if (event.repeat) return;
+          if (elements.inspector.contains(focus)) focus.blur();
+          model.activePropertySection = elements.propertySections[Number(digit) - 1].id;
+          actions.openInspector(model.selectedId, false);
+          return;
+        }
+        if (!ctrl && !event.altKey && !event.shiftKey && event.code === 'Slash' && !model.textEditor
           && !focus.isContentEditable && !/INPUT|SELECT|TEXTAREA/.test(focus.tagName)) {
           event.preventDefault();
-          model.activePropertySection = elements.propertySections[Number(digit) - 1].id;
-          if (model.inspectorOpen && model.inspectorKind === 'box') {
-            actions.resetInspectorView();
-            actions.render();
-            actions.focusPropertySection();
-          } else {
-            actions.openInspector(model.selectedId, false);
-          }
+          if (event.repeat) return;
+          if (model.selectedIds.size) actions.openInspector(model.selectedId, true);
+          else actions.openCanvasInspector(null, true);
           return;
         }
         if (ctrl && event.code === 'KeyS') { event.preventDefault(); actions.saveProject(event.shiftKey); return; }
@@ -957,19 +962,12 @@ export function createController({ model, elements, actions, events, ui }) {
           zoomAt(zoomOutKey ? 1 / 1.2 : 1.2, elements.workspace.clientWidth / 2, elements.workspace.clientHeight / 2);
           return;
         }
-        if (!ctrl && event.altKey && !event.shiftKey && /^[1-5]$/.test(digit || '')) {
+        if (!ctrl && !event.altKey && !event.shiftKey && /^[1-5]$/.test(digit || '')) {
           change(() => { model.project.grid = MockoutProject.gridSizes(model.project)[Number(digit) - 1]; });
           return;
         }
         if (!ctrl && !event.altKey && event.code === 'KeyS') { event.preventDefault(); setTool('select'); return; }
         if (!ctrl && !event.altKey && event.code === 'KeyD') { event.preventDefault(); setTool('box'); return; }
-        if (!ctrl && !event.altKey && !event.shiftKey && event.code === 'Slash') {
-          event.preventDefault();
-          if (model.inspectorOpen) actions.closeInspector();
-          else if (model.selectedIds.size) actions.openInspector(model.selectedId);
-          else if (!model.selectedIds.size) actions.openCanvasInspector();
-          return;
-        }
         if ((event.key === 'Delete' || event.key === 'Backspace') && model.selectedIds.size) { event.preventDefault(); deleteSelected(); return; }
         if (event.key === 'Escape') {
           event.preventDefault();

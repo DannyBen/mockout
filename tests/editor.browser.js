@@ -121,6 +121,67 @@ test('dialog arrow navigation reaches color roles and stacked controls while val
   assert.equal(await b.evaluate("document.querySelector('[data-palette-editor]').hidden"), true);
 });
 
+test('Alt numbers switch property sections from focused fields while ordinary digits and slash remain text', async t => {
+  const b = await setup(t);
+  await b.evaluate("document.querySelector('#workspace').focus()");
+  await b.key('Tab');
+  await b.key('1', { code: 'Digit1', modifiers: 1 });
+  assert.equal(await b.evaluate('document.activeElement.id'), 'box-width');
+  await b.evaluate('document.activeElement.select()');
+  await b.page('Input.insertText', { text: '245' });
+  await b.key('3', { code: 'Digit3', modifiers: 1 });
+  assert.equal(await b.evaluate('document.activeElement.id'), 'box-text');
+  assert.equal((await saved(b)).boxes[0].w, 250);
+  await b.evaluate('document.activeElement.select()');
+  await b.key('2', { code: 'Digit2', text: '2' });
+  await b.key('/', { code: 'Slash', text: '/' });
+  assert.equal(await b.evaluate('document.activeElement.value'), '2/');
+  assert.equal(await b.evaluate("document.querySelector('#inspector').dataset.view"), 'properties');
+  await b.key('4', { code: 'Digit4', modifiers: 1 });
+  assert.equal(await b.evaluate('document.activeElement.id'), 'box-font-family');
+  assert.equal((await saved(b)).boxes[0].text, '2/');
+  await b.key('2', { code: 'Digit2', modifiers: 1 });
+  assert.equal(await b.evaluate('document.activeElement.id'), 'fill-color');
+  assert.equal((await saved(b)).grid, fixture.grid);
+});
+
+test('slash opens the section menu consistently and plain menu digits choose properties', async t => {
+  const b = await setup(t);
+  await b.evaluate("document.querySelector('#workspace').focus()");
+  await b.key('Tab');
+  await b.key('/', { code: 'Slash' });
+  await b.key('3', { code: 'Digit3' });
+  assert.equal(await b.evaluate('document.activeElement.id'), 'box-text');
+  await b.key('2', { code: 'Digit2', modifiers: 1 });
+  await b.key('/', { code: 'Slash' });
+  assert.equal(await b.evaluate("document.querySelector('#inspector').dataset.view"), 'sections');
+  await b.key('4', { code: 'Digit4' });
+  assert.equal(await b.evaluate('document.activeElement.id'), 'box-font-family');
+  await b.evaluate("document.querySelector('#workspace').focus()");
+  await b.key('/', { code: 'Slash' });
+  assert.equal(await b.evaluate("document.querySelector('#inspector').dataset.view"), 'sections');
+  await b.key('1', { code: 'Digit1' });
+  assert.equal(await b.evaluate('document.activeElement.id'), 'box-width');
+  assert.equal(await b.evaluate("localStorage.getItem('mockout-project')"), raw);
+});
+
+test('plain canvas numbers select all configured grid sizes and Off without opening properties', async t => {
+  const project = { ...fixture, gridBase: 7, grid: 14 };
+  const b = await setup(t, { storage: JSON.stringify(project) });
+  await b.evaluate("document.querySelector('#workspace').focus()");
+  await b.key('Tab');
+  for (const [index, grid] of Project.gridSizes(project).entries()) {
+    await b.key(String(index + 1), { code: `Digit${index + 1}` });
+    assert.equal((await saved(b)).grid, grid);
+    assert.equal(await b.evaluate("document.querySelector('#inspector').hidden"), true);
+  }
+  await b.key('1', { code: 'Digit1', modifiers: 1 });
+  await b.evaluate('document.activeElement.select()');
+  await b.key('2', { code: 'Digit2', text: '2' });
+  assert.equal(await b.evaluate('document.activeElement.value'), '2');
+  assert.equal((await saved(b)).grid, 0);
+});
+
 test('Enter validates and commits property fields, closes the inspector, and preserves one-step undo', async t => {
   const b = await setup(t);
   await properties(b, 'box');

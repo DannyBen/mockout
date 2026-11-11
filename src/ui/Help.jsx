@@ -28,7 +28,8 @@ export function Help({ ui }) {
         <div><dt>Edit box borders</dt><dd><kbd>O</kbd></dd></div>
         <div><dt>Edit box padding</dt><dd><kbd>P</kbd></dd></div>
         <div><dt>Previous / next editor point</dt><dd><kbd>Alt</kbd> + <kbd>←</kbd> / <kbd>→</kbd></dd></div>
-        <div><dt>Open box properties section</dt><dd><kbd>1</kbd>–<kbd>4</kbd></dd></div>
+        <div><dt>Open / switch box section</dt><dd><kbd>Alt</kbd> + <kbd>1</kbd>–<kbd>4</kbd></dd></div>
+        <div><dt>Choose box section from menu</dt><dd><kbd>1</kbd>–<kbd>4</kbd></dd></div>
         <div><dt>Back / close at root</dt><dd><kbd>Esc</kbd></dd></div>
         <div><dt>Close inspector</dt><dd><kbd>Shift</kbd> + <kbd>Esc</kbd></dd></div>
         <div><dt>Clear mixed text</dt><dd><div><kbd>Backspace</kbd></div><div><kbd>Delete</kbd></div></dd></div>
@@ -56,7 +57,7 @@ export function Help({ ui }) {
     <section>
       <h2>Canvas</h2>
       <dl>
-        <div><dt>Grid size / off</dt><dd><kbd>Alt</kbd> + <kbd>1</kbd>–<kbd>5</kbd></dd></div>
+        <div><dt>Grid size / off</dt><dd><kbd>1</kbd>–<kbd>5</kbd></dd></div>
         <div><dt>Canvas options</dt><dd>Right click canvas</dd></div>
         <div><dt>Pan</dt><dd><div><kbd>Space</kbd> + drag</div><div>Middle drag</div><div>Also over property dialogs</div><div><kbd>Arrows</kbd> (no selection)</div></dd></div>
         <div><dt>Scroll up/down</dt><dd>Wheel</dd></div>

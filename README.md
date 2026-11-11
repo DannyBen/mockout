@@ -39,6 +39,10 @@ edit padding on each edge. Use **Alt+←/→** to cycle through points while edi
 their values. Press **/** to open properties, and **Esc** to go back or close
 the inspector.
 
+Use **Alt+1–4** to open or switch property sections, including from a focused
+field. From the canvas, **/** followed by **1–4** chooses a section from the
+properties menu. Plain **1–5** on the canvas selects a grid size or turns it off.
+
 Start with one color and shape a whole palette with sliders. Named palette colors
 stay linked across your mockup, and light/dark variants are built in. Palettes use
 OKLCH and offer Inverse, Same, and Custom dark modes. Press **T** to switch themes.
