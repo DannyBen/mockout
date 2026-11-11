@@ -57,6 +57,41 @@ test('inspector keyboard navigation, mixed edits, focus restoration, undo and re
   assert.equal(await b.evaluate("document.querySelectorAll('[title]').length"), 0);
 });
 
+test('dialog arrow navigation reaches color roles and stacked controls while value fields retain native keys', async t => {
+  const b = await setup(t);
+  await properties(b);
+  assert.equal(await b.evaluate('document.activeElement.id'), 'fill-color');
+  await b.key('ArrowDown');
+  assert.equal(await b.evaluate('document.activeElement.id'), 'text-color');
+  await b.key('ArrowDown');
+  assert.equal(await b.evaluate('document.activeElement.id'), 'border-color');
+  await b.key('ArrowDown');
+  assert.equal(await b.evaluate('document.activeElement.id'), 'fill-color');
+  await b.key('End');
+  assert.equal(await b.evaluate('document.activeElement.id'), 'border-color');
+  await b.key('Home');
+  await b.key('Enter', { text: '\r' });
+  assert.equal(await b.evaluate("document.querySelector('#inspector').dataset.view"), 'box-color');
+  await click(b, '[data-edit-palette]');
+  await b.key('ArrowDown');
+  assert.equal(await b.evaluate('document.activeElement.hasAttribute("data-palette-hex")'), true);
+  await b.key('ArrowUp');
+  assert.equal(await b.evaluate('document.activeElement.hasAttribute("data-palette-title")'), true);
+  await b.evaluate("document.querySelector('[data-axis=l][data-group=base] input[type=number]').focus()");
+  const lightness = await b.evaluate('document.activeElement.valueAsNumber');
+  await b.key('ArrowDown');
+  assert.equal(await b.evaluate('document.activeElement.type'), 'number');
+  assert.equal(await b.evaluate('document.activeElement.valueAsNumber'), lightness - .1);
+  await b.evaluate("document.querySelector('#palette-base-l').focus()");
+  await b.key('ArrowDown');
+  assert.equal(await b.evaluate('document.activeElement.id'), 'palette-base-l');
+  await b.evaluate("document.querySelector('[data-palette-dark]').focus()");
+  await b.key('ArrowDown');
+  assert.equal(await b.evaluate('document.activeElement.hasAttribute("data-palette-dark")'), true);
+  await b.key('Escape');
+  assert.equal(await b.evaluate("document.querySelector('[data-palette-editor]').hidden"), true);
+});
+
 test('palette dropdown switches colors in place and creates or cancels a new palette', async t => {
   const b = await setup(t);
   await palette(b);
@@ -88,7 +123,61 @@ test('palette dropdown switches colors in place and creates or cancels a new pal
   assert.equal(project.palettes.at(-1).name, 'Test palette');
   assert.equal(await b.evaluate(`document.querySelector('${selector}').value`), `palette:${project.palettes.at(-1).id}`);
   await click(b, `[data-color-id="${project.palettes.at(-1).colors[0]}"]`);
+  await click(b, `[data-color-id="${project.palettes.at(-1).colors[0]}"]`);
   assert.equal((await saved(b)).boxes[0].fill, project.palettes.at(-1).colors[0]);
+});
+
+test('color strip arrows preview without saving; Escape cancels and Enter commits one undo step', async t => {
+  const b = await setup(t);
+  await palette(b);
+  const original = await b.evaluate("document.querySelector('.box-content').style.backgroundColor");
+  await b.key('ArrowDown');
+  await b.key('ArrowDown');
+  assert.equal(await b.evaluate('document.activeElement.dataset.colorId'), fixture.palettes[0].colors[2]);
+  assert.notEqual(await b.evaluate("document.querySelector('.box-content').style.backgroundColor"), original);
+  assert.equal(await b.evaluate("localStorage.getItem('mockout-project')"), raw);
+  await b.key('Escape');
+  assert.equal(await b.evaluate("document.querySelector('.box-content').style.backgroundColor"), original);
+  assert.equal(await b.evaluate("localStorage.getItem('mockout-project')"), raw);
+  await click(b, '#fill-color');
+  await b.key('ArrowDown');
+  await b.key('ArrowDown');
+  await b.key('Enter');
+  assert.equal(await b.evaluate("document.querySelector('#inspector').hidden"), true);
+  assert.equal(await b.evaluate('document.activeElement.id'), 'workspace');
+  assert.equal((await saved(b)).boxes[0].fill, fixture.palettes[0].colors[2]);
+  await b.key('z', { code: 'KeyZ', modifiers: 2 });
+  assert.deepEqual(await saved(b), fixture);
+});
+
+test('color strip mouse preview, double click, and a click on the selected color commit and close', async t => {
+  const b = await setup(t);
+  await palette(b);
+  const id = fixture.palettes[0].colors[2];
+  const rect = await b.evaluate(`(() => { const r = document.querySelector('[data-color-id="${id}"]').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+  const original = await b.evaluate("document.querySelector('.box-content').style.backgroundColor");
+  await b.mouse('mousePressed', rect.x, rect.y, { button: 'left', buttons: 1, clickCount: 1 });
+  await b.mouse('mouseReleased', rect.x, rect.y, { button: 'left', buttons: 0, clickCount: 1 });
+  assert.equal(await b.evaluate("document.querySelector('#inspector').hidden"), false);
+  assert.notEqual(await b.evaluate("document.querySelector('.box-content').style.backgroundColor"), original);
+  assert.equal(await b.evaluate("localStorage.getItem('mockout-project')"), raw);
+  await b.mouse('mousePressed', rect.x, rect.y, { button: 'left', buttons: 1, clickCount: 2 });
+  await b.mouse('mouseReleased', rect.x, rect.y, { button: 'left', buttons: 0, clickCount: 2 });
+  assert.equal(await b.evaluate("document.querySelector('#inspector').hidden"), true);
+  assert.equal((await saved(b)).boxes[0].fill, id);
+  await b.key('/', { code: 'Slash' });
+  await click(b, '[data-property-section="colors"]');
+  await click(b, '#fill-color');
+  await click(b, `[data-color-id="${id}"]`);
+  assert.equal(await b.evaluate("document.querySelector('#inspector').hidden"), true);
+  await b.key('/', { code: 'Slash' });
+  await click(b, '[data-property-section="colors"]');
+  await click(b, '#fill-color');
+  await click(b, '[data-transparent]');
+  assert.equal((await saved(b)).boxes[0].fill, id);
+  await click(b, '[data-transparent]');
+  assert.equal(await b.evaluate("document.querySelector('#inspector').hidden"), true);
+  assert.equal((await saved(b)).boxes[0].fill, null);
 });
 
 test('all dropdowns retain the native Dark selector appearance in both themes', async t => {

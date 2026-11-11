@@ -2,12 +2,12 @@ import { Fragment, useSyncExternalStore } from 'react';
 import { PalettePicker } from './PalettePicker.jsx';
 import { Properties } from './Properties.jsx';
 import { LegacyColors } from './LegacyColors.jsx';
-import { moveInList, trapInspectorFocus } from './keyboard.js';
+import { moveInList, navigateDialog } from './keyboard.js';
 
 export function Inspector({ ui }) {
   const { inspector: i, inspectorPosition, properties, colors } = useSyncExternalStore(ui.subscribe, ui.getSnapshot);
   return (
-  <aside id="inspector" className="mini-dialog" hidden={!i.visible} data-view={i.view} inert={i.locked} aria-label="Inspector" style={inspectorPosition} onKeyDown={trapInspectorFocus}>
+  <aside id="inspector" className="mini-dialog" hidden={!i.visible} data-view={i.view} inert={i.locked} aria-label="Inspector" style={inspectorPosition} onKeyDown={navigateDialog}>
     <header id="inspector-header" className="dialog-header">
       <button type="button" id="inspector-nav" className="icon-button" tabIndex="-1" data-action={i.hasParent ? 'back' : 'sections'} aria-label={i.hasParent ? 'Back' : i.menuTitle} onClick={() => ui.commands.navigateInspector()}>
         <svg className="icon" data-nav-icon="sections" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#menu"></use></svg>

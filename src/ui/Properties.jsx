@@ -62,7 +62,7 @@ export function Properties({ ui, inspector: i, data, colors }) {
       <div id="padding-properties" className="section-content" hidden={i.section !== 'padding'}>
         <div className={mixedClass(p.values['side-padding'] === undefined)}><label htmlFor="side-padding">Padding</label><Input {...styleField('side-padding')} id="side-padding" type="number" min="0" max="10000" step="1" /></div>
       </div>
-      <div id="color-properties" className="section-content" hidden={i.section !== 'colors'}>
+      <div id="color-properties" className="section-content" hidden={i.section !== 'colors'} onKeyDown={moveInList}>
         <div className="field"><label htmlFor="fill-color">Fill</label><BoxColorField ui={ui} colors={colors} id="fill-color" property="fill" /></div>
         <div className="field"><label htmlFor="text-color">Text</label><BoxColorField ui={ui} colors={colors} id="text-color" property="textColor" /></div>
         <div className="field"><label htmlFor="border-color">Border</label><BoxColorField ui={ui} colors={colors} id="border-color" property="borderColor" /></div>

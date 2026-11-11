@@ -10,9 +10,10 @@ export function createInspector({ model, elements, actions, events, ui }) {
     theme: () => actions.activeTheme(),
     onPreview: () => actions.render(),
     onLayout: () => { actions.render(); revealInspector(); },
+    onSelect: id => { model.colorTarget.previewId = id; actions.render(); },
     onPick: id => {
       actions.change(() => applyColor(id));
-      boxColorPicker.open(id);
+      closeInspector();
     },
     onSave: draft => {
       let id;

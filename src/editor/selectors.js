@@ -68,7 +68,10 @@ export function createSelectors({ model, elements, actions }) {
     return resolvedColor(model.project.canvasColors[property], model.project.canvasDark?.[property]);
   }
   function boxColor(box, property, side) {
-    const value = boxProperty(box, property, side);
+    let value = boxProperty(box, property, side);
+    if (model.inspectorOpen && model.inspectorView === 'box-color' && model.colorTarget?.previewId !== undefined
+      && model.selectedIds.has(box.id) && property === model.colorTarget.property
+      && (model.colorTarget.side === undefined || side === model.colorTarget.side)) value = model.colorTarget.previewId;
     if (model.inspectorOpen && ['edit', 'picker'].includes(model.inspectorView) && model.colorTarget) {
       if (model.colorTarget.editId && value === model.colorTarget.editId) return draftColor();
       if (model.inspectorKind === 'box' && !model.colorTarget.editId && model.selectedIds.has(box.id)

@@ -3,7 +3,7 @@ import Project from '../core/project.js';
 
 // Palette drafts stay outside the project until Save. Preview never records
 // history or writes storage; the editor's onSave records one undo operation.
-export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayout, onPick, onSave, onDelete }) {
+export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayout, onSelect, onPick, onSave, onDelete }) {
   const palettes = () => state().palettes ?? [];
   const get = id => palettes().find(palette => palette.id === id);
   const legacyColors = () => {
@@ -113,7 +113,9 @@ export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayo
       const hex = Colors.toHex(Colors.paletteValue(draft, index, activeTheme));
       return draft.dark ? hex : Project.resolveColor(hex, state().swatches.find(item => item.id === id)?.dark, activeTheme);
     },
-    pick: onPick,
+    select(id) { if (draft || id === selectedId) return; selectedId = id; onSelect(id); },
+    pick(id) { if (id === selectedId) onPick(id); else api.select(id); },
+    accept: onPick,
     choose(id) { paletteId = id || null; onLayout(); },
     rename(name) { draft.name = name; error = ''; render(); },
     setCount(count) { draft.count = count; error = ''; onLayout(); },
