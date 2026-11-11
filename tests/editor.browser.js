@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import Project from '../src/core/project.js';
+import { buildVersion } from '../build-version.js';
 import { openBrowser } from './support/browser.js';
 
 const fixture = Project.freshState();
@@ -55,6 +56,34 @@ test('inspector keyboard navigation, mixed edits, focus restoration, undo and re
   await b.key('Escape', { modifiers: 8 });
   assert.equal(await b.evaluate('document.activeElement.id'), 'workspace');
   assert.equal(await b.evaluate("document.querySelectorAll('[title]').length"), 0);
+});
+
+test('Help shows the build version and keeps its header and footer visible while content scrolls', async t => {
+  const b = await setup(t);
+  await click(b, '#help-button');
+  const version = buildVersion(process.cwd());
+  assert.match(version, /^\d{2}\.\d{2}\.\d{2}-[a-f0-9]{3}(?:-dirty)?$/);
+  assert.equal(await b.evaluate("document.querySelector('#help-panel footer').textContent"), `Mockout v${version} · GitHub`);
+  for (const height of [900, 480]) {
+    await b.page('Emulation.setDeviceMetricsOverride', { width: 1280, height, deviceScaleFactor: 1, mobile: false });
+    const before = await b.evaluate(`(() => {
+      const panel = document.querySelector('#help-panel'), content = panel.querySelector('.help-content');
+      content.scrollTop = 0;
+      return { header: panel.querySelector('header').getBoundingClientRect().toJSON(),
+        footer: panel.querySelector('footer').getBoundingClientRect().toJSON(), scrollable: content.scrollHeight > content.clientHeight };
+    })()`);
+    assert.equal(before.scrollable, true);
+    assert.ok(before.footer.bottom <= height - 12);
+    const after = await b.evaluate(`(() => {
+      const panel = document.querySelector('#help-panel'), content = panel.querySelector('.help-content');
+      content.scrollTop = content.scrollHeight;
+      return { header: panel.querySelector('header').getBoundingClientRect().toJSON(),
+        footer: panel.querySelector('footer').getBoundingClientRect().toJSON(), scrolled: content.scrollTop > 0 };
+    })()`);
+    assert.equal(after.scrolled, true);
+    assert.deepEqual(after.header, before.header);
+    assert.deepEqual(after.footer, before.footer);
+  }
 });
 
 test('dialog arrow navigation reaches color roles and stacked controls while value fields retain native keys', async t => {

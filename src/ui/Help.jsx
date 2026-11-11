@@ -6,6 +6,7 @@ export function Help({ ui }) {
   return <>
   <aside id="help-panel" hidden={!t?.helpOpen} aria-label="Keyboard help">
     <header><strong>Help</strong><button type="button" tabIndex="-1" id="close-help" onClick={() => ui.commands.toggleHelp()} aria-label="Close help" className="icon-button"><svg className="icon" aria-hidden="true"><use href="assets/material-symbols/sprite.svg#close"></use></svg></button></header>
+    <div className="help-content">
     <section>
       <h2>Draw and select</h2>
       <dl>
@@ -82,7 +83,8 @@ export function Help({ ui }) {
     </section>
     <button type="button" id="welcome-button" disabled={unavailable} onClick={() => ui.commands.loadWelcome()}>Show Welcome example</button>
     <p id="welcome-hint" hidden={!unavailable}>{e?.savedProjectIssue ? 'Resolve the saved project issue first.' : 'Start a new blank project first to show Welcome.'}</p>
-    <footer>Mockout · <a href="https://github.com/dannyben/mockout" target="_blank" rel="noopener noreferrer">GitHub</a></footer>
+    </div>
+    <footer>Mockout v{__APP_VERSION__} · <a href="https://github.com/dannyben/mockout" target="_blank" rel="noopener noreferrer">GitHub</a></footer>
   </aside>
 
 
