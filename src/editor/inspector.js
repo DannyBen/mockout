@@ -17,10 +17,14 @@ export function createInspector({ model, elements, actions, events, ui }) {
     },
     onSave: draft => {
       let id;
+      delete model.colorTarget.previewId;
       actions.change(() => { id = MockoutColors.savePalette(model.project, draft); });
       return id;
     },
-    onDelete: id => actions.change(() => MockoutColors.deletePalette(model.project, id)),
+    onDelete: id => {
+      delete model.colorTarget.previewId;
+      actions.change(() => MockoutColors.deletePalette(model.project, id));
+    },
   });
   function renderInspector() {
     const box = actions.inspectedBox();
@@ -40,7 +44,7 @@ export function createInspector({ model, elements, actions, events, ui }) {
       const property = key === 'borderSide' ? 'borderColor' : key;
       const value = MockoutSelection.commonValue(boxes, box => actions.boxProperty(box, property, key === 'borderSide' ? model.borderTarget.index : undefined));
       const mixed = value === undefined, item = actions.swatch(value);
-      const label = mixed ? 'Mixed' : item?.name || 'Transparent';
+      const label = mixed ? 'Mixed' : MockoutColors.isUnassigned(model.project, value) ? 'Unassigned' : item?.name || 'Transparent';
       return [key, { label, mixed, color: item && !mixed ? actions.colorOf(value) : null, description: `${colorLabel(property)}: ${label}` }];
     }));
     const choosing = model.inspectorView === 'choose';
@@ -293,6 +297,7 @@ export function createInspector({ model, elements, actions, events, ui }) {
   function openColor(property, side) {
     model.colorTarget = { property, side };
     const id = MockoutSelection.commonValue(actions.selectedBoxes(), box => actions.boxProperty(box, property, side));
+    model.colorTarget.sourceId = id;
     pushInspectorView('box-color', focusColorField);
     boxColorPicker.open(id);
     renderInspector();
@@ -300,7 +305,10 @@ export function createInspector({ model, elements, actions, events, ui }) {
     boxColorPicker.focus();
   }
   function applyColor(id) {
-    if (model.colorTarget.property === 'borderColor') {
+    const original = MockoutSelection.commonValue(actions.selectedBoxes(), box => actions.boxProperty(box, model.colorTarget.property, model.colorTarget.side));
+    if (MockoutColors.isUnassigned(model.project, original) && original !== id) {
+      MockoutColors.replaceColor(model.project, original, id);
+    } else if (model.colorTarget.property === 'borderColor') {
       for (const box of actions.selectedBoxes()) actions.boxStyle.set(box, 'borderColor', id, model.colorTarget.side);
     } else MockoutSelection.applyProperty(model.project.boxes, model.selectedIds, model.colorTarget.property, id);
     actions.rememberStyle(actions.selectedBox());

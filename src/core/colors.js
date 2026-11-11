@@ -1,3 +1,5 @@
+import BoxStyle from './box-style.js';
+
 const MockoutColors = (() => {
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const wrap = hue => ((hue % 360) + 360) % 360;
@@ -154,17 +156,34 @@ const MockoutColors = (() => {
     return used;
   }
 
-  function canCount(state, palette, count) {
+  const isUnassigned = (state, id) => state.swatches.some(color => color.id === id)
+    && !(state.palettes ?? []).some(palette => palette.colors.includes(id));
+
+  function retainedSwatches(state, palette, removed) {
+    if (!removed.length) return state.swatches;
     const used = usedColors(state);
-    return !palette.colors?.slice(count).some(id => used.has(id));
+    return state.swatches.filter(color => !removed.includes(color.id) || used.has(color.id)).map(color => {
+      if (!removed.includes(color.id)) return color;
+      const index = palette.colors.indexOf(color.id);
+      return { ...color, color: toHex(paletteValue(palette, index)), ...(palette.dark ? {
+        dark: { mode: 'custom', color: toHex(paletteValue(palette, index, 'dark')), colorMode: 'rgb' },
+      } : {}) };
+    });
+  }
+
+  function replaceColor(state, id, replacement) {
+    if (!isUnassigned(state, id)) throw Error('This color is not unassigned.');
+    if (replacement !== null && !state.swatches.some(color => color.id === replacement)) throw Error('This color no longer exists.');
+    if (id === replacement) return;
+    for (const box of [...state.boxes, state.lastStyle].filter(Boolean)) BoxStyle.replaceColor(box, id, replacement);
+    // Older relative colors may still need this swatch as their base.
+    if (!usedColors(state).has(id)) state.swatches = state.swatches.filter(color => color.id !== id);
   }
 
   function deletePalette(state, id) {
     const palette = state.palettes?.find(item => item.id === id);
     if (!palette) throw Error('This palette no longer exists.');
-    if (!canCount(state, palette, 0)) throw Error('Palette colors are still in use.');
-    const removed = new Set(palette.colors);
-    state.swatches = state.swatches.filter(color => !removed.has(color.id));
+    state.swatches = retainedSwatches(state, palette, palette.colors);
     state.palettes = state.palettes.filter(item => item.id !== id);
   }
 
@@ -172,7 +191,6 @@ const MockoutColors = (() => {
     if (!validRecipe(draft)) throw Error('Enter a palette name and valid LCH values.');
     const existing = state.palettes?.find(item => item.id === draft.id);
     if (draft.id && !existing) throw Error('This palette no longer exists.');
-    if (existing && !canCount(state, existing, draft.count)) throw Error('Colors beyond this count are still in use.');
     let nextId = state.nextId;
     const allocate = prefix => {
       let id;
@@ -188,8 +206,8 @@ const MockoutColors = (() => {
       if (dark.base) Object.assign(palette.dark, { base: { ...dark.base }, step: { ...dark.step } });
     }
     while (palette.colors.length < palette.count) palette.colors.push(allocate('s'));
-    const removed = new Set(existing?.colors.slice(draft.count) ?? []);
-    const swatches = state.swatches.filter(color => !removed.has(color.id)).map(color => ({ ...color }));
+    const removed = existing?.colors.slice(draft.count) ?? [];
+    const swatches = retainedSwatches(state, existing, removed).map(color => ({ ...color }));
     palette.colors.forEach((id, index) => {
       let color = swatches.find(item => item.id === id);
       if (!color) { color = { id }; swatches.push(color); }
@@ -205,7 +223,7 @@ const MockoutColors = (() => {
     return palette.id;
   }
 
-  return { fromHex, toHex, maxChroma, contrastingText, baseValue, relativeValue, hexFor, paletteRecipe, paletteValue, stepLimits, valid, canCount, deletePalette, savePalette };
+  return { fromHex, toHex, maxChroma, contrastingText, baseValue, relativeValue, hexFor, paletteRecipe, paletteValue, stepLimits, valid, isUnassigned, replaceColor, deletePalette, savePalette };
 })();
 
 export default MockoutColors;

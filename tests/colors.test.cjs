@@ -208,26 +208,28 @@ test('editing and extending a palette preserves existing slot IDs and other pale
   assert.equal(project.validProject(state), true);
 });
 
-test('used slots cannot be removed, including border sides and the last drawing style', () => {
+test('reducing a palette detaches used slots, preserves both themes and removes unused slots', () => {
   const state = emptyState();
   colors.savePalette(state, recipe(9));
   const palette = state.palettes[0];
   state.boxes = [{ id: 101, x: 0, y: 0, w: 100, h: 100, text: '',
     ...project.initialStyle(state.swatches), fill: palette.colors[8], borderColors: [null, palette.colors[5], null, null] }];
   state.lastStyle.fill = palette.colors[4];
-  assert.equal(colors.canCount(state, palette, 6), false);
-  const before = JSON.stringify(state);
-  assert.throws(() => colors.savePalette(state, { ...palette, count: 6 }), /still in use/);
-  assert.equal(JSON.stringify(state), before);
-  state.boxes[0].fill = palette.colors[0];
-  assert.equal(colors.canCount(state, palette, 6), true);
-  assert.equal(colors.canCount(state, palette, 3), false);
-  state.boxes[0].borderColors = [null, null, null, null];
-  assert.equal(colors.canCount(state, palette, 3), false);
-  state.lastStyle.fill = palette.colors[0];
-  colors.savePalette(state, { ...palette, count: 3 });
+  colors.savePalette(state, { ...palette, count: 6 });
+  assert.equal(state.palettes[0].colors.length, 6);
+  assert.equal(colors.isUnassigned(state, palette.colors[8]), true);
+  assert.equal(state.swatches.some(color => color.id === palette.colors[7]), false);
+  colors.savePalette(state, { ...state.palettes[0], count: 3 });
   assert.equal(state.palettes[0].colors.length, 3);
-  assert.equal(state.swatches.some(color => color.id === palette.colors[8]), false);
+  for (const index of [4, 5, 8]) {
+    const swatch = state.swatches.find(color => color.id === palette.colors[index]);
+    assert.equal(colors.isUnassigned(state, swatch.id), true);
+    assert.equal(swatch.color, colors.toHex(colors.paletteValue(palette, index)));
+    assert.equal(project.resolveColor(swatch.color, swatch.dark, 'dark'), colors.toHex(colors.paletteValue(palette, index, 'dark')));
+  }
+  assert.equal(state.boxes[0].fill, palette.colors[8]);
+  assert.equal(state.boxes[0].borderColors[1], palette.colors[5]);
+  assert.equal(state.lastStyle.fill, palette.colors[4]);
   assert.equal(project.validProject(state), true);
 });
 
@@ -261,7 +263,7 @@ test('deleting an unused palette removes its slots and preserves other palettes 
   assert.equal(project.validProject(state), true);
 });
 
-test('palette deletion rejects used colors and missing palettes without changing state', () => {
+test('palette deletion preserves used colors and relative bases, and rejects missing palettes', () => {
   const references = [
     (state, id) => { state.lastStyle.textColor = id; },
     (state, id) => { state.boxes = [{ id: 100, x: 0, y: 0, w: 100, h: 50, text: '',
@@ -274,14 +276,68 @@ test('palette deletion rejects used colors and missing palettes without changing
   for (const reference of references) {
     const state = project.freshState(), palette = state.palettes[1];
     reference(state, palette.colors[0]);
-    const before = JSON.stringify(state);
-    assert.throws(() => colors.deletePalette(state, palette.id), /still in use/);
-    assert.equal(JSON.stringify(state), before);
+    colors.deletePalette(state, palette.id);
+    assert.equal(state.palettes.some(item => item.id === palette.id), false);
+    const swatch = state.swatches.find(color => color.id === palette.colors[0]);
+    assert.equal(colors.isUnassigned(state, swatch.id), true);
+    assert.equal(swatch.color, colors.toHex(colors.paletteValue(palette, 0)));
+    assert.equal(project.resolveColor(swatch.color, swatch.dark, 'dark'), colors.toHex(colors.paletteValue(palette, 0, 'dark')));
     assert.equal(project.validProject(state), true);
   }
   const state = project.freshState(), before = JSON.stringify(state);
   assert.throws(() => colors.deletePalette(state, 'missing'), /no longer exists/);
   assert.equal(JSON.stringify(state), before);
+});
+
+test('detaching a palette freezes Same, Inverse and Custom dark appearances', () => {
+  for (const dark of [{ mode: 'same' }, { mode: 'inverse' }, { mode: 'custom',
+    base: { l: 25, c: .08, h: 15 }, step: { l: 4, c: 0, h: 25 } }]) {
+    const state = emptyState();
+    colors.savePalette(state, { ...recipe(), dark });
+    const palette = state.palettes[0];
+    state.lastStyle.fill = palette.colors[3];
+    colors.deletePalette(state, palette.id);
+    assert.equal(state.palettes.length, 0);
+    assert.equal(state.swatches.length, 1);
+    const swatch = state.swatches[0];
+    assert.equal(swatch.color, colors.toHex(colors.paletteValue(palette, 3)));
+    assert.equal(project.resolveColor(swatch.color, swatch.dark, 'dark'), colors.toHex(colors.paletteValue(palette, 3, 'dark')));
+    assert.equal(project.validProject(JSON.parse(JSON.stringify(state))), true);
+  }
+});
+
+test('replacing an unassigned slot repairs shared box and drawing-style references independently', () => {
+  const state = project.freshState(), [background, accent] = state.palettes;
+  const [fill, other] = background.colors, replacement = accent.colors[0];
+  state.boxes = [
+    { ...state.lastStyle, id: 100, x: 0, y: 0, w: 100, h: 50, text: '', fill },
+    { ...state.lastStyle, id: 101, x: 100, y: 0, w: 100, h: 50, text: '', fill: other,
+      textColor: fill, borderColors: [fill, null, fill, null] },
+  ];
+  colors.deletePalette(state, background.id);
+  colors.replaceColor(state, fill, replacement);
+  assert.equal(state.boxes[0].fill, replacement);
+  assert.equal(state.boxes[1].textColor, replacement);
+  assert.deepEqual(state.boxes[1].borderColors, [replacement, null, replacement, null]);
+  assert.equal(state.lastStyle.fill, replacement);
+  assert.equal(state.swatches.some(color => color.id === fill), false);
+  assert.equal(state.boxes[1].fill, other);
+  assert.equal(colors.isUnassigned(state, other), true);
+  colors.replaceColor(state, other, null);
+  assert.equal(state.boxes[1].fill, null);
+  assert.equal(project.validProject(state), true);
+});
+
+test('repairing a detached slot keeps any base needed by older relative colors', () => {
+  const state = project.freshState(), palette = state.palettes[1], id = palette.colors[0];
+  state.lastStyle.fill = id;
+  state.swatches.push({ id: 'relative', name: 'Relative', color: '#ffffff', relative: { base: id, l: 4, c: 0, h: 0 } });
+  colors.deletePalette(state, palette.id);
+  const before = colors.hexFor(state.swatches, 'relative');
+  colors.replaceColor(state, id, null);
+  assert.equal(state.lastStyle.fill, null);
+  assert.equal(colors.hexFor(state.swatches, 'relative'), before);
+  assert.equal(project.validProject(state), true);
 });
 
 test('invalid recipes and palette references are rejected without partial saves', () => {

@@ -48,6 +48,10 @@ stay linked across your mockup, and light/dark variants are built in. Palettes u
 OKLCH and offer Inverse, Same, and Custom dark modes. Press **T** to switch themes.
 You can also choose fonts and Material icons in box properties.
 
+Deleting a palette or reducing its color count keeps colors that are still in
+use, including their light and dark appearances. They appear as **Unassigned** in
+the affected color field. Choose a replacement to update every use of that slot.
+
 ## Work with AI
 
 Use your own AI assistant to create and refine mockups while you watch. Connect

@@ -157,10 +157,13 @@ Explicit Same uses `dark: { "mode": "same" }`. Without a palette-level dark
 recipe, preserve any existing per-swatch dark settings.
 Boxes continue to reference swatch IDs. Preserve
 slot IDs and order when editing a recipe; update the fallback hexes too. A swatch
-can belong to only one palette. Never remove a slot referenced by a box, a border
-side, the last drawing style, or another color. If the Mockout source is available
-locally, `src/core/colors.js` has a default export with `savePalette(state, draft)` to generate or
-update the palette slots and fallbacks together.
+can belong to only one palette. Deleting a palette or reducing its count retains
+referenced swatches as standalone colors with their original IDs. Freeze their
+current light color and, for palette-level dark recipes, their resolved dark color
+as a per-swatch Custom value. Unused removed swatches can be discarded. Never
+remove a referenced swatch entry without also repairing its references.
+If the Mockout source is available locally, `src/core/colors.js` provides
+`savePalette(state, draft)` and `deletePalette(state, id)` to handle these changes.
 
 Start with a neutral Background lightness ramp and an Accent palette. A hue step
 can generate contrasting accents; a small lightness step can generate shades of
@@ -191,6 +194,11 @@ Optional `colorMode` is a picker mode: `hsb`, `rgb`, or `gray`.
 Projects without palettes remain usable through their existing swatches; opening
 them does not convert or rewrite their colors. Earlier pilot swatches with optional
 `oklch` or `relative` records also remain readable, separately from formula palettes.
+
+A referenced swatch without a palette owner appears as a contextual **Unassigned**
+row in the color strip. Replacing it with a palette color or Transparent repairs
+all box and drawing-style references sharing its ID. Other unassigned IDs remain
+independent. No additional saved-data flag or palette is needed.
 
 Removing a swatch requires updating all matching references, including `borderColors`,
 `lastStyle.fill`, `lastStyle.textColor`, and `lastStyle.borderColor` if present.

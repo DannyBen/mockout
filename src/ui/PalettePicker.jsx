@@ -91,13 +91,15 @@ export function PalettePicker({ ui }) {
       <div className="palette-list">
         <select data-palette-name="" hidden={Boolean(draft)} disabled={Boolean(draft)} aria-label="Choose palette" value={`palette:${p.paletteId ?? ''}`}
           onChange={event => event.target.value === 'new' ? api.begin(false) : api.choose(event.target.value.slice(8))}>
-          {!p.palettes.length && <option value="palette:" disabled>{p.label}</option>}
+          {!p.palettes.length && <option value="palette:" disabled hidden>{p.label}</option>}
           {p.palettes.map(item => <option key={item.id} value={`palette:${item.id}`}>{item.name}</option>)}
           <option value="new" data-new-palette="">New palette…</option>
         </select>
         <input data-palette-title="" type="text" maxLength="60" aria-label="Palette name" placeholder="Palette name" hidden={!draft} value={draft?.name || ''} onChange={event => api.rename(event.target.value)} />
         <div onKeyDown={colorKeys}>
           <ColorBlock data-transparent="" data-color-id="" hidden={Boolean(draft)} aria-pressed={p.selectedId === null} selected={p.selectedId === null} label="Transparent" onClick={() => api.pick(null)} />
+          {p.unassigned && <ColorBlock data-unassigned="" data-color-id={p.unassigned.id} hidden={Boolean(draft)} color={p.unassigned.color} label="Unassigned"
+            aria-pressed={p.selectedId === p.unassigned.id} selected={p.selectedId === p.unassigned.id} onClick={() => api.pick(p.unassigned.id)} />}
           <div data-palette-colors="" data-color-grid="" className="dialog-choice-list" role="listbox" aria-label="Palette colors">
             {p.entries.map(item => <ColorBlock key={`${draft ? 'draft' : 'color'}-${item.id}`} as={draft ? 'output' : 'button'} color={item.color} label={item.name}
               {...(!draft ? { 'data-color-id': item.id, role: 'option', 'aria-selected': item.id === p.selectedId, onClick: () => api.pick(item.id) } : {})}
@@ -112,7 +114,7 @@ export function PalettePicker({ ui }) {
             {['light', 'dark'].map(side => <button key={side} type="button" data-palette-side={side} className="icon-button" aria-label={`Edit ${side} palette`} aria-pressed={p.side === side} onClick={() => api.setSide(side)}><Icon name={`${side}_mode`} /></button>)}
           </div>
           <div className="align-buttons" role="group" aria-label="Number of colors">
-            {p.counts.map(({ count, disabled }) => <button key={count} type="button" data-count={count} aria-pressed={count === draft?.count} disabled={disabled} className={count === draft?.count ? 'active' : ''} onClick={() => api.setCount(count)}>{count}</button>)}
+            {p.counts.map(count => <button key={count} type="button" data-count={count} aria-pressed={count === draft?.count} className={count === draft?.count ? 'active' : ''} onClick={() => api.setCount(count)}>{count}</button>)}
           </div>
         </header>
         <div className="palette-editor-body">
@@ -124,10 +126,10 @@ export function PalettePicker({ ui }) {
     </div>
     <p role="alert" hidden={!p.error}>{p.error}</p>
     <footer className="dialog-footer">
-      <button type="button" data-delete-palette="" className="icon-button" aria-label="Delete palette" hidden={Boolean(draft)} disabled={Boolean(draft) || !p.canDelete}
-        aria-description={!p.canEdit ? 'Choose a palette to delete.' : p.canDelete ? 'Delete this palette. You can undo this change.' : 'Palette colors are still in use.'} onClick={api.remove}><Icon name="delete" /></button>
+      <button type="button" data-delete-palette="" className="icon-button" aria-label="Delete palette" hidden={Boolean(draft)} disabled={Boolean(draft) || !p.canEdit}
+        aria-description={p.canEdit ? 'Delete this palette. You can undo this change.' : 'Choose a palette to delete.'} onClick={api.remove}><Icon name="delete" /></button>
       <button type="button" data-edit-palette="" className="icon-button" aria-label="Edit palette" hidden={Boolean(draft)} disabled={Boolean(draft) || !p.canEdit}
-        aria-description={p.canEdit ? 'Edit this palette' : 'Existing colors have no palette recipe.'} onClick={() => api.begin(true)}><Icon name="edit" /></button>
+        aria-description={p.canEdit ? 'Edit this palette' : 'Choose a palette to edit.'} onClick={() => api.begin(true)}><Icon name="edit" /></button>
       <div className="palette-theme-actions" data-palette-theme-actions="" hidden={!draft}>
         <select data-palette-dark="" aria-label="Dark palette behavior" value={draft?.dark?.mode ?? 'same'} onChange={event => api.setMode(event.target.value)}><option value="inverse">Dark: Inverse</option><option value="same">Dark: Same</option><option value="custom">Dark: Custom</option></select>
         <button type="button" data-copy-palette="" hidden={!draft || draft.dark?.mode !== 'custom'} onClick={api.copy}>Copy from {p.side === 'dark' ? 'light' : 'dark'}</button>

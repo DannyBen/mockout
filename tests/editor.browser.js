@@ -374,6 +374,129 @@ test('all dropdowns retain the native Dark selector appearance in both themes', 
   }
 });
 
+test('deleting a used palette keeps both themes and repairs a shared Unassigned slot in one undo step', async t => {
+  const b = await setup(t);
+  await palette(b);
+  const fills = () => b.evaluate("Array.from(document.querySelectorAll('.box-content'), box => box.style.backgroundColor)");
+  const light = await fills();
+  await click(b, '#theme-button');
+  const dark = await fills();
+  await click(b, '[data-delete-palette]');
+  assert.deepEqual(await fills(), dark);
+  await click(b, '#theme-button');
+  assert.deepEqual(await fills(), light);
+  assert.equal(await b.evaluate("document.querySelector('[data-unassigned]').textContent"), 'Unassigned✓');
+  assert.equal(await b.evaluate("document.activeElement.hasAttribute('data-unassigned')"), true);
+  assert.deepEqual(await b.evaluate("Array.from(document.querySelector('[data-palette-name]').options, option => option.textContent)"), ['Accent', 'New palette…']);
+  assert.equal(await b.evaluate("document.querySelector('#notice').hidden"), true);
+  const detached = await saved(b), replacement = fixture.palettes[1].colors[0];
+  assert.equal(Project.validProject(detached), true);
+  const rect = await b.evaluate(`(() => { const r = document.querySelector('[data-color-id="${replacement}"]').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`);
+  await b.mouse('mousePressed', rect.x, rect.y, { button: 'left', buttons: 1, clickCount: 1 });
+  await b.mouse('mouseReleased', rect.x, rect.y, { button: 'left', buttons: 0, clickCount: 1 });
+  const preview = await fills();
+  assert.equal(preview[0], preview[1]);
+  assert.notDeepEqual(preview, light);
+  assert.deepEqual(await saved(b), detached);
+  await b.key('Enter');
+  const repaired = await saved(b);
+  assert.deepEqual(repaired.boxes.map(box => box.fill), [replacement, replacement]);
+  assert.equal(repaired.lastStyle.fill, replacement);
+  assert.equal(repaired.swatches.some(color => color.id === fixture.palettes[0].colors[0]), false);
+  await b.key('2', { code: 'Digit2', modifiers: 1 });
+  await click(b, '#fill-color');
+  assert.equal(await b.evaluate("document.querySelector('[data-unassigned]') === null"), true);
+  await b.key('Escape', { modifiers: 8 });
+  await b.key('z', { code: 'KeyZ', modifiers: 2 });
+  assert.deepEqual(await saved(b), detached);
+  await b.key('z', { code: 'KeyZ', modifiers: 2 });
+  assert.deepEqual(await saved(b), fixture);
+});
+
+test('reducing a used palette count adds only the current Unassigned slot to its color strip', async t => {
+  const b = await setup(t);
+  await properties(b);
+  await click(b, '#text-color');
+  const original = await b.evaluate("Array.from(document.querySelectorAll('.box-content'), box => box.style.color)");
+  await click(b, '[data-edit-palette]');
+  assert.equal(await b.evaluate("document.querySelector('[data-count=\"3\"]').disabled"), false);
+  await click(b, '[data-count="3"]');
+  await click(b, '[data-save-palette]');
+  assert.deepEqual(await b.evaluate("Array.from(document.querySelectorAll('.box-content'), box => box.style.color)"), original);
+  assert.equal(await b.evaluate("document.querySelectorAll('[data-palette-colors] button').length"), 3);
+  assert.equal(await b.evaluate("document.querySelector('[data-unassigned]').dataset.colorId"), fixture.palettes[0].colors[5]);
+  assert.equal(await b.evaluate("document.querySelector('[data-unassigned]').getAttribute('aria-pressed')"), 'true');
+  const reduced = await saved(b), replacement = fixture.palettes[0].colors[0];
+  await b.key('ArrowDown');
+  assert.equal(await b.evaluate('document.activeElement.dataset.colorId'), replacement);
+  await b.key('Enter');
+  assert.deepEqual((await saved(b)).boxes.map(box => box.textColor), [replacement, replacement]);
+  assert.equal((await saved(b)).lastStyle.textColor, replacement);
+  await b.key('z', { code: 'KeyZ', modifiers: 2 });
+  assert.deepEqual(await saved(b), reduced);
+  await b.key('z', { code: 'KeyZ', modifiers: 2 });
+  assert.deepEqual(await saved(b), fixture);
+});
+
+test('zero palettes survives reload and its placeholder allows native New palette selection after cancellation', async t => {
+  const b = await setup(t);
+  await palette(b);
+  await click(b, '[data-delete-palette]');
+  await click(b, '[data-delete-palette]');
+  assert.equal((await saved(b)).palettes.length, 0);
+  assert.equal(Project.validProject(await saved(b)), true);
+  await b.page('Page.reload');
+  await b.wait("document.querySelectorAll('.box').length === 2");
+  await palette(b);
+  assert.deepEqual(await b.evaluate("Array.from(document.querySelectorAll('#box-color-picker [data-color-id]'), button => button.querySelector('.color-block-label').textContent)"), ['Transparent', 'Unassigned']);
+  assert.equal(await b.evaluate("document.querySelector('[data-palette-name]').selectedOptions[0].textContent"), 'No palettes');
+  assert.equal(await b.evaluate("document.querySelector('[data-palette-name]').selectedOptions[0].hidden"), true);
+  assert.deepEqual(await b.evaluate("Array.from(document.querySelector('[data-palette-name]').options).filter(option => !option.disabled && !option.hidden).map(option => option.textContent)"), ['New palette…']);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await b.evaluate("document.querySelector('[data-palette-name]').focus()");
+    await b.key('ArrowDown');
+    assert.equal(await b.evaluate("document.activeElement.hasAttribute('data-palette-title')"), true);
+    if (!attempt) await click(b, '[data-cancel-palette]');
+  }
+  await input(b, '[data-palette-title]', 'Fresh');
+  await click(b, '[data-save-palette]');
+  const project = await saved(b), replacement = project.palettes[0].colors[0];
+  assert.equal(project.palettes[0].name, 'Fresh');
+  assert.equal(await b.evaluate("document.querySelector('[data-unassigned]').getAttribute('aria-pressed')"), 'true');
+  await b.key('ArrowDown');
+  assert.equal(await b.evaluate('document.activeElement.dataset.colorId'), replacement);
+  await b.key('Enter');
+  assert.deepEqual((await saved(b)).boxes.map(box => box.fill), [replacement, replacement]);
+  await b.key('2', { code: 'Digit2', modifiers: 1 });
+  await click(b, '#text-color');
+  assert.equal(await b.evaluate("document.querySelector('[data-unassigned]').dataset.colorId"), fixture.palettes[0].colors[5]);
+});
+
+test('deleting an unused palette during color preview clears the preview before removing its slots', async t => {
+  const b = await setup(t);
+  await palette(b);
+  const original = await b.evaluate("document.querySelector('.box-content').style.backgroundColor");
+  await input(b, '[data-palette-name]', `palette:${fixture.palettes[1].id}`, 'change');
+  await click(b, `[data-color-id="${fixture.palettes[1].colors[0]}"]`);
+  await click(b, '[data-delete-palette]');
+  assert.equal(await b.evaluate("document.querySelector('.box-content').style.backgroundColor"), original);
+  assert.equal(await b.evaluate("document.querySelector('[data-unassigned]') === null"), true);
+  assert.equal(Project.validProject(await saved(b)), true);
+});
+
+test('reducing a palette clears a preview slot that becomes unassigned for another property', async t => {
+  const b = await setup(t);
+  await palette(b);
+  const original = await b.evaluate("document.querySelector('.box-content').style.backgroundColor");
+  await click(b, `[data-color-id="${fixture.palettes[0].colors[5]}"]`);
+  await click(b, '[data-edit-palette]');
+  await click(b, '[data-count="3"]');
+  await click(b, '[data-save-palette]');
+  assert.equal(await b.evaluate("document.querySelector('.box-content').style.backgroundColor"), original);
+  assert.equal(await b.evaluate("document.querySelector('[data-unassigned]') === null"), true);
+  assert.equal(await b.evaluate("document.querySelector('[data-palette-colors] [aria-selected=true]').dataset.colorId"), fixture.palettes[0].colors[0]);
+});
+
 test('palette preview, Escape, save, stable inputs, independent dark colors, and one-step undo', async t => {
   const b = await setup(t);
   await palette(b);
