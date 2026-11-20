@@ -76,7 +76,7 @@ export async function openBrowser({ directory = 'dist', script = '', url: baseUR
     const url = baseURL || `http://127.0.0.1:${server.address().port}/`;
     await page('Page.navigate', { url });
     const key = async (key, { code = key, modifiers = 0, text } = {}) => {
-      const windowsVirtualKeyCode = ({ Escape: 27, Tab: 9, Enter: 13, ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40, Delete: 46, Backspace: 8, Home: 36, End: 35, Space: 32 })[key] || (code.startsWith('Key') ? code.charCodeAt(3) : 0);
+      const windowsVirtualKeyCode = ({ Escape: 27, Tab: 9, Enter: 13, ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40, Delete: 46, Backspace: 8, Home: 36, End: 35, Space: 32 })[code] || (code.startsWith('Key') ? code.charCodeAt(3) : 0);
       await page('Input.dispatchKeyEvent', { type: 'keyDown', key, code, modifiers, windowsVirtualKeyCode, ...(text ? { text } : {}) });
       await page('Input.dispatchKeyEvent', { type: 'keyUp', key, code, modifiers, windowsVirtualKeyCode });
     };

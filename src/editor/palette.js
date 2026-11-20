@@ -3,10 +3,10 @@ import Project from '../core/project.js';
 
 // Palette drafts stay outside the project until Save. Preview never records
 // history or writes storage; the editor's onSave records one undo operation.
-export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayout, onSelect, onPick, onClose, onSave, onDelete }) {
+export function createPaletteEditor(ui, { state, selectedColor, color, theme, onPreview, onLayout, onPick, onSave, onDelete }) {
   const palettes = () => state().palettes ?? [];
   const get = id => palettes().find(palette => palette.id === id);
-  let paletteId = null, selectedId = null, sourceId = null, draft = null, side = 'light';
+  let paletteId = null, draft = null, side = 'light';
   let error = '', hexDirty = false, hexEditing = false, hexText = '', hexError = '';
   const recipe = () => Colors.paletteRecipe(draft, side);
   const find = selector => document.querySelector(`#box-color-picker ${selector}`);
@@ -18,40 +18,37 @@ export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayo
   };
   const stepValue = (position, [min, max], axis) => rounded(position * (position < 0 ? -min : max), axis);
 
-  function entries() {
+  function entries(palette) {
     if (draft) return Array.from({ length: draft.count }, (_, index) => ({
       id: index, color: Colors.toHex(Colors.paletteValue(recipe(), index)), name: `${draft.name || 'Palette'} ${index + 1}`,
     }));
-    const palette = get(paletteId);
     const items = palette ? palette.colors.map(id => state().swatches.find(item => item.id === id)) : [];
     return items.map(item => ({ ...item, color: color(item.id) }));
   }
 
   function render() {
-    const palette = get(paletteId);
+    const palette = get(paletteId) ?? palettes()[0];
+    paletteId = palette?.id ?? null;
+    const selectedId = selectedColor();
     const current = draft ? recipe() : null;
     ui.update({ palette: {
       api, paletteId, selectedId, draft: draft && structuredClone(draft), side, error, hexError,
       hex: hexDirty || hexEditing ? hexText : current ? Colors.toHex(current.base).toUpperCase() : '',
       label: draft?.name || (draft ? 'New palette' : palette?.name || 'No palettes'),
-      palettes: palettes(), entries: entries(), canEdit: Boolean(palette), counts: [3, 6, 9],
-      unassigned: Colors.isUnassigned(state(), sourceId) ? { id: sourceId, color: color(sourceId) } : null,
+      palettes: palettes(), entries: entries(palette), canEdit: Boolean(palette), counts: [3, 6, 9],
+      unassigned: Colors.isUnassigned(state(), selectedId) ? { id: selectedId, color: color(selectedId) } : null,
       recipe: current && structuredClone(current),
     } });
   }
 
   function focus() {
-    (selectedId === null ? find('[data-transparent]')
+    (selectedColor() === null ? find('[data-transparent]')
       : find('[data-unassigned][aria-pressed="true"]') || find('[data-palette-colors] [aria-selected="true"]') || find('[data-palette-colors] button') || find('[data-palette-name]'))?.focus();
-  }
-  function refreshSelection() {
-    if (selectedId != null && (!state().swatches.some(color => color.id === selectedId)
-      || (selectedId !== sourceId && Colors.isUnassigned(state(), selectedId)))) selectedId = sourceId;
-    onSelect(selectedId);
   }
   function begin(edit) {
     const palette = get(paletteId);
     if (edit && !palette) return;
+    const selectedId = selectedColor();
     const selected = state().swatches.find(item => item.id === selectedId);
     const base = palette?.base ?? Colors.fromHex(selected ? Colors.hexFor(state().swatches, selected.id, palettes()) : '#4393e1');
     draft = edit ? structuredClone(palette) : {
@@ -91,20 +88,21 @@ export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayo
     if (!draft.name.trim()) { error = 'Enter a palette name.'; render(); find('[data-palette-title]').focus(); return; }
     try { paletteId = onSave(draft); }
     catch (issue) { error = issue.message; render(); return; }
-    draft = null; error = ''; refreshSelection(); onLayout(); focus();
+    draft = null; error = ''; onLayout(); focus();
   }
   function remove() {
     if (draft || !get(paletteId)) return;
     try { onDelete(paletteId); }
     catch (issue) { error = issue.message; render(); return; }
-    paletteId = palettes()[0]?.id ?? null; error = ''; refreshSelection(); onLayout(); focus();
+    paletteId = palettes()[0]?.id ?? null; error = ''; onLayout(); focus();
   }
 
   const api = {
     render, focus, begin, cancel, save, remove,
-    open(id, keepPalette = false) {
-      selectedId = sourceId = id; draft = null; error = '';
+    open(keepPalette = false) {
+      draft = null; error = '';
       if (!keepPalette || !get(paletteId)) {
+        const id = selectedColor();
         paletteId = palettes().find(palette => palette.colors.includes(id))?.id ?? get(paletteId)?.id ?? palettes()[0]?.id ?? null;
       }
       render();
@@ -115,15 +113,8 @@ export function createPaletteEditor(ui, { state, color, theme, onPreview, onLayo
       const hex = Colors.toHex(Colors.paletteValue(draft, index, activeTheme));
       return draft.dark ? hex : Project.resolveColor(hex, state().swatches.find(item => item.id === id)?.dark, activeTheme);
     },
-    select(id) { if (draft || id === selectedId) return; selectedId = id; onSelect(id); },
-    pick(id) { if (id === selectedId) api.accept(id); else api.select(id); },
-    accept(id) { onPick(id); onClose(); },
-    commitPreview(keepOpen = false) {
-      if (draft) return false;
-      if (selectedId !== sourceId) onPick(selectedId);
-      if (!keepOpen) onClose();
-      return keepOpen;
-    },
+    hasDraft: () => draft !== null,
+    pick(id) { if (!draft && id !== selectedColor()) onPick(id); },
     choose(id) { paletteId = id || null; onLayout(); },
     rename(name) { draft.name = name; error = ''; render(); },
     setCount(count) { draft.count = count; error = ''; onLayout(); },

@@ -621,8 +621,10 @@ export function createController({ model, elements, actions, events, ui }) {
         if (model.fileLocked && event.button !== 1 && !model.spaceDown) { event.preventDefault(); return; }
         const boxElement = event.target.closest('.box');
         let followColorSelection = false;
-        if (event.button === 0 && !model.spaceDown && model.inspectorOpen && model.inspectorView === 'box-color') {
-          followColorSelection = actions.boxColorPicker.commitPreview(Boolean(boxElement) && model.tool === 'select' && !event.shiftKey);
+        if (event.button === 0 && !model.spaceDown && model.inspectorOpen && model.inspectorView === 'box-color'
+          && !actions.boxColorPicker.hasDraft()) {
+          followColorSelection = Boolean(boxElement) && model.tool === 'select' && !event.shiftKey;
+          if (!followColorSelection) actions.closeInspector();
         }
         if (elements.inspector.contains(document.activeElement)) document.activeElement.blur();
         if (model.placement) {
@@ -666,7 +668,7 @@ export function createController({ model, elements, actions, events, ui }) {
               if (choosingSection) model.inspectorView = 'sections';
             }
             if (followColorSelection) {
-              actions.refreshColorSelection(true);
+              actions.boxColorPicker.open(true);
               actions.boxColorPicker.focus();
             }
             model.gesture = {
@@ -929,14 +931,21 @@ export function createController({ model, elements, actions, events, ui }) {
           else { model.activePropertySection = section; model.tool = 'select'; actions.openInspector(model.selectedId, false); }
           return;
         }
-        if (event.code === 'Space' && !ctrl && !event.altKey && !model.textEditor
+        const inspectorFocused = elements.inspector.contains(focus);
+        const colorPickerFocused = inspectorFocused && model.inspectorOpen && model.inspectorView === 'box-color'
+          && !actions.boxColorPicker.hasDraft();
+        if (event.code === 'Space' && !ctrl && !event.altKey && !model.textEditor && !colorPickerFocused
           && !focus.isContentEditable && !/INPUT|SELECT|TEXTAREA/.test(focus.tagName)) {
           event.preventDefault();
           if (!model.spaceDown) { model.spaceDown = true; actions.render(); }
           return;
         }
-        if (elements.inspector.contains(document.activeElement) || model.textEditor
-          || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+        const editing = inspectorFocused || model.textEditor || /INPUT|SELECT|TEXTAREA/.test(focus.tagName);
+        if (ctrl && (!editing || colorPickerFocused)) {
+          if (event.code === 'KeyZ') { event.preventDefault(); event.shiftKey ? redo() : undo(); return; }
+          if (event.code === 'KeyY') { event.preventDefault(); redo(); return; }
+        }
+        if (editing) return;
         if (!ctrl && !event.altKey && !event.shiftKey && event.code === 'KeyT') {
           event.preventDefault();
           if (!event.repeat) toggleTheme();
@@ -963,8 +972,6 @@ export function createController({ model, elements, actions, events, ui }) {
           if (!event.repeat) toggleHelp();
           return;
         }
-        if (ctrl && event.code === 'KeyZ') { event.preventDefault(); event.shiftKey ? redo() : undo(); return; }
-        if (ctrl && event.code === 'KeyY') { event.preventDefault(); redo(); return; }
         if ((zoomInKey || zoomOutKey) && !event.altKey && !ctrl) {
           event.preventDefault();
           zoomAt(zoomOutKey ? 1 / 1.2 : 1.2, elements.workspace.clientWidth / 2, elements.workspace.clientHeight / 2);

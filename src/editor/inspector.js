@@ -6,23 +6,18 @@ import MockoutSelection from '../core/selection.js';
 export function createInspector({ model, elements, actions, events, ui }) {
   const boxColorPicker = createPaletteEditor(ui, {
     state: () => model.project,
+    selectedColor,
     color: id => actions.colorOf(id),
     theme: () => actions.activeTheme(),
     onPreview: () => actions.render(),
     onLayout: () => { actions.render(); revealInspector(); },
-    onSelect: id => { model.colorTarget.previewId = id; actions.render(); },
     onPick: id => actions.change(() => applyColor(id)),
-    onClose: closeInspector,
     onSave: draft => {
       let id;
-      delete model.colorTarget.previewId;
       actions.change(() => { id = MockoutColors.savePalette(model.project, draft); });
       return id;
     },
-    onDelete: id => {
-      delete model.colorTarget.previewId;
-      actions.change(() => MockoutColors.deletePalette(model.project, id));
-    },
+    onDelete: id => actions.change(() => MockoutColors.deletePalette(model.project, id)),
   });
   function renderInspector() {
     const box = actions.inspectedBox();
@@ -292,22 +287,20 @@ export function createInspector({ model, elements, actions, events, ui }) {
     revealInspector();
     (document.querySelector('#swatch-list .dialog-choice') || document.querySelector('#new-swatch')).focus();
   }
-  function refreshColorSelection(keepPalette = false) {
+  function selectedColor() {
     const { property, side } = model.colorTarget;
-    const id = MockoutSelection.commonValue(actions.selectedBoxes(), box => actions.boxProperty(box, property, side));
-    model.colorTarget = { property, side, sourceId: id };
-    boxColorPicker.open(id, keepPalette);
+    return MockoutSelection.commonValue(actions.selectedBoxes(), box => actions.boxProperty(box, property, side));
   }
   function openColor(property, side) {
     model.colorTarget = { property, side };
     pushInspectorView('box-color', focusColorField);
-    refreshColorSelection();
+    boxColorPicker.open();
     renderInspector();
     revealInspector();
     boxColorPicker.focus();
   }
   function applyColor(id) {
-    const original = MockoutSelection.commonValue(actions.selectedBoxes(), box => actions.boxProperty(box, model.colorTarget.property, model.colorTarget.side));
+    const original = selectedColor();
     if (MockoutColors.isUnassigned(model.project, original) && original !== id) {
       MockoutColors.replaceColor(model.project, original, id);
     } else if (model.colorTarget.property === 'borderColor') {
@@ -494,7 +487,7 @@ export function createInspector({ model, elements, actions, events, ui }) {
       choosePropertySection, navigateInspector, rememberPropertyFocus, boxColorPicker, renderInspector,
       resetInspectorView, showInspectorParent, focusPropertySection, closeInspector, selectStyleTarget,
       openInspector, openCanvasInspector, finishStyleEdit, finishOpacityEdit, assignFontFamily,
-      openManageSwatches, openColor, refreshColorSelection, assignColor, openCanvasColorEditor, openSwatchEditor,
+      openManageSwatches, openColor, assignColor, openCanvasColorEditor, openSwatchEditor,
       openEditorColorPicker, updateFromChannels, readHex, setDarkBehavior, setColorMode, setColorHex,
       setSwatchName, acceptColor, deleteSwatch, saveColor
     },

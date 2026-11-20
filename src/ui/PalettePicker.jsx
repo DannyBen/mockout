@@ -74,17 +74,6 @@ export function PalettePicker({ ui }) {
   useLayoutEffect(() => { hexRef.current?.setCustomValidity(p?.hexError || ''); }, [p?.hexError]);
   if (!p) return <section id="box-color-picker" hidden aria-label="Choose palette color" />;
   const { api, draft } = p;
-  const colorKeys = event => {
-    const button = event.target.closest('[data-color-id]');
-    if (event.key === 'Enter' && button) {
-      event.preventDefault(); event.stopPropagation();
-      event.nativeEvent.stopImmediatePropagation();
-      api.accept(button.dataset.colorId || null);
-      return;
-    }
-    moveInList(event, true);
-    if (event.defaultPrevented) api.select(document.activeElement.dataset.colorId || null);
-  };
   const recipe = p.recipe || { base: { l: 60, c: .12, h: 250 }, step: { l: 0, c: 0, h: 0 } };
   return <section id="box-color-picker" hidden={inspector.view !== 'box-color'} aria-label="Choose palette color" onKeyDown={api.escape}>
     <div className="palette-layout">
@@ -96,7 +85,7 @@ export function PalettePicker({ ui }) {
           <option value="new" data-new-palette="">New palette…</option>
         </select>
         <input data-palette-title="" type="text" maxLength="60" aria-label="Palette name" placeholder="Palette name" hidden={!draft} value={draft?.name || ''} onChange={event => api.rename(event.target.value)} />
-        <div onKeyDown={colorKeys}>
+        <div onKeyDown={event => moveInList(event, true)}>
           <ColorBlock data-transparent="" data-color-id="" hidden={Boolean(draft)} aria-pressed={p.selectedId === null} selected={p.selectedId === null} label="Transparent" onClick={() => api.pick(null)} />
           {p.unassigned && <ColorBlock data-unassigned="" data-color-id={p.unassigned.id} hidden={Boolean(draft)} color={p.unassigned.color} label="Unassigned"
             aria-pressed={p.selectedId === p.unassigned.id} selected={p.selectedId === p.unassigned.id} onClick={() => api.pick(p.unassigned.id)} />}

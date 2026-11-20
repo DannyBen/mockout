@@ -48,10 +48,11 @@ stay linked across your mockup, and light/dark variants are built in. Palettes u
 OKLCH and offer Inverse, Same, and Custom dark modes. Press **T** to switch themes.
 You can also choose fonts and Material icons in box properties.
 
-In the color strip, click a color or use the arrow keys to preview it. Click
-another box to apply and keep the strip open for that box, using the same property
-and palette. Click empty canvas, press Enter, or click the selected color to apply
-and close. Escape or the close button cancels the preview.
+In the color strip, click a color to apply it immediately, or use the arrow keys
+to focus a color and press **Enter** or **Space** to apply it. From Fill, Text,
+or Border, use the header’s Back button or **Alt+2** to return to Colors. Use
+Undo to revert an applied color. Click another box to keep coloring the same
+property with the same palette.
 
 Deleting a palette or reducing its color count keeps colors that are still in
 use, including their light and dark appearances. They appear as **Unassigned** in
@@ -163,11 +164,11 @@ separate, manual action (`pnpm dlx wrangler deploy`); local checks do not deploy
 
 React subscribes to cached view snapshots through `useSyncExternalStore` and
 invokes editor commands rather than mutating the document. Project edits pass
-through the editor's undo/redo and persistence path; color previews stay in a
-draft until Save. Browser file handles, permissions, polling and revision guards
-remain in the native file service. The storage keys, file-connection database and
-version-1 project format are unchanged. Unsupported saved data is left untouched
-and autosave stays paused.
+through the editor's undo/redo and persistence path. Palette recipe previews
+stay in a draft until Save. Browser file handles, permissions, polling and
+revision guards remain in the native file service. The storage keys,
+file-connection database and version-1 project format are unchanged. Unsupported
+saved data is left untouched and autosave stays paused.
 
 ---
 
